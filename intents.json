@@ -4,80 +4,380 @@
       "tag": "greeting",
       "patterns": [
         "Hi",
-        "Hey",
-        "How are you",
-        "Is anyone there?",
         "Hello",
-        "Good day"
+        "Good morning",
+        "Good afternoon",
+        "Good evening",
+        "Hey",
+        "What's up",
+        "Greetings",
+        "Hi there",
+        "Hello there",
+        "Good day",
+        "Howdy",
+        "Salutations"
       ],
       "responses": [
-        "Hey :-)",
-        "Hello, thanks for visiting",
-        "Hi there, what can I do for you?",
-        "Hi there, how can I help?"
+        "Hello! How can I assist you today?",
+        "Hi there, how can I help you?",
+        "Good day! What can I do for you?",
+        "Greetings! I'm here to help with your college inquiries.",
+        "Welcome to TCC Assistant! How may I be of service?"
+      ]
+    },
+    {
+      "tag": "admission_office",
+      "patterns": [
+        "Admission Office",
+        "How can I apply?",
+        "Admission requirements",
+        "Where can I get the application form",
+        "How do I enroll",
+        "Application deadline",
+        "When is the enrollment period",
+        "Enrollment process",
+        "Apply for college",
+        "College application",
+        "Admission criteria",
+        "Entry requirements",
+        "How to get admitted",
+        "Admission procedure",
+        "Application form download",
+        "Admission test",
+        "Entrance exam",
+        "College entrance",
+        "New student application",
+        "Freshman admission",
+        "Transfer student admission",
+        "Graduate admission",
+        "Undergraduate admission",
+        "Application status",
+        "Admission interview",
+        "Document requirements",
+        "Academic requirements",
+        "Minimum grade requirements",
+        "Admission fee"
+      ],
+      "responses": [
+        "The Admission Office handles student applications. You can apply online or visit our office for more details.",
+        "For admission requirements and deadlines, please contact the Admission Office at the main building.",
+        "Enrollment information and forms are available at the Admission Office during business hours.",
+        "Visit our Admission Office for complete application procedures and requirements.",
+        "The Admission Office is located on the ground floor of the Main Building. Office hours: Monday-Friday, 8:00 AM - 5:00 PM.",
+        "Application forms can be downloaded from our website or obtained directly from the Admission Office."
+      ]
+    },
+    {
+      "tag": "registrar_office",
+      "patterns": [
+        "Registrar Office",
+        "Where is the Registrar's Office",
+        "Request transcript",
+        "How to get my grades",
+        "How to get enrollment form",
+        "Academic records",
+        "Change my subjects",
+        "Official transcript",
+        "Grade report",
+        "Enrollment certificate",
+        "Class schedule",
+        "Course registration",
+        "Drop subjects",
+        "Add subjects",
+        "Academic transcript",
+        "Student records",
+        "Diploma verification",
+        "Certificate of grades",
+        "Course enrollment",
+        "Subject registration",
+        "Class scheduling",
+        "Academic calendar",
+        "Semester registration",
+        "Course catalog",
+        "Prerequisites",
+        "Credit hours",
+        "Dean's list",
+        "Academic standing",
+        "GPA computation",
+        "Graduation requirements"
+      ],
+      "responses": [
+        "The Registrar's Office manages student records and enrollment. Office hours: Mon–Fri, 8 AM–5 PM.",
+        "For transcripts, enrollment forms, or schedule changes, visit the Registrar's Office at the main building, 2nd floor.",
+        "Academic records and grade information can be obtained from the Registrar's Office.",
+        "The Registrar's Office handles all official student documents and academic records.",
+        "You can request official transcripts and certificates at the Registrar's Office. Processing time is usually 3-5 business days.",
+        "Course registration and schedule changes are processed through the Registrar's Office during enrollment periods."
+      ]
+    },
+    {
+      "tag": "ict_office",
+      "patterns": [
+        "ICT Office",
+        "How to reset student portal password",
+        "Internet issues",
+        "WiFi password",
+        "IT help",
+        "Student email problems",
+        "Where is the ICT office",
+        "Computer lab access",
+        "Network problems",
+        "Login issues",
+        "Student portal",
+        "Email setup",
+        "WiFi connection",
+        "Technical support",
+        "Password reset",
+        "System maintenance",
+        "Student account",
+        "Computer problems",
+        "Software issues",
+        "Hardware problems",
+        "Printer issues",
+        "Network connectivity",
+        "Student ID card",
+        "Digital services",
+        "Online learning platform",
+        "LMS access",
+        "Video conferencing",
+        "Tech troubleshooting",
+        "System updates",
+        "Security issues"
+      ],
+      "responses": [
+        "The ICT Office handles tech support like student portal, WiFi, and email issues. They're located at the IT Building, Room 101.",
+        "For password resets, visit the ICT Office or contact our IT support team.",
+        "Technical assistance for student accounts and connectivity issues is available at the ICT Office.",
+        "The ICT Office provides comprehensive technical support for all students.",
+        "WiFi credentials and internet connectivity issues can be resolved at the ICT Office. Support hours: Mon-Fri, 7:30 AM - 6:00 PM.",
+        "Student portal access problems? Visit the ICT Office with your student ID for immediate assistance."
+      ]
+    },
+    {
+      "tag": "guidance_office",
+      "patterns": [
+        "Guidance Office",
+        "I need counseling",
+        "Scholarship requirements",
+        "Career advice",
+        "Personal counseling",
+        "Where is the Guidance Office",
+        "Academic counseling",
+        "Financial aid",
+        "Career guidance",
+        "Scholarship application",
+        "Student counselor",
+        "Mental health support",
+        "Academic planning",
+        "Course selection help",
+        "Career opportunities",
+        "Job placement",
+        "Internship programs",
+        "Psychological counseling",
+        "Stress management",
+        "Study habits",
+        "Time management",
+        "Goal setting",
+        "Career assessment",
+        "Resume building",
+        "Interview preparation",
+        "Job search assistance",
+        "Graduate school preparation",
+        "Academic difficulties",
+        "Personal problems",
+        "Peer counseling"
+      ],
+      "responses": [
+        "The Guidance Office offers counseling, scholarships, and career advice. Location: Main Building, Room 210.",
+        "To schedule an appointment for counseling or career guidance, visit the Guidance Office.",
+        "Scholarship information and personal counseling services are available through the Guidance Office.",
+        "Our Guidance Office provides comprehensive support for academic and personal development.",
+        "The Guidance Office offers free counseling services for students. Walk-ins welcome during office hours: Mon-Fri, 8:00 AM - 5:00 PM.",
+        "Career counseling and job placement assistance are available at the Guidance Office. Schedule an appointment online or visit in person."
+      ]
+    },
+    {
+      "tag": "osa_office",
+      "patterns": [
+        "Office of Student Affairs",
+        "OSA Office",
+        "Clubs and organizations",
+        "Student activities",
+        "Student discipline",
+        "OSA events",
+        "Where is the OSA office",
+        "Student organizations",
+        "Campus activities",
+        "Student government",
+        "Extracurricular activities",
+        "Student clubs",
+        "Sports activities",
+        "Cultural events",
+        "Student participation",
+        "Leadership programs",
+        "Student services",
+        "Student council",
+        "Campus events",
+        "Social activities",
+        "Volunteer programs",
+        "Community service",
+        "Student handbook",
+        "Code of conduct",
+        "Disciplinary actions",
+        "Student rights",
+        "Campus policies",
+        "Event planning",
+        "Organization registration",
+        "Club membership"
+      ],
+      "responses": [
+        "The Office of Student Affairs manages student activities, clubs, and discipline. They're at the Student Center, Room 305.",
+        "For joining clubs or student activities, visit OSA or check our student portal.",
+        "Student organization information and campus events are coordinated by the Office of Student Affairs.",
+        "OSA oversees all student life activities and provides support for student organizations.",
+        "The OSA coordinates all extracurricular activities and student organizations. Visit them for club registration and event planning.",
+        "Student disciplinary matters and policy questions are handled by the Office of Student Affairs. Office hours: Mon-Fri, 8:00 AM - 5:00 PM."
+      ]
+    },
+    {
+      "tag": "announcements",
+      "patterns": [
+        "What's new",
+        "Any announcements",
+        "College news",
+        "What's happening",
+        "Latest updates",
+        "School announcements",
+        "Recent news",
+        "Updates",
+        "Current events",
+        "Important notices",
+        "Campus news",
+        "College updates",
+        "Recent announcements",
+        "News and updates",
+        "What's going on",
+        "Latest news",
+        "Upcoming events",
+        "School bulletin",
+        "Official notices",
+        "College notifications",
+        "Breaking news",
+        "Press releases",
+        "Event announcements",
+        "Academic announcements",
+        "Emergency notices",
+        "Holiday announcements",
+        "Schedule changes"
+      ],
+      "responses": [
+        "Let me check the latest announcements for you!",
+        "Here are the current college announcements:",
+        "I'll show you the latest updates from the college.",
+        "Let me fetch the most recent college announcements for you.",
+        "Here's what's new at TCC - let me get the latest announcements!"
+      ]
+    },
+    {
+      "tag": "context_switch",
+      "patterns": [
+        "Switch to",
+        "Change topic",
+        "Different office",
+        "Another office",
+        "I want to ask about",
+        "Can you help me with",
+        "Switch context",
+        "Change subject",
+        "Move to",
+        "Go to",
+        "Talk about",
+        "Tell me about",
+        "I need help with",
+        "Information about",
+        "Details about",
+        "Connect me to"
+      ],
+      "responses": [
+        "I can help you with that office. Let me switch to that topic for you.",
+        "Sure, I'll help you with information about that office instead.",
+        "I've switched to help you with that office's information.",
+        "No problem! I'm now ready to assist you with that topic."
       ]
     },
     {
       "tag": "goodbye",
-      "patterns": ["Bye", "See you later", "Goodbye"],
+      "patterns": [
+        "Bye",
+        "See you later",
+        "Goodbye",
+        "See you",
+        "Take care",
+        "Until next time",
+        "Farewell",
+        "Catch you later",
+        "Have a good day",
+        "Talk to you later",
+        "Goodbye for now",
+        "See you soon",
+        "Adios",
+        "Peace out",
+        "Later",
+        "Ciao",
+        "Till next time",
+        "Have a great day"
+      ],
       "responses": [
-        "See you later, thanks for visiting",
-        "Have a nice day",
-        "Bye! Come back again soon."
+        "Goodbye — have a great day!",
+        "See you later!",
+        "Take care!",
+        "Have a wonderful day ahead!",
+        "Farewell! Feel free to come back anytime you need assistance.",
+        "Until next time! Have a fantastic day!"
       ]
     },
     {
       "tag": "thanks",
-      "patterns": ["Thanks", "Thank you", "That's helpful", "Thank's a lot!"],
-      "responses": ["Happy to help!", "Any time!", "My pleasure"]
-    },
-    {
-      "tag": "items",
       "patterns": [
-        "Which items do you have?",
-        "What kinds of items are there?",
-        "What do you sell?"
+        "Thanks",
+        "Thank you",
+        "That's helpful",
+        "Thanks a lot",
+        "Much appreciated",
+        "Thank you so much",
+        "I appreciate it",
+        "Thanks for the help",
+        "Great, thanks",
+        "Perfect, thank you",
+        "Awesome, thanks",
+        "Brilliant, thanks",
+        "Excellent, thank you",
+        "Wonderful, thanks",
+        "Amazing, thank you",
+        "Fantastic, thanks",
+        "Appreciate your help",
+        "Very helpful"
       ],
       "responses": [
-        "We sell coffee and tea",
-        "We have coffee and tea"
+        "You're welcome! Happy to help.",
+        "Anytime! Glad I could assist.",
+        "My pleasure! Let me know if you need anything else.",
+        "You're very welcome!",
+        "Glad I could be of help! Is there anything else you'd like to know?",
+        "You're most welcome! Feel free to ask if you have more questions."
       ]
     },
+
     {
-      "tag": "payments",
-      "patterns": [
-        "Do you take credit cards?",
-        "Do you accept Mastercard?",
-        "Can I pay with Paypal?",
-        "Are you cash only?"
-      ],
+      "tag": "fallback",
+      "patterns": [],
       "responses": [
-        "We accept VISA, Mastercard and Paypal",
-        "We accept most major credit cards, and Paypal"
-      ]
-    },
-    {
-      "tag": "delivery",
-      "patterns": [
-        "How long does delivery take?",
-        "How long does shipping take?",
-        "When do I get my delivery?"
-      ],
-      "responses": [
-        "Delivery takes 2-4 days",
-        "Shipping takes 2-4 days"
-      ]
-    },
-    {
-      "tag": "funny",
-      "patterns": [
-        "Tell me a joke!",
-        "Tell me something funny!",
-        "Do you know a joke?"
-      ],
-      "responses": [
-        "Why did the hipster burn his mouth? He drank the coffee before it was cool.",
-        "What did the buffalo say when his son left for college? Bison."
+        "I'm not sure I understand. Could you rephrase your question or try one of the suggested topics?",
+        "Sorry, I don't have that information yet. Please try selecting from the suggested topics.",
+        "I'm still learning. Could you try asking about our offices or services?",
+        "I might not have understood that correctly. Try asking about admission, registrar, ICT, guidance, or student affairs.",
+        "I don't quite understand that. Would you like to try asking about a specific office or service?",
+        "Could you please rephrase your question? I'm here to help with information about college offices and services."
       ]
     }
   ]

@@ -1,0 +1,321 @@
+import os
+import json
+import uuid
+from typing import List, Dict, Any, Optional
+import numpy as np
+from sentence_transformers import SentenceTransformer
+from pinecone import Pinecone, ServerlessSpec
+import time
+from dotenv import load_dotenv
+load_dotenv()  # <-- this loads .env into os.environ
+
+
+class VectorStore:
+    def __init__(self, 
+                 index_name: str = "chatbot-vectors",
+                 model_name: str = "all-MiniLM-L6-v2",
+                 dimension: int = 384):
+        """
+        Initialize Pinecone vector store
+        
+        Args:
+            index_name: Name of Pinecone index
+            model_name: SentenceTransformers model name
+            dimension: Vector dimension (384 for all-MiniLM-L6-v2)
+        """
+        self.index_name = index_name
+        self.model_name = model_name
+        self.dimension = dimension
+        
+        # Initialize embedding model
+        print(f"Loading embedding model: {model_name}")
+        self.embedding_model = SentenceTransformer(model_name)
+        
+        # Initialize Pinecone
+        self.pc = None
+        self.index = None
+        self._initialize_pinecone()
+        
+    def _initialize_pinecone(self):
+        """Initialize Pinecone client and index"""
+        try:
+            # Get API key from environment
+            api_key = os.getenv('PINECONE_API_KEY')
+            if not api_key:
+                print("WARNING: PINECONE_API_KEY not found in environment variables")
+                print("Please set your Pinecone API key:")
+                print("export PINECONE_API_KEY='pcsk_3LGtPm_F7RyLr4yFTu4C7bbEonvRcCxysxCztU9ADjyRefakqjq7wxqjJXVwt5JD5TeM62'")
+                return
+            
+            # Initialize Pinecone client
+            self.pc = Pinecone(api_key=api_key)
+            
+            # Check if index exists, create if not
+            existing_indexes = [idx.name for idx in self.pc.list_indexes()]
+            
+            if self.index_name not in existing_indexes:
+                print(f"Creating new Pinecone index: {self.index_name}")
+                self.pc.create_index(
+                    name=self.index_name,
+                    dimension=self.dimension,
+                    metric='cosine',
+                    spec=ServerlessSpec(
+                        cloud='aws',
+                        region='us-east-1'
+                    )
+                )
+                # Wait for index to be ready
+                time.sleep(10)
+            
+            # Connect to index
+            self.index = self.pc.Index(self.index_name)
+            print(f"Connected to Pinecone index: {self.index_name}")
+            
+        except Exception as e:
+            print(f"Error initializing Pinecone: {e}")
+            print("Running in offline mode - vector search will be disabled")
+    
+    def generate_embedding(self, text: str) -> List[float]:
+        """Generate embedding for text using SentenceTransformers"""
+        try:
+            embedding = self.embedding_model.encode(text, convert_to_tensor=False)
+            return embedding.tolist()
+        except Exception as e:
+            print(f"Error generating embedding: {e}")
+            return [0.0] * self.dimension
+    
+    def store_text(self, text: str, metadata: Dict[str, Any] = None) -> str:
+        """
+        Store text with its embedding in Pinecone
+        
+        Args:
+            text: Text to store
+            metadata: Additional metadata to store with the text
+            
+        Returns:
+            Unique ID of stored vector
+        """
+        if not self.index:
+            print("Pinecone not available, skipping vector storage")
+            return ""
+        
+        try:
+            # Generate unique ID
+            vector_id = str(uuid.uuid4())
+            
+            # Generate embedding
+            embedding = self.generate_embedding(text)
+            
+            # Prepare metadata
+            if metadata is None:
+                metadata = {}
+            
+            metadata['text'] = text
+            metadata['timestamp'] = time.time()
+            
+            # Store in Pinecone
+            self.index.upsert(
+                vectors=[(vector_id, embedding, metadata)]
+            )
+            
+            return vector_id
+            
+        except Exception as e:
+            print(f"Error storing text in vector database: {e}")
+            return ""
+    
+    def search_similar(self, 
+                      query: str, 
+                      top_k: int = 5, 
+                      filter_dict: Dict = None,
+                      score_threshold: float = 0.7) -> List[Dict]:
+        """
+        Search for similar texts
+        
+        Args:
+            query: Query text
+            top_k: Number of results to return
+            filter_dict: Metadata filter
+            score_threshold: Minimum similarity score
+            
+        Returns:
+            List of similar texts with scores and metadata
+        """
+        if not self.index:
+            print("Pinecone not available, returning empty results")
+            return []
+        
+        try:
+            # Generate query embedding
+            query_embedding = self.generate_embedding(query)
+            
+            # Search in Pinecone
+            search_results = self.index.query(
+                vector=query_embedding,
+                top_k=top_k,
+                filter=filter_dict,
+                include_metadata=True,
+                include_values=False
+            )
+            
+            # Process results
+            results = []
+            for match in search_results.matches:
+                if match.score >= score_threshold:
+                    result = {
+                        'id': match.id,
+                        'score': float(match.score),
+                        'text': match.metadata.get('text', ''),
+                        'metadata': match.metadata
+                    }
+                    results.append(result)
+            
+            return results
+            
+        except Exception as e:
+            print(f"Error searching vectors: {e}")
+            return []
+    
+    def search_by_tag(self, 
+                     query: str, 
+                     tag: str, 
+                     top_k: int = 3) -> List[Dict]:
+        """
+        Search for similar texts within a specific tag/intent
+        
+        Args:
+            query: Query text
+            tag: Intent tag to filter by
+            top_k: Number of results to return
+            
+        Returns:
+            List of similar texts from the specified tag
+        """
+        filter_dict = {"tag": {"$eq": tag}}
+        return self.search_similar(query, top_k, filter_dict)
+    
+    def get_responses_by_tag(self, tag: str) -> List[str]:
+        """Get all responses for a specific tag"""
+        if not self.index:
+            return []
+        
+        try:
+            # Query for responses with specific tag
+            filter_dict = {
+                "tag": {"$eq": tag},
+                "intent_type": {"$eq": "response"}
+            }
+            
+            results = self.index.query(
+                vector=[0] * self.dimension,  # Dummy vector for metadata-only search
+                top_k=10,
+                filter=filter_dict,
+                include_metadata=True,
+                include_values=False
+            )
+            
+            responses = []
+            for match in results.matches:
+                text = match.metadata.get('text', '')
+                if text and text not in responses:
+                    responses.append(text)
+            
+            return responses
+            
+        except Exception as e:
+            print(f"Error getting responses by tag: {e}")
+            return []
+    
+    def store_announcements(self, announcements: List[Dict]) -> None:
+        """Store announcements in vector database"""
+        if not self.index:
+            return
+        
+        print("Storing announcements in vector database...")
+        
+        for announcement in announcements:
+            # Create searchable text from announcement
+            searchable_text = f"{announcement['title']} {announcement['message']}"
+            
+            metadata = {
+                'tag': 'announcements',
+                'intent_type': 'announcement',
+                'announcement_id': announcement['id'],
+                'title': announcement['title'],
+                'date': announcement['date'],
+                'priority': announcement['priority'],
+                'category': announcement['category'],
+                'active': announcement.get('active', True)
+            }
+            
+            self.store_text(searchable_text, metadata)
+    
+    def search_announcements(self, query: str, top_k: int = 3) -> List[Dict]:
+        """Search announcements by content"""
+        filter_dict = {
+            "intent_type": {"$eq": "announcement"},
+            "active": {"$eq": True}
+        }
+        return self.search_similar(query, top_k, filter_dict)
+    
+    def get_stats(self) -> Dict[str, Any]:
+        """Get vector database statistics"""
+        if not self.index:
+            return {"status": "offline", "total_vectors": 0}
+        
+        try:
+            stats = self.index.describe_index_stats()
+            return {
+                "status": "online",
+                "total_vectors": stats.total_vector_count,
+                "dimension": stats.dimension,
+                "index_fullness": stats.index_fullness
+            }
+        except Exception as e:
+            return {"status": "error", "error": str(e), "total_vectors": 0}
+    
+    def save_index(self, filename: str) -> None:
+        """Save index metadata (Pinecone handles vector storage)"""
+        try:
+            metadata = {
+                "index_name": self.index_name,
+                "model_name": self.model_name,
+                "dimension": self.dimension,
+                "stats": self.get_stats()
+            }
+            
+            with open(f"{filename}_metadata.json", 'w') as f:
+                json.dump(metadata, f, indent=2)
+            
+            print(f"Vector store metadata saved to {filename}_metadata.json")
+            
+        except Exception as e:
+            print(f"Error saving index metadata: {e}")
+    
+    def load_index(self, filename: str) -> bool:
+        """Load index metadata"""
+        try:
+            with open(f"{filename}_metadata.json", 'r') as f:
+                metadata = json.load(f)
+            
+            print(f"Loaded vector store metadata: {metadata}")
+            return True
+            
+        except Exception as e:
+            print(f"Error loading index metadata: {e}")
+            return False
+    
+    def clear_index(self) -> bool:
+        """Clear all vectors from the index"""
+        if not self.index:
+            return False
+        
+        try:
+            # Delete all vectors
+            self.index.delete(delete_all=True)
+            print("Vector index cleared successfully")
+            return True
+            
+        except Exception as e:
+            print(f"Error clearing index: {e}")
+            return False

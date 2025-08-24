@@ -1,0 +1,94 @@
+{
+  "announcements": [
+    {
+      "id": 1,
+      "title": "College Orientation 2025",
+      "date": "2025-08-20",
+      "priority": "high",
+      "message": "Welcome to all freshmen! The college orientation will be held at the Main Auditorium on August 20, 2025, starting at 9:00 AM. Attendance is mandatory.",
+      "category": "academic",
+      "active": true
+    },
+    {
+      "id": 2,
+      "title": "Library Hours Extended",
+      "date": "2025-08-15",
+      "priority": "medium",
+      "message": "Starting August 15, 2025, the library will be open from 6:00 AM to 11:00 PM Monday through Friday to support student studies.",
+      "category": "facilities",
+      "active": true
+    },
+    {
+      "id": 3,
+      "title": "Scholarship Applications Open",
+      "date": "2025-08-25",
+      "priority": "high",
+      "message": "Scholarship applications for the Academic Year 2025-2026 are now open. Deadline for submission is September 30, 2025. Visit the Guidance Office for more details.",
+      "category": "financial",
+      "active": true
+    },
+    {
+      "id": 4,
+      "title": "Student Organization Fair",
+      "date": "2025-08-22",
+      "priority": "medium",
+      "message": "Join us for the Student Organization Fair on August 22, 2025, at the Student Center from 10:00 AM to 4:00 PM. Discover clubs and organizations to join!",
+      "category": "activities",
+      "active": true
+    },
+    {
+      "id": 5,
+      "title": "System Maintenance Notice",
+      "date": "2025-08-19",
+      "priority": "low",
+      "message": "The student portal will undergo maintenance on August 19, 2025, from 12:00 AM to 6:00 AM. Services may be temporarily unavailable.",
+      "category": "technical",
+      "active": true
+    },
+    {
+      "id": 6,
+      "title": "Final Examination Schedule Released",
+      "date": "2025-08-30",
+      "priority": "high",
+      "message": "The final examination schedule for the first semester has been released. Students can check their exam schedules on the student portal or visit the Registrar's Office.",
+      "category": "academic",
+      "active": true
+    },
+    {
+      "id": 7,
+      "title": "Career Fair 2025",
+      "date": "2025-09-05",
+      "priority": "medium",
+      "message": "Annual Career Fair will be held on September 5, 2025, at the College Gymnasium. Over 50 companies will participate. Bring your resumes!",
+      "category": "career",
+      "active": true
+    },
+    {
+      "id": 8,
+      "title": "New WiFi Network Available",
+      "date": "2025-08-18",
+      "priority": "low",
+      "message": "A new high-speed WiFi network 'TCC-5G' is now available across campus. Contact the ICT Office for access credentials.",
+      "category": "technical",
+      "active": true
+    },
+    {
+      "id": 9,
+      "title": "Sports Festival Registration",
+      "date": "2025-09-01",
+      "priority": "medium",
+      "message": "Registration for the Annual Sports Festival is now open. Various sports competitions available. Register through the Office of Student Affairs.",
+      "category": "activities",
+      "active": true
+    },
+    {
+      "id": 10,
+      "title": "Mental Health Awareness Week",
+      "date": "2025-08-28",
+      "priority": "high",
+      "message": "Mental Health Awareness Week will be held from August 28 to September 1, 2025. Free counseling sessions and workshops available at the Guidance Office.",
+      "category": "wellness",
+      "active": true
+    }
+  ]
+}

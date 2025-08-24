@@ -1,0 +1,11 @@
+{
+  "index_name": "chatbot-vectors",
+  "model_name": "all-MiniLM-L6-v2",
+  "dimension": 384,
+  "stats": {
+    "status": "online",
+    "total_vectors": 303,
+    "dimension": 384,
+    "index_fullness": 0.0
+  }
+}
