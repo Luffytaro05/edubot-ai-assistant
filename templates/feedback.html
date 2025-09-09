@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Feedback - EduChat Admin Portal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="{{ url_for('static', filename='assets/css/style.css') }}" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h3>EduChat Admin</h3>
+            </div>
+            <nav class="sidebar-nav">
+    <ul>
+        <li class="{% if active_page == 'dashboard' %}active{% endif %}">
+            <a href="{{ url_for('dashboard') }}"><i class="fas fa-th-large"></i> Dashboard</a>
+        </li>
+        
+        <li class="section-header">USER MANAGEMENT</li>
+        <li class="{% if active_page == 'users' %}active{% endif %}">
+            <a href="{{ url_for('users') }}"><i class="fas fa-users"></i> User Accounts</a>
+        </li>
+        <li class="{% if active_page == 'roles' %}active{% endif %}">
+            <a href="{{ url_for('roles') }}"><i class="fas fa-user-shield"></i> Roles & Permissions</a>
+        </li>
+        
+        <li class="section-header">CHATBOT MANAGEMENT</li>
+        <li class="{% if active_page == 'conversations' %}active{% endif %}">
+            <a href="{{ url_for('conversations') }}"><i class="fas fa-comments"></i> Conversation Logs</a>
+        </li>
+        <li class="{% if active_page == 'faq' %}active{% endif %}">
+            <a href="{{ url_for('faq') }}"><i class="fas fa-question-circle"></i> FAQ Management</a>
+        </li>
+        <li class="{% if active_page == 'settings' %}active{% endif %}">
+            <a href="{{ url_for('settings') }}"><i class="fas fa-cog"></i> Bot Settings</a>
+        </li>
+        
+        <li class="section-header">ANALYTICS</li>
+        <li class="{% if active_page == 'usage' %}active{% endif %}">
+            <a href="{{ url_for('usage') }}"><i class="fas fa-chart-bar"></i> Usage Statistics</a>
+        </li>
+        <li class="{% if active_page == 'feedback' %}active{% endif %}">
+            <a href="{{ url_for('feedback') }}"><i class="fas fa-heart"></i> User Feedback</a>
+        </li>
+    </ul>
+</nav>
+
+            
+            <!-- User Profile at Bottom -->
+            <div class="sidebar-user-profile">
+                <div class="user-avatar">A</div>
+                <div class="user-details">
+                    <div class="user-name">Admin User</div>
+                    <div class="user-role">Super Administrator</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <div class="header-left">
+                    <div class="search-bar">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="Search feedback" class="search-input" data-search-type="feedback">
+                    </div>
+                </div>
+                <div class="header-right">
+                    <div class="notification-icon">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge">3</span>
+                    </div>
+                    <div class="user-info">
+                        <div class="user-avatar">A</div>
+                        <div class="user-details">
+                            <div class="user-name">Admin User</div>
+                            <div class="user-role">Super Administrator</div>
+                        </div>
+                    </div>
+                    <div class="logout-icon" onclick="logout()">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Page Content -->
+            <div class="page-content">
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title">Feedback Management</h1>
+                        <p class="page-subtitle">Monitor user satisfaction and feedback</p>
+                    </div>
+                    <div class="header-actions">
+                        <button class="btn btn-outline-primary" onclick="exportFeedback()">
+                            <i class="fas fa-download"></i>
+                            Export
+                        </button>
+                    </div>
+                </div>
+
+                <!-- KPI Cards -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon rating">
+                            <i class="fas fa-star"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="avg-rating">0.0</h3>
+                            <p>Average Rating</p>
+                            <span class="stat-change positive">+0.3</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon positive">
+                            <i class="fas fa-thumbs-up"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="positive-feedback">0%</h3>
+                            <p>Positive Feedback</p>
+                            <span class="stat-change positive">+5.2%</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon negative">
+                            <i class="fas fa-thumbs-down"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="negative-feedback">0%</h3>
+                            <p>Negative Feedback</p>
+                            <span class="stat-change negative">+1.8%</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon total">
+                            <i class="fas fa-comment"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="total-feedback">0</h3>
+                            <p>Total Feedback</p>
+                            <span class="stat-change positive">+12.5%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filters -->
+                <div class="filters-section">
+                    <div class="filter-group">
+                        <label for="rating-filter">Rating:</label>
+                        <select id="rating-filter" class="form-control">
+                            <option value="all">All Ratings</option>
+                            <option value="5">5 Stars</option>
+                            <option value="4">4 Stars</option>
+                            <option value="3">3 Stars</option>
+                            <option value="2">2 Stars</option>
+                            <option value="1">1 Star</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="category-filter">Category:</label>
+                        <select id="category-filter" class="form-control">
+                            <option value="all">All Categories</option>
+                            <option value="academic">Academic</option>
+                            <option value="administrative">Administrative</option>
+                            <option value="technical">Technical</option>
+                            <option value="general">General</option>
+                        </select>
+                    </div>
+                    <div class="filter-actions">
+                        <button class="btn btn-outline-secondary" onclick="clearFilters()">
+                            <i class="fas fa-times"></i>
+                            Clear
+                        </button>
+                        <button class="btn btn-primary" onclick="applyFilters()">
+                            <i class="fas fa-filter"></i>
+                            Apply
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Feedback Table -->
+                <div class="table-container">
+                    <table class="table" id="feedback-table">
+                        <thead>
+                            <tr>
+                                <th>Rating</th>
+                                <th>Category</th>
+                                <th>Department</th>
+                                <th>Message</th>
+                                <th>Sentiment</th>
+                                <th>Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Feedback will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="{{ url_for('static', filename='assets/js/core/BaseManager.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/js/modules/AuthManager.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/js/modules/FeedbackManager.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/js/utils/toast.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/js/app.js') }}"></script>
+
+    <script>
+        let feedbackManager;
+        let currentFeedback = [];
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const authManager = new AuthManager();
+            if (!authManager.checkAuth()) {
+                window.location.href = '../index.html';
+                return;
+            }
+
+            feedbackManager = new FeedbackManager();
+            loadFeedback();
+            setupEventListeners();
+        });
+
+        function loadFeedback() {
+            currentFeedback = feedbackManager.getAll();
+            updateStats();
+            renderFeedbackTable();
+        }
+
+        function updateStats() {
+            const stats = feedbackManager.getStats();
+            
+            document.getElementById('avg-rating').textContent = (stats.averageRating || 0).toFixed(1);
+            document.getElementById('positive-feedback').textContent = (stats.positivePercentage || 0) + '%';
+            document.getElementById('negative-feedback').textContent = (stats.negativePercentage || 0) + '%';
+            document.getElementById('total-feedback').textContent = stats.totalFeedback || 0;
+        }
+
+        function renderFeedbackTable() {
+            const tbody = document.querySelector('#feedback-table tbody');
+            tbody.innerHTML = '';
+
+            currentFeedback.forEach(feedback => {
+                const row = document.createElement('tr');
+                const ratingStars = generateStars(feedback.rating);
+                const sentimentClass = feedback.sentiment === 'positive' ? 'positive' : 
+                                     feedback.sentiment === 'negative' ? 'negative' : 'neutral';
+                
+                row.innerHTML = `
+                    <td>
+                        <div class="rating-display">
+                            ${ratingStars}
+                            <span class="rating-text">${feedback.rating}/5</span>
+                        </div>
+                    </td>
+                    <td>${feedback.category}</td>
+                    <td>${feedback.department}</td>
+                    <td>${feedback.message.substring(0, 50)}${feedback.message.length > 50 ? '...' : ''}</td>
+                    <td>
+                        <span class="sentiment-badge ${sentimentClass}">
+                            ${feedback.sentiment.charAt(0).toUpperCase() + feedback.sentiment.slice(1)}
+                        </span>
+                    </td>
+                    <td>${formatDate(feedback.timestamp)}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary" onclick="viewFeedback('${feedback.id}')">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function generateStars(rating) {
+            let stars = '';
+            for (let i = 1; i <= 5; i++) {
+                if (i <= rating) {
+                    stars += '<i class="fas fa-star star-filled"></i>';
+                } else {
+                    stars += '<i class="far fa-star star-empty"></i>';
+                }
+            }
+            return stars;
+        }
+
+        function formatDate(timestamp) {
+            const date = new Date(timestamp);
+            return date.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+        }
+
+        function setupEventListeners() {
+            const searchInput = document.querySelector('.search-input');
+            searchInput.addEventListener('input', function() {
+                const query = this.value.trim();
+                if (query) {
+                    currentFeedback = feedbackManager.searchFeedback(query);
+                } else {
+                    currentFeedback = feedbackManager.getAll();
+                }
+                renderFeedbackTable();
+            });
+        }
+
+        function applyFilters() {
+            const ratingFilter = document.getElementById('rating-filter').value;
+            const categoryFilter = document.getElementById('category-filter').value;
+
+            currentFeedback = feedbackManager.getAll().filter(feedback => {
+                if (ratingFilter !== 'all' && feedback.rating !== parseInt(ratingFilter)) {
+                    return false;
+                }
+                if (categoryFilter !== 'all' && feedback.category !== categoryFilter) {
+                    return false;
+                }
+                return true;
+            });
+
+            renderFeedbackTable();
+        }
+
+        function clearFilters() {
+            document.getElementById('rating-filter').value = 'all';
+            document.getElementById('category-filter').value = 'all';
+            currentFeedback = feedbackManager.getAll();
+            renderFeedbackTable();
+        }
+
+        function viewFeedback(feedbackId) {
+            const feedback = feedbackManager.getById(feedbackId);
+            if (feedback) {
+                alert(`Feedback Details:\n\nRating: ${feedback.rating}/5\nCategory: ${feedback.category}\nDepartment: ${feedback.department}\nMessage: ${feedback.message}\nSentiment: ${feedback.sentiment}\nDate: ${formatDate(feedback.timestamp)}`);
+            }
+        }
+
+        function exportFeedback() {
+            try {
+                const csv = feedbackManager.exportToCSV();
+                downloadCSV(csv, 'feedback_data.csv');
+                toast.success('Feedback exported successfully');
+            } catch (error) {
+                toast.error('Failed to export feedback');
+            }
+        }
+
+        function downloadCSV(csv, filename) {
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+        function logout() {
+            const authManager = new AuthManager();
+            authManager.logout();
+            window.location.href = '../index.html';
+        }
+
+        // Global functions
+        window.clearFilters = clearFilters;
+        window.applyFilters = applyFilters;
+        window.viewFeedback = viewFeedback;
+        window.exportFeedback = exportFeedback;
+        window.logout = logout;
+    </script>
+
+    <style>
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .stat-icon.rating {
+            background: #fff3cd;
+            color: #ffc107;
+        }
+
+        .stat-icon.positive {
+            background: #e8f5e8;
+            color: #28a745;
+        }
+
+        .stat-icon.negative {
+            background: #fce4ec;
+            color: #e91e63;
+        }
+
+        .stat-icon.total {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .stat-content h3 {
+            margin: 0;
+            font-size: 2rem;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .stat-content p {
+            margin: 0.25rem 0;
+            color: #6c757d;
+            font-size: 0.875rem;
+        }
+
+        .stat-change {
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .stat-change.positive {
+            color: #28a745;
+        }
+
+        .stat-change.negative {
+            color: #dc3545;
+        }
+
+        .filters-section {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            display: flex;
+            gap: 1rem;
+            align-items: end;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .filter-group label {
+            font-weight: 500;
+            color: #2c3e50;
+            font-size: 0.875rem;
+        }
+
+        .filter-group select {
+            min-width: 150px;
+        }
+
+        .filter-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-left: auto;
+        }
+
+        .rating-display {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .star-filled {
+            color: #ffc107;
+        }
+
+        .star-empty {
+            color: #dee2e6;
+        }
+
+        .rating-text {
+            font-weight: 500;
+            color: #2c3e50;
+        }
+
+        .sentiment-badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .sentiment-badge.positive {
+            background: #e8f5e8;
+            color: #28a745;
+        }
+
+        .sentiment-badge.negative {
+            background: #fce4ec;
+            color: #e91e63;
+        }
+
+        .sentiment-badge.neutral {
+            background: #e9ecef;
+            color: #6c757d;
+        }
+
+        @media (max-width: 768px) {
+            .filters-section {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .filter-actions {
+                margin-left: 0;
+                justify-content: center;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</body>
+</html>

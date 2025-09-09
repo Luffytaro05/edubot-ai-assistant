@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bot Settings - EduChat Admin Portal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="{{ url_for('static', filename='assets/css/style.css') }}" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h3>EduChat Admin</h3>
+            </div>
+            <nav class="sidebar-nav">
+    <ul>
+        <li class="{% if active_page == 'dashboard' %}active{% endif %}">
+            <a href="{{ url_for('dashboard') }}"><i class="fas fa-th-large"></i> Dashboard</a>
+        </li>
+        
+        <li class="section-header">USER MANAGEMENT</li>
+        <li class="{% if active_page == 'users' %}active{% endif %}">
+            <a href="{{ url_for('users') }}"><i class="fas fa-users"></i> User Accounts</a>
+        </li>
+        <li class="{% if active_page == 'roles' %}active{% endif %}">
+            <a href="{{ url_for('roles') }}"><i class="fas fa-user-shield"></i> Roles & Permissions</a>
+        </li>
+        
+        <li class="section-header">CHATBOT MANAGEMENT</li>
+        <li class="{% if active_page == 'conversations' %}active{% endif %}">
+            <a href="{{ url_for('conversations') }}"><i class="fas fa-comments"></i> Conversation Logs</a>
+        </li>
+        <li class="{% if active_page == 'faq' %}active{% endif %}">
+            <a href="{{ url_for('faq') }}"><i class="fas fa-question-circle"></i> FAQ Management</a>
+        </li>
+        <li class="{% if active_page == 'settings' %}active{% endif %}">
+            <a href="{{ url_for('settings') }}"><i class="fas fa-cog"></i> Bot Settings</a>
+        </li>
+        
+        <li class="section-header">ANALYTICS</li>
+        <li class="{% if active_page == 'usage' %}active{% endif %}">
+            <a href="{{ url_for('usage') }}"><i class="fas fa-chart-bar"></i> Usage Statistics</a>
+        </li>
+        <li class="{% if active_page == 'feedback' %}active{% endif %}">
+            <a href="{{ url_for('feedback') }}"><i class="fas fa-heart"></i> User Feedback</a>
+        </li>
+    </ul>
+</nav>
+
+            
+            <!-- User Profile at Bottom -->
+            <div class="sidebar-user-profile">
+                <div class="user-avatar">A</div>
+                <div class="user-details">
+                    <div class="user-name">Admin User</div>
+                    <div class="user-role">Super Administrator</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <div class="header-left">
+                    <div class="search-bar">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="Search" class="search-input">
+                    </div>
+                </div>
+                <div class="header-right">
+                    <div class="notification-icon">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge">3</span>
+                    </div>
+                    <div class="user-info">
+                        <div class="user-avatar">A</div>
+                        <div class="user-details">
+                            <div class="user-name">Admin User</div>
+                            <div class="user-role">Super Administrator</div>
+                        </div>
+                    </div>
+                    <div class="logout-icon" onclick="logout()">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Page Content -->
+            <div class="page-content">
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title">Bot Settings</h1>
+                        <p class="page-subtitle">Configure chatbot behavior and appearance</p>
+                    </div>
+                </div>
+
+                <!-- Settings Layout -->
+                <div class="row g-4">
+                    <!-- Left Side: Suggested Messages -->
+                    <div class="col-lg-4">
+                        <div class="suggested-messages-section">
+                            <h5 class="section-title">Suggested Messages</h5>
+                            
+                            <!-- Office Welcome Messages -->
+                            <div class="welcome-messages">
+                                <div class="message-card">
+                                    <div class="message-header">
+                                        <h6 contenteditable="true" class="editable-title">Guidance Office</h6>
+                                    </div>
+                                    <div class="message-content">
+                                        <p contenteditable="true" class="editable-content">Great! I can help you with questions about the Guidance Office. What would you like to know?</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="message-card">
+                                    <div class="message-header">
+                                        <h6 contenteditable="true" class="editable-title">Office of Student Affairs</h6>
+                                    </div>
+                                    <div class="message-content">
+                                        <p contenteditable="true" class="editable-content">Great! I can help you with questions about the Office of Student Affairs. What would you like to know?</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Categories -->
+                            <div class="categories-section" id="categories-section">
+                                <div class="category-group" data-category="Admissions">
+                                    <div class="category-header">
+                                        <h6 contenteditable="true" class="editable-title">Admissions</h6>
+                                        <button class="btn btn-sm btn-outline-primary" onclick="showAddMessageModal('Admissions')">+ Add Message</button>
+                                    </div>
+                                    <div class="category-messages">
+                                        <div class="category-message">
+                                            <span contenteditable="true" class="editable-content">How do I apply for admission?</span>
+                                            <button class="btn btn-sm btn-link text-danger" onclick="deleteMessage(this)">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                        <div class="category-message">
+                                            <span contenteditable="true" class="editable-content">What are the requirements for enrollment?</span>
+                                            <button class="btn btn-sm btn-link text-danger" onclick="deleteMessage(this)">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                        <div class="category-message">
+                                            <span contenteditable="true" class="editable-content">When is the enrollment period?</span>
+                                            <button class="btn btn-sm btn-link text-danger" onclick="deleteMessage(this)">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="category-group" data-category="Registrar">
+                                    <div class="category-header">
+                                        <h6 contenteditable="true" class="editable-title">Registrar</h6>
+                                        <button class="btn btn-sm btn-outline-primary" onclick="showAddMessageModal('Registrar')">+ Add Message</button>
+                                    </div>
+                                    <div class="category-messages">
+                                        <div class="category-message">
+                                            <span contenteditable="true" class="editable-content">How do I request an official transcript?</span>
+                                            <button class="btn btn-sm btn-link text-danger" onclick="deleteMessage(this)">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Add New Category Button -->
+                            <div class="add-category-section">
+                                <button class="btn btn-primary btn-block" onclick="showAddCategoryModal()">+ Add New Category</button>
+                            </div>
+                        </div>
+                    </div>
+
+                                         <!-- Right Side: Bot Configuration -->
+                     <div class="col-lg-8">
+                         <div class="bot-configuration">
+                             <!-- Basic Settings -->
+                             <div class="config-panel mb-4">
+                                 <div class="card">
+                                     <div class="card-header">
+                                         <h5 class="card-title mb-0">Basic Settings</h5>
+                                     </div>
+                                     <div class="card-body">
+                                         <div class="row">
+                                             <div class="col-md-6">
+                                                 <div class="form-group">
+                                                     <label>Bot Name</label>
+                                                     <input type="text" id="bot-name" class="form-control" value="EduChat Assistant">
+                                                 </div>
+                                             </div>
+                                             <div class="col-md-6">
+                                                 <div class="form-group">
+                                                     <label>Bot Avatar</label>
+                                                     <div class="d-flex align-items-center">
+                                                         <div class="avatar-preview me-3" id="avatar-preview">
+                                                             <i class="fas fa-user"></i>
+                                                         </div>
+                                                         <input type="file" id="avatar-upload" accept="image/*" style="display: none;" onchange="uploadAvatar(this)">
+                                                         <button class="btn btn-outline-primary btn-sm" onclick="document.getElementById('avatar-upload').click()">Upload Avatar</button>
+                                                     </div>
+                                                 </div>
+                                             </div>
+                                         </div>
+                                         <div class="form-group mt-3">
+                                             <label>Welcome Message</label>
+                                             <textarea id="welcome-message" class="form-control" rows="3">Hello! I'm EduChat, your virtual assistant. How can I help you today?</textarea>
+                                         </div>
+                                         
+                                         <!-- Office-Specific Welcome Messages -->
+                                         <div class="mt-4">
+                                             <h6 class="text-muted mb-3">Office-Specific Welcome Messages</h6>
+                                             <div class="office-messages">
+                                                 <div class="office-message-item">
+                                                     <label>Registrar Office</label>
+                                                     <textarea class="form-control" rows="2">Great! I can help you with questions about the Registrar Office. What would you like to know?</textarea>
+                                                 </div>
+                                                 <div class="office-message-item">
+                                                     <label>ICT Office</label>
+                                                     <textarea class="form-control" rows="2">Great! I can help you with questions about the ICT Office. What would you like to know?</textarea>
+                                                 </div>
+                                                 <div class="office-message-item">
+                                                     <label>Admissions Office</label>
+                                                     <textarea class="form-control" rows="2">Great! I can help you with questions about the Admission Office. What would you like to know?</textarea>
+                                                 </div>
+                                                 <div class="office-message-item">
+                                                     <label>Guidance Office</label>
+                                                     <textarea class="form-control" rows="2">Great! I can help you with questions about the Guidance Office. What would you like to know?</textarea>
+                                                 </div>
+                                             </div>
+                                         </div>
+                                     </div>
+                                 </div>
+                             </div>
+
+                             <!-- Conversation Settings -->
+                             <div class="config-panel mb-4">
+                                 <div class="card">
+                                     <div class="card-header">
+                                         <h5 class="card-title mb-0">Conversation Settings</h5>
+                                     </div>
+                                     <div class="card-body">
+                                         <div class="row">
+                                             <div class="col-md-6">
+                                                 <div class="form-group">
+                                                     <label>Response Timeout (seconds)</label>
+                                                     <div class="d-flex align-items-center">
+                                                         <input type="range" id="response-timeout" class="form-range me-2" min="5" max="60" value="30" oninput="updateTimeoutValue(this)">
+                                                         <span class="text-muted" id="timeout-value">Current: 30s</span>
+                                                     </div>
+                                                 </div>
+                                             </div>
+                                         </div>
+                                         <div class="row mt-3">
+                                             <div class="col-md-6">
+                                                 <div class="form-check">
+                                                     <input class="form-check-input" type="checkbox" checked>
+                                                     <label class="form-check-label">Show Typing Indicator</label>
+                                                     <small class="form-text text-muted d-block">Display 'Bot is typing...' animation.</small>
+                                                 </div>
+                                             </div>
+                                             <div class="col-md-6">
+                                                 <div class="form-check">
+                                                     <input class="form-check-input" type="checkbox" checked>
+                                                     <label class="form-check-label">Show Suggested Questions</label>
+                                                     <small class="form-text text-muted d-block">Display follow-up question suggestions.</small>
+                                                 </div>
+                                             </div>
+                                         </div>
+                                     </div>
+                                 </div>
+                             </div>
+
+                             <!-- Personality Settings -->
+                             <div class="config-panel mb-4">
+                                 <div class="card">
+                                     <div class="card-header">
+                                         <h5 class="card-title mb-0">Personality Settings</h5>
+                                     </div>
+                                     <div class="card-body">
+                                         <div class="form-group">
+                                             <label>Tone of Voice</label>
+                                             <div class="form-check">
+                                                 <input class="form-check-input" type="radio" name="tone" checked>
+                                                 <label class="form-check-label">Professional</label>
+                                             </div>
+                                             <div class="form-check">
+                                                 <input class="form-check-input" type="radio" name="tone">
+                                                 <label class="form-check-label">Friendly</label>
+                                             </div>
+                                             <div class="form-check">
+                                                 <input class="form-check-input" type="radio" name="tone">
+                                                 <label class="form-check-label">Casual</label>
+                                             </div>
+                                         </div>
+                                         <div class="form-group mt-3">
+                                             <label>Custom Greetings</label>
+                                             <div class="form-check">
+                                                 <input class="form-check-input" type="checkbox" checked>
+                                                 <label class="form-check-label">Morning greeting</label>
+                                             </div>
+                                             <div class="form-check">
+                                                 <input class="form-check-input" type="checkbox" checked>
+                                                 <label class="form-check-label">Afternoon greeting</label>
+                                             </div>
+                                             <div class="form-check">
+                                                 <input class="form-check-input" type="checkbox">
+                                                 <label class="form-check-label">Evening greeting</label>
+                                             </div>
+                                         </div>
+                                     </div>
+                                 </div>
+                             </div>
+
+                             <!-- Advanced Settings -->
+                             <div class="config-panel mb-4">
+                                 <div class="card">
+                                     <div class="card-header">
+                                         <h5 class="card-title mb-0">Advanced Settings</h5>
+                                     </div>
+                                     <div class="card-body">
+                                         <div class="row">
+                                             <div class="col-md-6">
+                                                 <div class="form-group">
+                                                     <label>Confidence Threshold</label>
+                                                     <div class="d-flex align-items-center">
+                                                         <input type="range" id="confidence-threshold" class="form-range me-2" min="0" max="100" value="70" oninput="updateConfidenceValue(this)">
+                                                         <span class="text-muted" id="confidence-value">70%</span>
+                                                     </div>
+                                                     <small class="form-text text-muted">Minimum confidence level before using default response.</small>
+                                                 </div>
+                                             </div>
+                                             <div class="col-md-6">
+                                                 <div class="form-group">
+                                                     <label>Language Model</label>
+                                                     <select id="language-model" class="form-control">
+                                                         <option selected>GPT-3.5 (Default)</option>
+                                                         <option>GPT-4</option>
+                                                         <option>Claude</option>
+                                                     </select>
+                                                 </div>
+                                             </div>
+                                         </div>
+                                         <div class="form-group mt-3">
+                                             <label>Primary Color</label>
+                                             <input type="color" id="primary-color" class="form-control" value="#3B82F6" style="width: 60px; height: 40px;" onchange="updatePrimaryColor(this)">
+                                         </div>
+                                     </div>
+                                 </div>
+                             </div>
+
+                             <!-- Footer Actions -->
+                             <div class="config-panel">
+                                 <div class="card">
+                                     <div class="card-body">
+                                         <div class="d-flex justify-content-between align-items-center">
+                                             <button class="btn btn-outline-secondary" onclick="resetSettings()">
+                                                 Reset to Defaults
+                                             </button>
+                                             <button class="btn btn-primary" onclick="saveSettings()">
+                                                 Save Changes
+                                             </button>
+                                         </div>
+                                     </div>
+                                 </div>
+                             </div>
+                         </div>
+                     </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Add Message Modal -->
+    <div class="modal" id="add-message-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4>Add New Message</h4>
+                <button class="btn-close" onclick="closeModal('add-message-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="add-message-form">
+                    <input type="hidden" id="message-category" name="category">
+                    <div class="form-group">
+                        <label for="new-message-text">Message Text</label>
+                        <textarea id="new-message-text" name="message" class="form-control" rows="3" placeholder="Enter your message here..." required></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('add-message-modal')">Cancel</button>
+                <button class="btn btn-primary" onclick="addMessage()">Add Message</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Category Modal -->
+    <div class="modal" id="add-category-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4>Add New Category</h4>
+                <button class="btn-close" onclick="closeModal('add-category-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="add-category-form">
+                    <div class="form-group">
+                        <label for="new-category-name">Category Name</label>
+                        <input type="text" id="new-category-name" name="categoryName" class="form-control" placeholder="Enter category name..." required>
+                    </div>
+                    <div class="form-group mt-3">
+                        <label for="new-category-message">First Message</label>
+                        <textarea id="new-category-message" name="firstMessage" class="form-control" rows="3" placeholder="Enter the first message for this category..." required></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('add-category-modal')">Cancel</button>
+                <button class="btn btn-primary" onclick="addCategory()">Add Category</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='assets/js/modules/BaseManager.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/js/modules/AuthManager.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/js/modules/BotSettingsManager.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/js/app.js') }}"></script>
+    <script>
+        // Initialize managers
+        const authManager = new AuthManager();
+        const botSettingsManager = new BotSettingsManager();
+
+        // Check authentication
+        if (!authManager.isAuthenticated()) {
+            window.location.href = '../index.html';
+        }
+
+        // Save settings
+        function saveSettings() {
+            try {
+                // Collect all settings from form elements
+                const settings = {
+                    botName: document.getElementById('bot-name').value,
+                    welcomeMessage: document.getElementById('welcome-message').value,
+                    responseTimeout: document.getElementById('response-timeout').value,
+                    confidenceThreshold: document.getElementById('confidence-threshold').value,
+                    languageModel: document.getElementById('language-model').value,
+                    primaryColor: document.getElementById('primary-color').value,
+                    showTypingIndicator: document.querySelector('input[type="checkbox"]:checked') !== null,
+                    showSuggestedQuestions: document.querySelectorAll('input[type="checkbox"]:checked').length > 1,
+                    tone: document.querySelector('input[name="tone"]:checked')?.value || 'Professional',
+                    morningGreeting: document.querySelectorAll('input[type="checkbox"]:checked').length > 2,
+                    afternoonGreeting: document.querySelectorAll('input[type="checkbox"]:checked').length > 3,
+                    eveningGreeting: document.querySelectorAll('input[type="checkbox"]:checked').length > 4
+                };
+                
+                botSettingsManager.saveSettings(settings);
+                showToast('Settings saved successfully!', 'success');
+            } catch (error) {
+                showToast('Failed to save settings. Please try again.', 'error');
+            }
+        }
+
+        // Reset settings
+        function resetSettings() {
+            if (confirm('Are you sure you want to reset all settings to default?')) {
+                try {
+                    // Reset form values to defaults
+                    document.getElementById('bot-name').value = 'EduChat Assistant';
+                    document.getElementById('welcome-message').value = 'Hello! I\'m EduChat, your virtual assistant. How can I help you today?';
+                    document.getElementById('response-timeout').value = 30;
+                    document.getElementById('confidence-threshold').value = 70;
+                    document.getElementById('language-model').value = 'GPT-3.5 (Default)';
+                    document.getElementById('primary-color').value = '#3B82F6';
+                    
+                    // Update display values
+                    updateTimeoutValue(document.getElementById('response-timeout'));
+                    updateConfidenceValue(document.getElementById('confidence-threshold'));
+                    
+                    // Reset checkboxes and radio buttons
+                    document.querySelectorAll('input[type="checkbox"]').forEach((cb, index) => {
+                        cb.checked = index < 2; // First two checkboxes checked by default
+                    });
+                    document.querySelector('input[name="tone"]').checked = true;
+                    
+                    botSettingsManager.resetSettings();
+                    showToast('Settings reset to defaults successfully!', 'success');
+                } catch (error) {
+                    showToast('Failed to reset settings. Please try again.', 'error');
+                }
+            }
+        }
+
+        // Update timeout value display
+        function updateTimeoutValue(slider) {
+            document.getElementById('timeout-value').textContent = `Current: ${slider.value}s`;
+        }
+
+        // Update confidence value display
+        function updateConfidenceValue(slider) {
+            document.getElementById('confidence-value').textContent = `${slider.value}%`;
+        }
+
+        // Update primary color
+        function updatePrimaryColor(colorPicker) {
+            const color = colorPicker.value;
+            // You can add additional logic here to apply the color to the UI
+            console.log('Primary color changed to:', color);
+        }
+
+        // Upload avatar
+        function uploadAvatar(input) {
+            const file = input.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const avatarPreview = document.getElementById('avatar-preview');
+                    avatarPreview.innerHTML = `<img src="${e.target.result}" alt="Avatar" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
+                };
+                reader.readAsDataURL(file);
+                showToast('Avatar uploaded successfully!', 'success');
+            }
+        }
+
+        // Show add message modal
+        function showAddMessageModal(category) {
+            document.getElementById('message-category').value = category;
+            document.getElementById('add-message-modal').style.display = 'flex';
+            document.getElementById('new-message-text').value = '';
+        }
+
+        // Show add category modal
+        function showAddCategoryModal() {
+            document.getElementById('add-category-modal').style.display = 'flex';
+            document.getElementById('new-category-name').value = '';
+            document.getElementById('new-category-message').value = '';
+        }
+
+        // Add message to category
+        function addMessage() {
+            const category = document.getElementById('message-category').value;
+            const messageText = document.getElementById('new-message-text').value.trim();
+            
+            if (!messageText) {
+                showToast('Please enter a message text.', 'error');
+                return;
+            }
+            
+            try {
+                const categoryGroup = document.querySelector(`[data-category="${category}"]`);
+                const categoryMessages = categoryGroup.querySelector('.category-messages');
+                
+                const newMessage = document.createElement('div');
+                newMessage.className = 'category-message';
+                newMessage.innerHTML = `
+                    <span contenteditable="true" class="editable-content">${messageText}</span>
+                    <button class="btn btn-sm btn-link text-danger" onclick="deleteMessage(this)">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                `;
+                
+                categoryMessages.appendChild(newMessage);
+                closeModal('add-message-modal');
+                showToast('Message added successfully!', 'success');
+            } catch (error) {
+                showToast('Failed to add message. Please try again.', 'error');
+            }
+        }
+
+        // Add new category
+        function addCategory() {
+            const categoryName = document.getElementById('new-category-name').value.trim();
+            const firstMessage = document.getElementById('new-category-message').value.trim();
+            
+            if (!categoryName || !firstMessage) {
+                showToast('Please fill in all fields.', 'error');
+                return;
+            }
+            
+            try {
+                const categoriesSection = document.getElementById('categories-section');
+                
+                const newCategory = document.createElement('div');
+                newCategory.className = 'category-group';
+                newCategory.setAttribute('data-category', categoryName);
+                newCategory.innerHTML = `
+                    <div class="category-header">
+                        <h6 contenteditable="true" class="editable-title">${categoryName}</h6>
+                        <button class="btn btn-sm btn-outline-primary" onclick="showAddMessageModal('${categoryName}')">+ Add Message</button>
+                    </div>
+                    <div class="category-messages">
+                        <div class="category-message">
+                            <span contenteditable="true" class="editable-content">${firstMessage}</span>
+                            <button class="btn btn-sm btn-link text-danger" onclick="deleteMessage(this)">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                categoriesSection.appendChild(newCategory);
+                closeModal('add-category-modal');
+                showToast('Category added successfully!', 'success');
+            } catch (error) {
+                showToast('Failed to add category. Please try again.', 'error');
+            }
+        }
+
+        // Delete message
+        function deleteMessage(button) {
+            if (confirm('Are you sure you want to delete this message?')) {
+                try {
+                    const messageElement = button.closest('.category-message');
+                    messageElement.remove();
+                    showToast('Message deleted successfully!', 'success');
+                } catch (error) {
+                    showToast('Failed to delete message. Please try again.', 'error');
+                }
+            }
+        }
+
+        // Close modal
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        // Logout function
+        function logout() {
+            authManager.logout();
+            window.location.href = '../index.html';
+        }
+
+        // Show toast notification
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.innerHTML = `
+                <div class="toast-content">
+                    <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+                    <span>${message}</span>
+                </div>
+            `;
+            
+            document.body.appendChild(toast);
+            setTimeout(() => toast.classList.add('show'), 100);
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => document.body.removeChild(toast), 300);
+            }, 3000);
+        }
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set initial values for sliders
+            updateTimeoutValue(document.getElementById('response-timeout'));
+            updateConfidenceValue(document.getElementById('confidence-threshold'));
+        });
+    </script>
+
+    <style>
+        .suggested-messages-section {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e2e8f0;
+            height: fit-content;
+        }
+
+        .section-title {
+            color: #1e293b;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+        }
+
+        .welcome-messages {
+            margin-bottom: 2rem;
+        }
+
+        .message-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
+        .message-header h6 {
+            color: #1e293b;
+            font-weight: 600;
+            margin: 0 0 0.5rem 0;
+        }
+
+        .message-content p {
+            color: #64748b;
+            margin: 0;
+            font-size: 0.875rem;
+        }
+
+        .categories-section {
+            margin-bottom: 2rem;
+        }
+
+        .category-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .category-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .category-header h6 {
+            color: #1e293b;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .category-messages {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 0.5rem;
+        }
+
+        .category-message {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .category-message:last-child {
+            border-bottom: none;
+        }
+
+        .category-message span {
+            color: #64748b;
+            font-size: 0.875rem;
+        }
+
+        .add-category-section {
+            text-align: center;
+        }
+
+        .btn-block {
+            width: 100%;
+        }
+
+        .config-panel .card {
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            margin-bottom: 1rem;
+        }
+
+        .config-panel .card-header {
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 1rem 1.5rem;
+        }
+
+        .config-panel .card-title {
+            color: #1e293b;
+            font-weight: 600;
+        }
+
+        .theme-buttons {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .integration-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .integration-item:first-child {
+            padding-top: 0;
+        }
+
+        .integration-item:last-child {
+            border-bottom: none;
+        }
+
+        .integration-info h6 {
+            margin: 0;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .form-check-input:checked {
+            background-color: #3b82f6;
+            border-color: #3b82f6;
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e2e8f0;
+            z-index: 1000;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast-content {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .toast-success {
+            border-left: 4px solid #10b981;
+        }
+
+        .toast-error {
+            border-left: 4px solid #ef4444;
+        }
+
+        .toast-info {
+            border-left: 4px solid #3b82f6;
+        }
+
+        @media (max-width: 768px) {
+            .row {
+                flex-direction: column;
+            }
+            
+            .col-lg-4, .col-lg-8 {
+                width: 100%;
+            }
+        }
+
+        /* Additional styling to match image exactly */
+        .page-subtitle {
+            color: #64748b;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
+
+        .btn-sm {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+        }
+
+        .btn-link {
+            padding: 0;
+            text-decoration: none;
+        }
+
+        .btn-link:hover {
+            text-decoration: none;
+        }
+
+        .form-control {
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+        }
+
+                 .form-control:focus {
+             border-color: #3b82f6;
+             box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+         }
+
+         /* New styles for combined layout */
+         .avatar-preview {
+             width: 40px;
+             height: 40px;
+             border-radius: 50%;
+             background: #f1f5f9;
+             border: 2px solid #e2e8f0;
+             display: flex;
+             align-items: center;
+             justify-content: center;
+             color: #64748b;
+         }
+
+         .office-messages {
+             display: grid;
+             gap: 1rem;
+         }
+
+         .office-message-item {
+             background: #f8fafc;
+             border: 1px solid #e2e8f0;
+             border-radius: 8px;
+             padding: 1rem;
+         }
+
+         .office-message-item label {
+             font-weight: 600;
+             color: #1e293b;
+             margin-bottom: 0.5rem;
+             display: block;
+         }
+
+         .form-range {
+             height: 6px;
+             background: #e2e8f0;
+             border-radius: 3px;
+         }
+
+         .form-range::-webkit-slider-thumb {
+             background: #3b82f6;
+             border: none;
+             border-radius: 50%;
+             width: 16px;
+             height: 16px;
+         }
+
+         .form-range::-moz-range-thumb {
+             background: #3b82f6;
+             border: none;
+             border-radius: 50%;
+             width: 16px;
+             height: 16px;
+         }
+
+         .form-check {
+             margin-bottom: 0.75rem;
+         }
+
+         .form-check:last-child {
+             margin-bottom: 0;
+         }
+
+         .form-check-label {
+             font-weight: 500;
+             color: #1e293b;
+         }
+
+         .form-text {
+             font-size: 0.75rem;
+             color: #64748b;
+         }
+
+                 input[type="color"] {
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        /* Editable content styles */
+        .editable-title, .editable-content {
+            outline: none;
+            border: 1px solid transparent;
+            border-radius: 4px;
+            padding: 2px 4px;
+            transition: border-color 0.2s ease;
+        }
+
+        .editable-title:focus, .editable-content:focus {
+            border-color: #3b82f6;
+            background-color: #f8fafc;
+        }
+
+        .editable-title:hover, .editable-content:hover {
+            border-color: #e2e8f0;
+        }
+
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background-color: white;
+            border-radius: 12px;
+            padding: 0;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h4 {
+            margin: 0;
+            color: #1e293b;
+            font-weight: 600;
+        }
+
+        .btn-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #64748b;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            transition: background-color 0.2s ease;
+        }
+
+        .btn-close:hover {
+            background-color: #f1f5f9;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .modal-footer {
+            padding: 1.5rem;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75rem;
+        }
+
+        /* Toast notification styles */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e2e8f0;
+            z-index: 1000;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            min-width: 300px;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast-content {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .toast-success {
+            border-left: 4px solid #10b981;
+        }
+
+        .toast-error {
+            border-left: 4px solid #ef4444;
+        }
+
+        .toast-info {
+            border-left: 4px solid #3b82f6;
+        }
+
+        .toast-content i {
+            font-size: 1.25rem;
+        }
+
+        .toast-success .toast-content i {
+            color: #10b981;
+        }
+
+        .toast-error .toast-content i {
+            color: #ef4444;
+        }
+
+        .toast-info .toast-content i {
+            color: #3b82f6;
+        }
+    </style>
+</body>
+</html>

@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FAQ Management - {{ office|capitalize }} Office</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='Sub-assets/css/style.css') }}" rel="stylesheet">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h5 class="sidebar-title">
+                   <i class="fas fa-comments me-2"></i>
+                   {{ office|capitalize }} Office
+                </h5>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <a href="{{ url_for('sub_dashboard') }}?office={{ office }}" 
+                      class="nav-item {% if active_page == 'sub_dashboard' %}active{% endif %}">
+                         <i class="fas fa-th-large"></i> Dashboard
+                    </a>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">CHATBOT MANAGEMENT</div>
+                    <a href="{{ url_for('sub_conversations') }}?office={{ office }}" 
+                      class="nav-item {% if active_page == 'sub_conversations' %}active{% endif %}">
+                       <i class="fas fa-comments"></i> Conversation Logs
+                    </a>
+                    <a href="{{ url_for('sub_faq') }}?office={{ office }}" 
+                      class="nav-item {% if active_page == 'sub_faq' %}active{% endif %}">
+                       <i class="fas fa-question-circle"></i> FAQ Management
+                    </a>
+                    <a href="{{ url_for('sub_announcements') }}?office={{ office }}" 
+                      class="nav-item {% if active_page == 'sub_announcements' %}active{% endif %}">
+                       <i class="fas fa-bullhorn"></i> Announcements
+                    </a >
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">ANALYTICS</div>
+                    <a href="{{ url_for('sub_usage_stats') }}?office={{ office }}" 
+                      class="nav-item {% if active_page == 'sub_usage_stats' %}active{% endif %}">
+                       <i class="fas fa-chart-bar"></i> Usage Statistics
+                    </a>
+                    <a href="{{ url_for('sub_feedback') }}?office={{ office }}" 
+                      class="nav-item {% if active_page == 'sub_feedback' %}active{% endif %}">
+                       <i class="fas fa-heart"></i> User Feedback
+                    </a>
+                </div>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="user-details">
+                        <div class="user-name">{{ office|capitalize }} Office</div>
+                        <div class="user-role">Sub Admin</div>
+                    </div>
+                </div>
+             </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Header -->
+            <div class="header">
+                <div class="header-search">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Search" class="form-control">
+                </div>
+                
+                <div class="header-actions">
+                    <div class="notification-bell">
+                        <i class="fas fa-bell"></i>
+                        <div class="notification-dot"></div>
+                    </div>
+                    <div class="user-profile">
+                        <div class="user-info">
+                            <div class="user-name">{{ office|capitalize }} Office</div>
+                            <div class="user-role">Sub Admin</div>
+                        </div>
+                        <div class="user-avatar">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <button class="logout-btn" onclick="logout()">
+                            <i class="fas fa-sign-out-alt"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Content -->
+            <div class="content">
+                <h1 class="page-title">FAQs Management</h1>
+
+                <!-- Search and Add Button -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="search-bar">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="faqSearch" placeholder="Search FAQs..." class="form-control">
+                        </div>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <button class="btn btn-primary" onclick="openAddFAQModal()">
+                            <i class="fas fa-plus"></i> + Add New FAQ
+                        </button>
+                    </div>
+                </div>
+
+                <!-- FAQs Table -->
+                <div class="table-container">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Question</th>
+                                    <th>Answer</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="faqTableBody">
+                                <!-- FAQ rows will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit FAQ Modal -->
+    <div class="modal fade" id="faqModal" tabindex="-1" aria-labelledby="faqModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="faqModalLabel">Add New FAQ</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="faqForm">
+                        <input type="hidden" id="faqId" name="id">
+                        <div class="mb-3">
+                            <label for="faqQuestion" class="form-label">Question</label>
+                            <input type="text" class="form-control" id="faqQuestion" name="question" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="faqAnswer" class="form-label">Answer</label>
+                            <textarea class="form-control" id="faqAnswer" name="answer" rows="4" required></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="faqStatus" class="form-label">Status</label>
+                            <select class="form-control" id="faqStatus" name="status" required>
+                                <option value="draft">Draft</option>
+                                <option value="published">Published</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="saveFAQ()">Create</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- View FAQ Modal -->
+    <div class="modal fade" id="viewFAQModal" tabindex="-1" aria-labelledby="viewFAQModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="viewFAQModalLabel">View FAQ</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Question:</label>
+                        <p id="viewFAQQuestion"></p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Answer:</label>
+                        <p id="viewFAQAnswer"></p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Status:</label>
+                        <span id="viewFAQStatus"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Created:</label>
+                        <p id="viewFAQCreated"></p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Last Updated:</label>
+                        <p id="viewFAQUpdated"></p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container position-fixed top-0 end-0 p-3">
+        <div id="toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header">
+                <strong class="me-auto" id="toastTitle">Notification</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body" id="toastMessage">
+                This is a toast message.
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../assets/js/core/StorageManager.js"></script>
+    <script src="../assets/js/modules/AuthManager.js"></script>
+    <script src="../assets/js/UIManager.js"></script>
+    <script src="../assets/js/modules/FAQManager.js"></script>
+    <script>
+        // Global variables
+        let faqManager;
+        let uiManager;
+        let storageManager;
+
+        // Initialize FAQ page
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('FAQ page loading...');
+            
+            // Wait for all scripts to load
+            setTimeout(() => {
+                try {
+                    console.log('Initializing managers...');
+                    
+                    // Initialize managers
+                    storageManager = new StorageManager();
+                    uiManager = new UIManager();
+                    faqManager = new FAQManager();
+                    
+                    console.log('Managers initialized:', {
+                        storageManager: !!storageManager,
+                        uiManager: !!uiManager,
+                        faqManager: !!faqManager
+                    });
+                    
+                    // Check authentication - but don't block if auth manager is not available
+                    if (window.authManager) {
+                        if (!window.authManager.requireAuth()) {
+                            console.log('Authentication required, redirecting...');
+                            return;
+                        }
+                    } else {
+                        console.log('Auth manager not available, proceeding without authentication');
+                    }
+
+                    // Initialize FAQ manager
+                    faqManager.initialize();
+                    console.log('FAQ page initialized successfully');
+                    
+                    // Test if FAQs are loaded
+                    const faqs = storageManager.getFAQs();
+                    console.log('Loaded FAQs from storage:', faqs);
+                    
+                } catch (error) {
+                    console.error('Error initializing FAQ page:', error);
+                    alert('Error initializing FAQ page: ' + error.message);
+                }
+            }, 100);
+        });
+
+        // Logout function
+        function logout() {
+            if (window.authManager) {
+                window.authManager.logout();
+            }
+            window.location.href = '../index.html';
+        }
+
+        // Global functions for modal operations
+        function openAddFAQModal() {
+            console.log('Opening add FAQ modal');
+            document.getElementById('faqModalLabel').textContent = 'Add New FAQ';
+            document.getElementById('faqForm').reset();
+            document.getElementById('faqId').value = '';
+            document.querySelector('#faqModal .btn-primary').textContent = 'Create';
+            
+            if (uiManager && uiManager.showModal) {
+                uiManager.showModal('faqModal');
+            } else {
+                const modal = new bootstrap.Modal(document.getElementById('faqModal'));
+                modal.show();
+            }
+        }
+
+        function saveFAQ() {
+            console.log('Saving FAQ...');
+            if (faqManager && faqManager.saveFAQ) {
+                faqManager.saveFAQ();
+            } else {
+                console.error('FAQ Manager not initialized or saveFAQ method not found');
+                alert('FAQ Manager not properly initialized');
+            }
+        }
+
+        // Global functions for FAQ actions
+        function viewFAQ(id) {
+            console.log('Viewing FAQ:', id);
+            if (faqManager && faqManager.viewFAQ) {
+                faqManager.viewFAQ(id);
+            } else {
+                console.error('FAQ Manager not initialized or viewFAQ method not found');
+            }
+        }
+
+        function editFAQ(id) {
+            console.log('Editing FAQ:', id);
+            if (faqManager && faqManager.editFAQ) {
+                faqManager.editFAQ(id);
+            } else {
+                console.error('FAQ Manager not initialized or editFAQ method not found');
+            }
+        }
+
+        function deleteFAQ(id) {
+            console.log('Deleting FAQ:', id);
+            if (faqManager && faqManager.deleteFAQ) {
+                faqManager.deleteFAQ(id);
+            } else {
+                console.error('FAQ Manager not initialized or deleteFAQ method not found');
+            }
+        }
+
+        // Test function to manually test CRUD operations
+        function testCRUD() {
+            console.log('Testing CRUD operations...');
+            
+            if (!storageManager) {
+                alert('Storage Manager not initialized');
+                return;
+            }
+            
+            // Test adding FAQ
+            const testFAQ = {
+                question: 'Test Question - How do I test the system?',
+                answer: 'This is a test answer to verify that the CRUD operations are working properly.',
+                status: 'draft'
+            };
+            
+            const success = storageManager.addFAQ(testFAQ);
+            if (success) {
+                alert('Test FAQ added successfully!');
+                // Refresh the page to show the new FAQ
+                location.reload();
+            } else {
+                alert('Failed to add test FAQ');
+            }
+        }
+    </script>
+</body>
+</html>

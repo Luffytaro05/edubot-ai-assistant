@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roles & Permissions - EduChat Admin Portal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="{{ url_for('static', filename='assets/css/style.css') }}" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h3>EduChat Admin</h3>
+            </div>
+            <nav class="sidebar-nav">
+    <ul>
+        <li class="{% if active_page == 'dashboard' %}active{% endif %}">
+            <a href="{{ url_for('dashboard') }}"><i class="fas fa-th-large"></i> Dashboard</a>
+        </li>
+        
+        <li class="section-header">USER MANAGEMENT</li>
+        <li class="{% if active_page == 'users' %}active{% endif %}">
+            <a href="{{ url_for('users') }}"><i class="fas fa-users"></i> User Accounts</a>
+        </li>
+        <li class="{% if active_page == 'roles' %}active{% endif %}">
+            <a href="{{ url_for('roles') }}"><i class="fas fa-user-shield"></i> Roles & Permissions</a>
+        </li>
+        
+        <li class="section-header">CHATBOT MANAGEMENT</li>
+        <li class="{% if active_page == 'conversations' %}active{% endif %}">
+            <a href="{{ url_for('conversations') }}"><i class="fas fa-comments"></i> Conversation Logs</a>
+        </li>
+        <li class="{% if active_page == 'faq' %}active{% endif %}">
+            <a href="{{ url_for('faq') }}"><i class="fas fa-question-circle"></i> FAQ Management</a>
+        </li>
+        <li class="{% if active_page == 'settings' %}active{% endif %}">
+            <a href="{{ url_for('settings') }}"><i class="fas fa-cog"></i> Bot Settings</a>
+        </li>
+        
+        <li class="section-header">ANALYTICS</li>
+        <li class="{% if active_page == 'usage' %}active{% endif %}">
+            <a href="{{ url_for('usage') }}"><i class="fas fa-chart-bar"></i> Usage Statistics</a>
+        </li>
+        <li class="{% if active_page == 'feedback' %}active{% endif %}">
+            <a href="{{ url_for('feedback') }}"><i class="fas fa-heart"></i> User Feedback</a>
+        </li>
+    </ul>
+</nav>
+
+            
+            <!-- User Profile at Bottom -->
+            <div class="sidebar-user-profile">
+                <div class="user-avatar">A</div>
+                <div class="user-details">
+                    <div class="user-name">Admin User</div>
+                    <div class="user-role">Super Administrator</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <div class="header-left">
+                    <div class="search-bar">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="Search" class="search-input" data-search-type="roles">
+                    </div>
+                </div>
+                <div class="header-right">
+                    <div class="notification-icon">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge">3</span>
+                    </div>
+                    <div class="user-info">
+                        <div class="user-avatar">A</div>
+                        <div class="user-details">
+                            <div class="user-name">Admin User</div>
+                            <div class="user-role">Super Administrator</div>
+                        </div>
+                    </div>
+                    <div class="logout-icon" onclick="logout()">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Page Content -->
+            <div class="page-content">
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title">Roles & Permissions</h1>
+                        <p class="page-subtitle">Manage user roles and their associated permissions.</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="showAddRoleModal()">
+                        <i class="fas fa-plus"></i>
+                        + Add Role
+                    </button>
+                </div>
+
+                <!-- Role Cards -->
+                <div class="role-cards" id="role-cards">
+                    <!-- Role cards will be populated here -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Add Role Modal -->
+    <div class="modal" id="add-role-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4>Add New Role</h4>
+                <button class="btn-close" onclick="closeModal('add-role-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="add-role-form">
+                    <div class="form-group">
+                        <label for="add-office">Office</label>
+                        <select id="add-office" name="office" class="form-control" required>
+                            <option value="">Select Office</option>
+                            <option value="Registrar">Registrar</option>
+                            <option value="Admissions">Admissions</option>
+                            <option value="Guidance">Guidance</option>
+                            <option value="ICT Services">ICT Services</option>
+                            <option value="Office of Student Affairs (OSA)">Office of Student Affairs (OSA)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="add-permission">Permission</label>
+                        <div class="permission-input-group">
+                            <select id="add-permission" name="permission" class="form-control">
+                                <option value="">Select Permission</option>
+                                <option value="Access Dashboard">Access Dashboard</option>
+                                <option value="Conversation Logs">Conversation Logs</option>
+                                <option value="FAQ Management">FAQ Management</option>
+                                <option value="Announcements">Announcements</option>
+                                <option value="Usage Statistics">Usage Statistics</option>
+                                <option value="User Feedback">User Feedback</option>
+                            </select>
+                            <button type="button" class="btn btn-outline-primary" onclick="addPermission()">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="permissions-list" id="permissions-list">
+                        <!-- Permissions will be added here -->
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('add-role-modal')">Cancel</button>
+                <button class="btn btn-primary" onclick="addRole()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Role Modal -->
+    <div class="modal" id="edit-role-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4>Edit Role</h4>
+                <button class="btn-close" onclick="closeModal('edit-role-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="edit-role-form">
+                    <input type="hidden" id="edit-role-id" name="id">
+                    <div class="form-group">
+                        <label for="edit-office">Office</label>
+                        <select id="edit-office" name="office" class="form-control" required>
+                            <option value="">Select Office</option>
+                            <option value="Registrar">Registrar</option>
+                            <option value="Admissions">Admissions</option>
+                            <option value="Guidance">Guidance</option>
+                            <option value="ICT Services">ICT Services</option>
+                            <option value="Office of Student Affairs (OSA)">Office of Student Affairs (OSA)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-permission">Permission</label>
+                        <div class="permission-input-group">
+                            <select id="edit-permission" name="permission" class="form-control">
+                                <option value="">Select Permission</option>
+                                <option value="Access Dashboard">Access Dashboard</option>
+                                <option value="Conversation Logs">Conversation Logs</option>
+                                <option value="FAQ Management">FAQ Management</option>
+                                <option value="Announcements">Announcements</option>
+                                <option value="Usage Statistics">Usage Statistics</option>
+                                <option value="User Feedback">User Feedback</option>
+                            </select>
+                            <button type="button" class="btn btn-outline-primary" onclick="addEditPermission()">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="permissions-list" id="edit-permissions-list">
+                        <!-- Permissions will be added here -->
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('edit-role-modal')">Cancel</button>
+                <button class="btn btn-primary" onclick="updateRole()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="{{ url_for('static', filename='assets/js/core/BaseManager.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/js/modules/AuthManager.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/js/modules/RoleManager.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/js/utils/toast.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/js/app.js') }}"></script>
+
+    <script>
+        let roleManager;
+        let currentPermissions = [];
+        let editPermissions = [];
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const authManager = new AuthManager();
+            if (!authManager.checkAuth()) {
+                window.location.href = '../index.html';
+                return;
+            }
+
+            roleManager = new RoleManager();
+            loadRoles();
+            setupEventListeners();
+        });
+
+        function setupEventListeners() {
+            // Search functionality
+            const searchInput = document.querySelector('.search-input');
+            searchInput.addEventListener('input', function() {
+                const query = this.value.trim();
+                if (query) {
+                    const filteredRoles = roleManager.searchRoles(query);
+                    renderRoleCards(filteredRoles);
+                } else {
+                    loadRoles();
+                }
+            });
+        }
+
+        function loadRoles() {
+            const roles = roleManager.getAll();
+            renderRoleCards(roles);
+        }
+
+        function renderRoleCards(roles) {
+            const container = document.getElementById('role-cards');
+            container.innerHTML = '';
+
+            roles.forEach(role => {
+                const card = document.createElement('div');
+                card.className = 'role-card';
+                
+                card.innerHTML = `
+                    <div class="role-card-header">
+                        <div class="role-icon">
+                            <i class="fas fa-user-shield"></i>
+                        </div>
+                        <h3 class="role-title">${role.office}</h3>
+                    </div>
+                    <div class="role-permissions">
+                        <p><strong>Permissions:</strong></p>
+                        <div class="permission-tags">
+                            ${role.permissions.map(permission => 
+                                `<span class="permission-tag">${permission}</span>`
+                            ).join('')}
+                        </div>
+                    </div>
+                    <button class="btn btn-outline-primary" onclick="editRole('${role.id}')">
+                        Edit Role
+                    </button>
+                `;
+                
+                container.appendChild(card);
+            });
+        }
+
+        function showAddRoleModal() {
+            document.getElementById('add-role-modal').style.display = 'flex';
+            document.getElementById('add-role-form').reset();
+            currentPermissions = [];
+            updatePermissionsList();
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        function addPermission() {
+            const permissionSelect = document.getElementById('add-permission');
+            const permission = permissionSelect.value;
+            
+            if (permission && !currentPermissions.includes(permission)) {
+                currentPermissions.push(permission);
+                permissionSelect.value = '';
+                updatePermissionsList();
+            } else if (permission && currentPermissions.includes(permission)) {
+                toast.error('This permission is already added');
+            }
+        }
+
+        function addEditPermission() {
+            const permissionSelect = document.getElementById('edit-permission');
+            const permission = permissionSelect.value;
+            
+            if (permission && !editPermissions.includes(permission)) {
+                editPermissions.push(permission);
+                permissionSelect.value = '';
+                updateEditPermissionsList();
+            } else if (permission && editPermissions.includes(permission)) {
+                toast.error('This permission is already added');
+            }
+        }
+
+        function removePermission(index, isEdit = false) {
+            if (isEdit) {
+                editPermissions.splice(index, 1);
+                updateEditPermissionsList();
+            } else {
+                currentPermissions.splice(index, 1);
+                updatePermissionsList();
+            }
+        }
+
+        function updatePermissionsList() {
+            const container = document.getElementById('permissions-list');
+            container.innerHTML = '';
+            
+            currentPermissions.forEach((permission, index) => {
+                const tag = document.createElement('div');
+                tag.className = 'permission-tag';
+                tag.innerHTML = `
+                    ${permission}
+                    <button type="button" class="remove-permission" onclick="removePermission(${index})">
+                        <i class="fas fa-times"></i>
+                    </button>
+                `;
+                container.appendChild(tag);
+            });
+        }
+
+        function updateEditPermissionsList() {
+            const container = document.getElementById('edit-permissions-list');
+            container.innerHTML = '';
+            
+            editPermissions.forEach((permission, index) => {
+                const tag = document.createElement('div');
+                tag.className = 'permission-tag';
+                tag.innerHTML = `
+                    ${permission}
+                    <button type="button" class="remove-permission" onclick="removePermission(${index}, true)">
+                        <i class="fas fa-times"></i>
+                    </button>
+                `;
+                container.appendChild(tag);
+            });
+        }
+
+        function addRole() {
+            const form = document.getElementById('add-role-form');
+            const formData = new FormData(form);
+            
+            const office = formData.get('office');
+            
+            if (!office) {
+                toast.error('Please select an office');
+                return;
+            }
+
+            if (currentPermissions.length === 0) {
+                toast.error('Please add at least one permission');
+                return;
+            }
+
+            const roleData = {
+                office: office,
+                permissions: currentPermissions
+            };
+
+            const result = roleManager.addRole(roleData);
+            
+            if (result.success) {
+                toast.success('Role added successfully');
+                closeModal('add-role-modal');
+                loadRoles();
+            } else {
+                toast.error(result.message);
+            }
+        }
+
+        function editRole(roleId) {
+            const role = roleManager.getById(roleId);
+            if (!role) {
+                toast.error('Role not found');
+                return;
+            }
+
+            // Populate form
+            document.getElementById('edit-role-id').value = role.id;
+            document.getElementById('edit-office').value = role.office;
+            editPermissions = [...role.permissions];
+            updateEditPermissionsList();
+
+            document.getElementById('edit-role-modal').style.display = 'flex';
+        }
+
+        function updateRole() {
+            const form = document.getElementById('edit-role-form');
+            const formData = new FormData(form);
+            
+            const roleId = formData.get('id');
+            const office = formData.get('office');
+            
+            if (!office) {
+                toast.error('Please select an office');
+                return;
+            }
+
+            if (editPermissions.length === 0) {
+                toast.error('Please add at least one permission');
+                return;
+            }
+
+            const updates = {
+                office: office,
+                permissions: editPermissions
+            };
+
+            const result = roleManager.updateRole(roleId, updates);
+            
+            if (result.success) {
+                toast.success('Role updated successfully');
+                closeModal('edit-role-modal');
+                loadRoles();
+            } else {
+                toast.error(result.message);
+            }
+        }
+
+        function logout() {
+            const authManager = new AuthManager();
+            authManager.logout();
+            window.location.href = '../index.html';
+        }
+
+        // Global functions
+        window.showAddRoleModal = showAddRoleModal;
+        window.closeModal = closeModal;
+        window.addPermission = addPermission;
+        window.addEditPermission = addEditPermission;
+        window.removePermission = removePermission;
+        window.addRole = addRole;
+        window.editRole = editRole;
+        window.updateRole = updateRole;
+        window.logout = logout;
+    </script>
+
+    <style>
+        .sidebar-user-profile {
+            position: absolute;
+            bottom: 1.5rem;
+            left: 1.5rem;
+            right: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1rem;
+            background: rgba(59, 130, 246, 0.1);
+            border-radius: 8px;
+        }
+
+        .sidebar-user-profile .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #3b82f6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+
+        .sidebar-user-profile .user-details {
+            flex: 1;
+        }
+
+        .sidebar-user-profile .user-name {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: white;
+            margin: 0;
+        }
+
+        .sidebar-user-profile .user-role {
+            font-size: 0.75rem;
+            color: #93c5fd;
+            margin: 0;
+        }
+
+        .header .user-info {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .header .user-details {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header .user-name {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #1e293b;
+            margin: 0;
+        }
+
+        .header .user-role {
+            font-size: 0.75rem;
+            color: #64748b;
+            margin: 0;
+        }
+
+        .role-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .role-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e2e8f0;
+        }
+
+        .role-card-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .role-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 8px;
+            background: #3b82f6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.25rem;
+        }
+
+        .role-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin: 0;
+        }
+
+        .role-permissions {
+            margin-bottom: 1.5rem;
+        }
+
+        .role-permissions p {
+            margin: 0 0 0.75rem 0;
+            color: #64748b;
+            font-size: 0.875rem;
+        }
+
+        .permission-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .permission-tag {
+            background: #dbeafe;
+            color: #1e40af;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .permission-tag .remove-permission {
+            background: none;
+            border: none;
+            color: #1e40af;
+            cursor: pointer;
+            padding: 0;
+            font-size: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            transition: background-color 0.2s ease;
+        }
+
+        .permission-tag .remove-permission:hover {
+            background: rgba(30, 64, 175, 0.1);
+        }
+
+        .permission-input-group {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .permission-input-group .form-control {
+            flex: 1;
+        }
+
+        .permission-input-group .btn {
+            padding: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .permissions-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .role-cards {
+                grid-template-columns: 1fr;
+            }
+
+            .permission-input-group {
+                flex-direction: column;
+            }
+        }
+    </style>
+</body>
+</html>

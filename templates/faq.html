@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FAQ Management - EduChat Admin Portal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+   <link href="{{ url_for('static', filename='assets/css/style.css') }}" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h3>EduChat Admin</h3>
+            </div>
+            <nav class="sidebar-nav">
+    <ul>
+        <li class="{% if active_page == 'dashboard' %}active{% endif %}">
+            <a href="{{ url_for('dashboard') }}"><i class="fas fa-th-large"></i> Dashboard</a>
+        </li>
+        
+        <li class="section-header">USER MANAGEMENT</li>
+        <li class="{% if active_page == 'users' %}active{% endif %}">
+            <a href="{{ url_for('users') }}"><i class="fas fa-users"></i> User Accounts</a>
+        </li>
+        <li class="{% if active_page == 'roles' %}active{% endif %}">
+            <a href="{{ url_for('roles') }}"><i class="fas fa-user-shield"></i> Roles & Permissions</a>
+        </li>
+        
+        <li class="section-header">CHATBOT MANAGEMENT</li>
+        <li class="{% if active_page == 'conversations' %}active{% endif %}">
+            <a href="{{ url_for('conversations') }}"><i class="fas fa-comments"></i> Conversation Logs</a>
+        </li>
+        <li class="{% if active_page == 'faq' %}active{% endif %}">
+            <a href="{{ url_for('faq') }}"><i class="fas fa-question-circle"></i> FAQ Management</a>
+        </li>
+        <li class="{% if active_page == 'settings' %}active{% endif %}">
+            <a href="{{ url_for('settings') }}"><i class="fas fa-cog"></i> Bot Settings</a>
+        </li>
+        
+        <li class="section-header">ANALYTICS</li>
+        <li class="{% if active_page == 'usage' %}active{% endif %}">
+            <a href="{{ url_for('usage') }}"><i class="fas fa-chart-bar"></i> Usage Statistics</a>
+        </li>
+        <li class="{% if active_page == 'feedback' %}active{% endif %}">
+            <a href="{{ url_for('feedback') }}"><i class="fas fa-heart"></i> User Feedback</a>
+        </li>
+    </ul>
+</nav>
+
+            
+            <!-- User Profile at Bottom -->
+            <div class="sidebar-user-profile">
+                <div class="user-avatar">A</div>
+                <div class="user-details">
+                    <div class="user-name">Admin User</div>
+                    <div class="user-role">Super Administrator</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <div class="header-left">
+                    <div class="search-bar">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="Search FAQs" class="search-input" data-search-type="faqs">
+                    </div>
+                </div>
+                <div class="header-right">
+                    <div class="notification-icon">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge">3</span>
+                    </div>
+                    <div class="user-info">
+                        <div class="user-avatar">A</div>
+                        <div class="user-details">
+                            <div class="user-name">Admin User</div>
+                            <div class="user-role">Super Administrator</div>
+                        </div>
+                    </div>
+                    <div class="logout-icon" onclick="logout()">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Page Content -->
+            <div class="page-content">
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title">FAQ Management</h1>
+                        <p class="page-subtitle">Manage frequently asked questions and categories</p>
+                    </div>
+                    <div class="header-actions">
+                        <button class="btn btn-outline-primary" onclick="showAddCategoryModal()">
+                            <i class="fas fa-folder-plus"></i>
+                            Add Category
+                        </button>
+                        <button class="btn btn-primary" onclick="showAddFAQModal()">
+                            <i class="fas fa-plus"></i>
+                            Add FAQ
+                        </button>
+                    </div>
+                </div>
+
+                <!-- FAQ Offices -->
+                <div class="faq-categories">
+                    <div class="category-card active" data-office="all">
+                        <div class="category-icon">
+                            <i class="fas fa-list"></i>
+                        </div>
+                        <div class="category-info">
+                            <h4>All FAQs</h4>
+                            <p>View all questions</p>
+                        </div>
+                        <div class="category-count">25</div>
+                    </div>
+                    <div class="category-card" data-office="Registrar">
+                        <div class="category-icon">
+                            <i class="fas fa-edit"></i>
+                        </div>
+                        <div class="category-info">
+                            <h4>Registrar</h4>
+                            <p>Registration & records</p>
+                        </div>
+                        <div class="category-count">8</div>
+                    </div>
+                    <div class="category-card" data-office="Admissions">
+                        <div class="category-icon">
+                            <i class="fas fa-graduation-cap"></i>
+                        </div>
+                        <div class="category-info">
+                            <h4>Admissions</h4>
+                            <p>Application process</p>
+                        </div>
+                        <div class="category-count">6</div>
+                    </div>
+                    <div class="category-card" data-office="Guidance">
+                        <div class="category-icon">
+                            <i class="fas fa-dollar-sign"></i>
+                        </div>
+                        <div class="category-info">
+                            <h4>Guidance</h4>
+                            <p>Financial aid & counseling</p>
+                        </div>
+                        <div class="category-count">5</div>
+                    </div>
+                    <div class="category-card" data-office="ICT Services">
+                        <div class="category-icon">
+                            <i class="fas fa-laptop"></i>
+                        </div>
+                        <div class="category-info">
+                            <h4>ICT Services</h4>
+                            <p>Technical support</p>
+                        </div>
+                        <div class="category-count">4</div>
+                    </div>
+                    <div class="category-card" data-office="Office of Student Affairs (OSA)">
+                        <div class="category-icon">
+                            <i class="fas fa-building"></i>
+                        </div>
+                        <div class="category-info">
+                            <h4>OSA</h4>
+                            <p>Student services</p>
+                        </div>
+                        <div class="category-count">2</div>
+                    </div>
+                </div>
+
+                <!-- FAQs Table -->
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Question</th>
+                                <th>Answer</th>
+                                <th>Office</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="faqs-table-body">
+                            <!-- FAQs will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Add FAQ Modal -->
+    <div class="modal" id="add-faq-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4>Add New FAQ</h4>
+                <button class="btn-close" onclick="closeModal('add-faq-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="add-faq-form">
+                    <div class="form-group">
+                        <label for="add-faq-office">Office *</label>
+                        <select id="add-faq-office" name="office" class="form-control" required>
+                            <option value="">Select Office</option>
+                            <option value="Registrar">Registrar</option>
+                            <option value="Admissions">Admissions</option>
+                            <option value="Guidance">Guidance</option>
+                            <option value="ICT Services">ICT Services</option>
+                            <option value="Office of Student Affairs (OSA)">Office of Student Affairs (OSA)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="add-faq-question">Question</label>
+                        <input type="text" id="add-faq-question" name="question" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="add-faq-answer">Answer</label>
+                        <textarea id="add-faq-answer" name="answer" class="form-control" rows="4" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="add-faq-status">Status</label>
+                        <select id="add-faq-status" name="status" class="form-control" required>
+                            <option value="published">Published</option>
+                            <option value="draft">Draft</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('add-faq-modal')">Cancel</button>
+                <button class="btn btn-primary" onclick="addFAQ()">Add FAQ</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit FAQ Modal -->
+    <div class="modal" id="edit-faq-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4>Edit FAQ</h4>
+                <button class="btn-close" onclick="closeModal('edit-faq-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="edit-faq-form">
+                    <input type="hidden" id="edit-faq-id" name="id">
+                    <div class="form-group">
+                        <label for="edit-faq-office">Office *</label>
+                        <select id="edit-faq-office" name="office" class="form-control" required>
+                            <option value="">Select Office</option>
+                            <option value="Registrar">Registrar</option>
+                            <option value="Admissions">Admissions</option>
+                            <option value="Guidance">Guidance</option>
+                            <option value="ICT Services">ICT Services</option>
+                            <option value="Office of Student Affairs (OSA)">Office of Student Affairs (OSA)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-faq-question">Question</label>
+                        <input type="text" id="edit-faq-question" name="question" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-faq-answer">Answer</label>
+                        <textarea id="edit-faq-answer" name="answer" class="form-control" rows="4" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-faq-status">Status</label>
+                        <select id="edit-faq-status" name="status" class="form-control" required>
+                            <option value="published">Published</option>
+                            <option value="draft">Draft</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('edit-faq-modal')">Cancel</button>
+                <button class="btn btn-primary" onclick="updateFAQ()">Update FAQ</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Category Modal -->
+    <div class="modal" id="add-category-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4>Add New Category</h4>
+                <button class="btn-close" onclick="closeModal('add-category-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="add-category-form">
+                    <div class="form-group">
+                        <label for="add-category-name">Category Name</label>
+                        <input type="text" id="add-category-name" name="name" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="add-category-description">Description</label>
+                        <input type="text" id="add-category-description" name="description" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="add-category-icon">Icon</label>
+                        <select id="add-category-icon" name="icon" class="form-control" required>
+                            <option value="fas fa-graduation-cap">Graduation Cap</option>
+                            <option value="fas fa-edit">Edit</option>
+                            <option value="fas fa-dollar-sign">Dollar Sign</option>
+                            <option value="fas fa-book">Book</option>
+                            <option value="fas fa-building">Building</option>
+                            <option value="fas fa-users">Users</option>
+                            <option value="fas fa-cog">Settings</option>
+                            <option value="fas fa-info-circle">Info Circle</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('add-category-modal')">Cancel</button>
+                <button class="btn btn-primary" onclick="addCategory()">Add Category</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="{{ url_for('static', filename='assets/js/core/BaseManager.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/js/modules/AuthManager.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/js/modules/FAQManager.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/js/utils/toast.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/js/app.js') }}"></script>
+
+    <script>
+        let faqManager;
+        let currentOffice = 'all';
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const authManager = new AuthManager();
+            if (!authManager.checkAuth()) {
+                window.location.href = '../index.html';
+                return;
+            }
+
+            faqManager = new FAQManager();
+            loadFAQs();
+            setupEventListeners();
+        });
+
+        function setupEventListeners() {
+            // Office selection
+            document.querySelectorAll('.category-card').forEach(card => {
+                card.addEventListener('click', function() {
+                    const office = this.dataset.office;
+                    selectOffice(office);
+                });
+            });
+
+            // Search functionality
+            const searchInput = document.querySelector('.search-input');
+            searchInput.addEventListener('input', function() {
+                const query = this.value.trim();
+                if (query) {
+                    const filteredFAQs = faqManager.searchFAQs(query);
+                    renderFAQs(filteredFAQs);
+                } else {
+                    loadFAQs();
+                }
+            });
+        }
+
+        function selectOffice(office) {
+            // Update active office card
+            document.querySelectorAll('.category-card').forEach(card => {
+                card.classList.remove('active');
+            });
+            document.querySelector(`[data-office="${office}"]`).classList.add('active');
+
+            currentOffice = office;
+            loadFAQs();
+        }
+
+        function loadFAQs() {
+            let faqs;
+            
+            if (currentOffice === 'all') {
+                faqs = faqManager.getAll();
+            } else {
+                faqs = faqManager.getByOffice(currentOffice);
+            }
+            
+            renderFAQs(faqs);
+        }
+
+        function renderFAQs(faqs) {
+            const tbody = document.getElementById('faqs-table-body');
+            tbody.innerHTML = '';
+
+            faqs.forEach(faq => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>
+                        <div class="question-cell">
+                            <strong>${faq.question}</strong>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="answer-cell">
+                            ${faq.answer.substring(0, 100)}${faq.answer.length > 100 ? '...' : ''}
+                        </div>
+                    </td>
+                    <td>
+                        <span class="office-badge">${faq.office || 'Not Assigned'}</span>
+                    </td>
+                    <td>
+                        <span class="status-badge ${faq.status.toLowerCase()}">${faq.status}</span>
+                    </td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn btn-sm btn-outline-primary" onclick="editFAQ('${faq.id}')" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteFAQ('${faq.id}')" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+
+
+        function showAddFAQModal() {
+            document.getElementById('add-faq-modal').style.display = 'flex';
+            document.getElementById('add-faq-form').reset();
+        }
+
+        function showAddCategoryModal() {
+            document.getElementById('add-category-modal').style.display = 'flex';
+            document.getElementById('add-category-form').reset();
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        function addFAQ() {
+            const form = document.getElementById('add-faq-form');
+            const formData = new FormData(form);
+            
+            const faqData = {
+                office: formData.get('office'),
+                question: formData.get('question'),
+                answer: formData.get('answer'),
+                status: formData.get('status')
+            };
+
+            if (!faqData.office || !faqData.question || !faqData.answer) {
+                toast.error('All fields are required');
+                return;
+            }
+
+            const result = faqManager.addFAQ(faqData);
+            
+            if (result.success) {
+                toast.success('FAQ added successfully');
+                closeModal('add-faq-modal');
+                loadFAQs();
+                updateOfficeCounts();
+            } else {
+                toast.error(result.message);
+            }
+        }
+
+        function editFAQ(id) {
+            const faq = faqManager.getById(id);
+            if (!faq) {
+                toast.error('FAQ not found');
+                return;
+            }
+
+            // Populate edit form
+            document.getElementById('edit-faq-id').value = faq.id;
+            document.getElementById('edit-faq-office').value = faq.office || '';
+            document.getElementById('edit-faq-question').value = faq.question;
+            document.getElementById('edit-faq-answer').value = faq.answer;
+            document.getElementById('edit-faq-status').value = faq.status;
+
+            document.getElementById('edit-faq-modal').style.display = 'flex';
+        }
+
+        function updateFAQ() {
+            const form = document.getElementById('edit-faq-form');
+            const formData = new FormData(form);
+            
+            const faqId = formData.get('id');
+            const updates = {
+                office: formData.get('office'),
+                question: formData.get('question'),
+                answer: formData.get('answer'),
+                status: formData.get('status')
+            };
+
+            if (!updates.office || !updates.question || !updates.answer) {
+                toast.error('All fields are required');
+                return;
+            }
+
+            const result = faqManager.updateFAQ(faqId, updates);
+            
+            if (result.success) {
+                toast.success('FAQ updated successfully');
+                closeModal('edit-faq-modal');
+                loadFAQs();
+                updateOfficeCounts();
+            } else {
+                toast.error(result.message);
+            }
+        }
+
+        function deleteFAQ(id) {
+            if (confirm('Are you sure you want to delete this FAQ? This action cannot be undone.')) {
+                const result = faqManager.deleteFAQ(id);
+                
+                if (result.success) {
+                    toast.success('FAQ deleted successfully');
+                    loadFAQs();
+                    updateOfficeCounts();
+                } else {
+                    toast.error(result.message);
+                }
+            }
+        }
+
+        function addCategory() {
+            const form = document.getElementById('add-category-form');
+            const formData = new FormData(form);
+            
+            const categoryData = {
+                name: formData.get('name'),
+                description: formData.get('description'),
+                icon: formData.get('icon')
+            };
+
+            if (!categoryData.name || !categoryData.description) {
+                toast.error('Name and description are required');
+                return;
+            }
+
+            const result = faqManager.addCategory(categoryData);
+            
+            if (result.success) {
+                toast.success('Category added successfully');
+                closeModal('add-category-modal');
+                // Refresh the page to show new category
+                location.reload();
+            } else {
+                toast.error(result.message);
+            }
+        }
+
+        function updateOfficeCounts() {
+            const stats = faqManager.getStats();
+            
+            // Update "All FAQs" count
+            document.querySelector('[data-office="all"] .category-count').textContent = stats.total;
+            
+            // Update office counts
+            Object.keys(stats.byOffice).forEach(office => {
+                const countElement = document.querySelector(`[data-office="${office}"] .category-count`);
+                if (countElement) {
+                    countElement.textContent = stats.byOffice[office];
+                }
+            });
+        }
+
+        function logout() {
+            const authManager = new AuthManager();
+            authManager.logout();
+            window.location.href = '../index.html';
+        }
+
+        // Global functions
+        window.showAddFAQModal = showAddFAQModal;
+        window.showAddCategoryModal = showAddCategoryModal;
+        window.closeModal = closeModal;
+        window.addFAQ = addFAQ;
+        window.editFAQ = editFAQ;
+        window.updateFAQ = updateFAQ;
+        window.deleteFAQ = deleteFAQ;
+        window.addCategory = addCategory;
+        window.logout = logout;
+    </script>
+
+    <style>
+        .sidebar-user-profile {
+            position: absolute;
+            bottom: 1.5rem;
+            left: 1.5rem;
+            right: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1rem;
+            background: rgba(59, 130, 246, 0.1);
+            border-radius: 8px;
+        }
+
+        .sidebar-user-profile .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #3b82f6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+
+        .sidebar-user-profile .user-details {
+            flex: 1;
+        }
+
+        .sidebar-user-profile .user-name {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: white;
+            margin: 0;
+        }
+
+        .sidebar-user-profile .user-role {
+            font-size: 0.75rem;
+            color: #93c5fd;
+            margin: 0;
+        }
+
+        .header .user-info {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .header .user-details {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header .user-name {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #1e293b;
+            margin: 0;
+        }
+
+        .header .user-role {
+            font-size: 0.75rem;
+            color: #64748b;
+            margin: 0;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .faq-categories {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .category-card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .category-card:hover {
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .category-card.active {
+            border-color: #3b82f6;
+            background: #f0f9ff;
+        }
+
+        .category-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: #3b82f6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.25rem;
+        }
+
+        .category-info {
+            flex: 1;
+        }
+
+        .category-info h4 {
+            margin: 0;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .category-info p {
+            margin: 0.25rem 0 0 0;
+            font-size: 0.875rem;
+            color: #64748b;
+        }
+
+        .category-count {
+            background: #f1f5f9;
+            color: #475569;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        .question-cell {
+            max-width: 300px;
+        }
+
+        .answer-cell {
+            max-width: 400px;
+            color: #64748b;
+            font-size: 0.875rem;
+        }
+
+        .category-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+        }
+
+        .category-badge.admissions {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .category-badge.registration {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .category-badge.financial {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .category-badge.academic {
+            background: #f3e8ff;
+            color: #7c3aed;
+        }
+
+        .category-badge.campus {
+            background: #fef2f2;
+            color: #dc2626;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 0.25rem;
+        }
+
+        .action-buttons .btn {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+        }
+
+        .action-buttons .btn i {
+            font-size: 0.75rem;
+        }
+
+        .office-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+            background: #3b82f6;
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            .header-actions {
+                flex-direction: column;
+            }
+
+            .faq-categories {
+                grid-template-columns: 1fr;
+            }
+
+            .category-card {
+                padding: 1rem;
+            }
+
+            .question-cell, .answer-cell {
+                max-width: none;
+            }
+        }
+    </style>
+</body>
+</html>

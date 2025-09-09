@@ -7,7 +7,7 @@ from sentence_transformers import SentenceTransformer
 from pinecone import Pinecone, ServerlessSpec
 import time
 from dotenv import load_dotenv
-load_dotenv()  # <-- this loads .env into os.environ
+load_dotenv()  
 
 
 class VectorStore:

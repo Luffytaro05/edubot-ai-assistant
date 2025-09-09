@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Usage Statistics - EduChat Admin Portal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="../assets/css/style.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='assets/css/style.css') }}" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h3>EduChat Admin</h3>
+            </div>
+            <nav class="sidebar-nav">
+    <ul>
+        <li class="{% if active_page == 'dashboard' %}active{% endif %}">
+            <a href="{{ url_for('dashboard') }}"><i class="fas fa-th-large"></i> Dashboard</a>
+        </li>
+        
+        <li class="section-header">USER MANAGEMENT</li>
+        <li class="{% if active_page == 'users' %}active{% endif %}">
+            <a href="{{ url_for('users') }}"><i class="fas fa-users"></i> User Accounts</a>
+        </li>
+        <li class="{% if active_page == 'roles' %}active{% endif %}">
+            <a href="{{ url_for('roles') }}"><i class="fas fa-user-shield"></i> Roles & Permissions</a>
+        </li>
+        
+        <li class="section-header">CHATBOT MANAGEMENT</li>
+        <li class="{% if active_page == 'conversations' %}active{% endif %}">
+            <a href="{{ url_for('conversations') }}"><i class="fas fa-comments"></i> Conversation Logs</a>
+        </li>
+        <li class="{% if active_page == 'faq' %}active{% endif %}">
+            <a href="{{ url_for('faq') }}"><i class="fas fa-question-circle"></i> FAQ Management</a>
+        </li>
+        <li class="{% if active_page == 'settings' %}active{% endif %}">
+            <a href="{{ url_for('settings') }}"><i class="fas fa-cog"></i> Bot Settings</a>
+        </li>
+        
+        <li class="section-header">ANALYTICS</li>
+        <li class="{% if active_page == 'usage' %}active{% endif %}">
+            <a href="{{ url_for('usage') }}"><i class="fas fa-chart-bar"></i> Usage Statistics</a>
+        </li>
+        <li class="{% if active_page == 'feedback' %}active{% endif %}">
+            <a href="{{ url_for('feedback') }}"><i class="fas fa-heart"></i> User Feedback</a>
+        </li>
+    </ul>
+</nav>
+
+            
+            <!-- User Profile at Bottom -->
+            <div class="sidebar-user-profile">
+                <div class="user-avatar">A</div>
+                <div class="user-details">
+                    <div class="user-name">Admin User</div>
+                    <div class="user-role">Super Administrator</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <div class="header-left">
+                    <div class="search-bar">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="Search statistics" class="search-input" data-search-type="usage">
+                    </div>
+                </div>
+                <div class="header-right">
+                    <div class="notification-icon">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge">3</span>
+                    </div>
+                    <div class="user-info">
+                        <div class="user-avatar">A</div>
+                        <div class="user-details">
+                            <div class="user-name">Admin User</div>
+                            <div class="user-role">Super Administrator</div>
+                        </div>
+                    </div>
+                    <div class="logout-icon" onclick="logout()">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Page Content -->
+            <div class="page-content">
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title">Usage Statistics</h1>
+                        <p class="page-subtitle">Monitor chatbot performance and user engagement</p>
+                    </div>
+                    <div class="header-actions">
+                        <button class="btn btn-outline-primary" onclick="exportData()">
+                            <i class="fas fa-download"></i>
+                            Export Data
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Period Selector -->
+                <div class="period-selector">
+                    <div class="period-buttons">
+                        <button class="btn btn-outline-primary active" data-period="daily">Daily</button>
+                        <button class="btn btn-outline-primary" data-period="weekly">Weekly</button>
+                        <button class="btn btn-outline-primary" data-period="monthly">Monthly</button>
+                    </div>
+                    <div class="date-range">
+                        <input type="date" id="start-date" class="form-control">
+                        <span>to</span>
+                        <input type="date" id="end-date" class="form-control">
+                        <button class="btn btn-primary" onclick="updateCharts()">Apply</button>
+                    </div>
+                </div>
+
+                <!-- KPI Cards -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon total">
+                            <i class="fas fa-comments"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="total-conversations">0</h3>
+                            <p>Total Conversations</p>
+                            <span class="stat-change positive">+12.5%</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon users">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="unique-users">0</h3>
+                            <p>Unique Users</p>
+                            <span class="stat-change positive">+8.3%</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon satisfaction">
+                            <i class="fas fa-star"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="avg-satisfaction">0.0</h3>
+                            <p>Avg. Satisfaction</p>
+                            <span class="stat-change positive">+2.1%</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon resolution">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="resolution-rate">0%</h3>
+                            <p>Resolution Rate</p>
+                            <span class="stat-change positive">+5.7%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Section -->
+                <div class="charts-section">
+                    <div class="row">
+                        <div class="col-lg-8">
+                            <div class="chart-card">
+                                <div class="chart-header">
+                                    <h3>Conversation Trends</h3>
+                                    <div class="chart-actions">
+                                        <button class="btn btn-sm btn-outline-secondary" onclick="downloadChart('trends')">
+                                            <i class="fas fa-download"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="chart-body">
+                                    <canvas id="trendsChart" height="300"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-4">
+                            <div class="chart-card">
+                                <div class="chart-header">
+                                    <h3>Query Categories</h3>
+                                    <div class="chart-actions">
+                                        <button class="btn btn-sm btn-outline-secondary" onclick="downloadChart('categories')">
+                                            <i class="fas fa-download"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="chart-body">
+                                    <canvas id="categoriesChart" height="300"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Department Stats -->
+                <div class="department-stats">
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3>Department Performance</h3>
+                            <div class="chart-actions">
+                                <button class="btn btn-sm btn-outline-secondary" onclick="downloadChart('departments')">
+                                    <i class="fas fa-download"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="chart-body">
+                            <canvas id="departmentsChart" height="250"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Detailed Stats Table -->
+                <div class="stats-table-section">
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3>Detailed Statistics</h3>
+                            <div class="table-actions">
+                                <select id="table-filter" class="form-control">
+                                    <option value="all">All Departments</option>
+                                    <option value="guidance">Guidance Office</option>
+                                    <option value="registrar">Registrar Office</option>
+                                    <option value="admissions">Admissions Office</option>
+                                    <option value="ict">ICT Office</option>
+                                    <option value="osa">OSA Office</option>
+                                </select>
+                                <button class="btn btn-sm btn-outline-secondary" onclick="exportTable()">
+                                    <i class="fas fa-download"></i>
+                                    Export
+                                </button>
+                            </div>
+                        </div>
+                        <div class="table-container">
+                            <table class="table" id="stats-table">
+                                <thead>
+                                    <tr>
+                                        <th>Department</th>
+                                        <th>Conversations</th>
+                                        <th>Users</th>
+                                        <th>Avg. Duration</th>
+                                        <th>Satisfaction</th>
+                                        <th>Resolution Rate</th>
+                                        <th>Trend</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Stats will be populated by JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="{{ url_for('static', filename='assets/js/core/BaseManager.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/js/modules/AuthManager.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/js/modules/UsageStatsManager.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/js/utils/toast.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/js/app.js') }}"></script>
+
+    <script>
+        let usageStatsManager;
+        let trendsChart, categoriesChart, departmentsChart;
+        let currentPeriod = 'daily';
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const authManager = new AuthManager();
+            if (!authManager.checkAuth()) {
+                window.location.href = '../index.html';
+                return;
+            }
+
+            usageStatsManager = new UsageStatsManager();
+            initializeCharts();
+            loadStats();
+            setupEventListeners();
+        });
+
+        function initializeCharts() {
+            // Trends Chart
+            const trendsCtx = document.getElementById('trendsChart').getContext('2d');
+            trendsChart = new Chart(trendsCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Conversations',
+                        data: [],
+                        borderColor: '#1976d2',
+                        backgroundColor: 'rgba(25, 118, 210, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+
+            // Categories Chart
+            const categoriesCtx = document.getElementById('categoriesChart').getContext('2d');
+            categoriesChart = new Chart(categoriesCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        data: [],
+                        backgroundColor: [
+                            '#1976d2',
+                            '#dc3545',
+                            '#28a745',
+                            '#ffc107',
+                            '#6f42c1',
+                            '#fd7e14'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+
+            // Departments Chart
+            const departmentsCtx = document.getElementById('departmentsChart').getContext('2d');
+            departmentsChart = new Chart(departmentsCtx, {
+                type: 'bar',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Conversations',
+                        data: [],
+                        backgroundColor: '#1976d2'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        function loadStats() {
+            const stats = usageStatsManager.getCurrentStats();
+            updateKPICards(stats);
+            updateCharts(stats);
+            updateStatsTable(stats);
+        }
+
+        function updateKPICards(stats) {
+            document.getElementById('total-conversations').textContent = stats.totalConversations || 0;
+            document.getElementById('unique-users').textContent = stats.uniqueUsers || 0;
+            document.getElementById('avg-satisfaction').textContent = (stats.avgSatisfaction || 0).toFixed(1);
+            document.getElementById('resolution-rate').textContent = (stats.resolutionRate || 0) + '%';
+        }
+
+        function updateCharts(stats) {
+            // Update Trends Chart
+            const trendsData = usageStatsManager.getUsageByTimeData(currentPeriod);
+            trendsChart.data.labels = trendsData.labels;
+            trendsChart.data.datasets[0].data = trendsData.data;
+            trendsChart.update();
+
+            // Update Categories Chart
+            const categoriesData = usageStatsManager.getQueryCategoriesData();
+            categoriesChart.data.labels = categoriesData.labels;
+            categoriesChart.data.datasets[0].data = categoriesData.data;
+            categoriesChart.update();
+
+            // Update Departments Chart
+            const departmentsData = usageStatsManager.getDepartmentStats();
+            departmentsChart.data.labels = departmentsData.labels;
+            departmentsChart.data.datasets[0].data = departmentsData.data;
+            departmentsChart.update();
+        }
+
+        function updateStatsTable(stats) {
+            const tbody = document.querySelector('#stats-table tbody');
+            tbody.innerHTML = '';
+
+            const departments = [
+                { name: 'Guidance Office', key: 'guidance' },
+                { name: 'Registrar Office', key: 'registrar' },
+                { name: 'Admissions Office', key: 'admissions' },
+                { name: 'ICT Office', key: 'ict' },
+                { name: 'OSA Office', key: 'osa' }
+            ];
+
+            departments.forEach(dept => {
+                const deptStats = stats.departments?.[dept.key] || {};
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${dept.name}</td>
+                    <td>${deptStats.conversations || 0}</td>
+                    <td>${deptStats.users || 0}</td>
+                    <td>${formatDuration(deptStats.avgDuration || 0)}</td>
+                    <td>${(deptStats.satisfaction || 0).toFixed(1)} ⭐</td>
+                    <td>${(deptStats.resolutionRate || 0)}%</td>
+                    <td>
+                        <span class="trend-indicator ${deptStats.trend > 0 ? 'positive' : 'negative'}">
+                            <i class="fas fa-${deptStats.trend > 0 ? 'arrow-up' : 'arrow-down'}"></i>
+                            ${Math.abs(deptStats.trend || 0)}%
+                        </span>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function formatDuration(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = seconds % 60;
+            return `${minutes}m ${remainingSeconds}s`;
+        }
+
+        function setupEventListeners() {
+            // Period selector
+            document.querySelectorAll('.period-buttons .btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.period-buttons .btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    currentPeriod = this.dataset.period;
+                    updateCharts();
+                });
+            });
+
+            // Date range
+            const today = new Date();
+            const lastWeek = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+            
+            document.getElementById('start-date').value = lastWeek.toISOString().split('T')[0];
+            document.getElementById('end-date').value = today.toISOString().split('T')[0];
+
+            // Table filter
+            document.getElementById('table-filter').addEventListener('change', function() {
+                filterStatsTable(this.value);
+            });
+        }
+
+        function updateCharts() {
+            const stats = usageStatsManager.getCurrentStats();
+            updateCharts(stats);
+        }
+
+        function filterStatsTable(filter) {
+            const rows = document.querySelectorAll('#stats-table tbody tr');
+            rows.forEach(row => {
+                const deptName = row.cells[0].textContent.toLowerCase();
+                if (filter === 'all' || deptName.includes(filter)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+
+        function downloadChart(chartType) {
+            let chart;
+            let filename;
+            
+            switch(chartType) {
+                case 'trends':
+                    chart = trendsChart;
+                    filename = 'conversation_trends.png';
+                    break;
+                case 'categories':
+                    chart = categoriesChart;
+                    filename = 'query_categories.png';
+                    break;
+                case 'departments':
+                    chart = departmentsChart;
+                    filename = 'department_performance.png';
+                    break;
+                default:
+                    return;
+            }
+
+            const link = document.createElement('a');
+            link.download = filename;
+            link.href = chart.toBase64Image();
+            link.click();
+            
+            toast.success('Chart downloaded successfully');
+        }
+
+        function exportData() {
+            try {
+                const csv = usageStatsManager.exportToCSV();
+                downloadCSV(csv, 'usage_statistics.csv');
+                toast.success('Data exported successfully');
+            } catch (error) {
+                toast.error('Failed to export data');
+            }
+        }
+
+        function exportTable() {
+            try {
+                const table = document.getElementById('stats-table');
+                const rows = Array.from(table.querySelectorAll('tr'));
+                let csv = 'Department,Conversations,Users,Avg Duration,Satisfaction,Resolution Rate,Trend\n';
+                
+                rows.slice(1).forEach(row => {
+                    const cells = Array.from(row.querySelectorAll('td'));
+                    const rowData = cells.map(cell => {
+                        let text = cell.textContent.trim();
+                        if (text.includes(',')) {
+                            text = `"${text}"`;
+                        }
+                        return text;
+                    });
+                    csv += rowData.join(',') + '\n';
+                });
+                
+                downloadCSV(csv, 'detailed_statistics.csv');
+                toast.success('Table exported successfully');
+            } catch (error) {
+                toast.error('Failed to export table');
+            }
+        }
+
+        function downloadCSV(csv, filename) {
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+        function logout() {
+            const authManager = new AuthManager();
+            authManager.logout();
+            window.location.href = '../index.html';
+        }
+
+        // Global functions
+        window.updateCharts = updateCharts;
+        window.downloadChart = downloadChart;
+        window.exportData = exportData;
+        window.exportTable = exportTable;
+        window.logout = logout;
+    </script>
+
+    <style>
+        .period-selector {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .period-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .date-range {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .date-range input {
+            width: 150px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .stat-icon.total {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .stat-icon.users {
+            background: #e8f5e8;
+            color: #28a745;
+        }
+
+        .stat-icon.satisfaction {
+            background: #fff3cd;
+            color: #ffc107;
+        }
+
+        .stat-icon.resolution {
+            background: #fce4ec;
+            color: #e91e63;
+        }
+
+        .stat-content h3 {
+            margin: 0;
+            font-size: 2rem;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .stat-content p {
+            margin: 0.25rem 0;
+            color: #6c757d;
+            font-size: 0.875rem;
+        }
+
+        .stat-change {
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .stat-change.positive {
+            color: #28a745;
+        }
+
+        .stat-change.negative {
+            color: #dc3545;
+        }
+
+        .charts-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .chart-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 1.5rem;
+        }
+
+        .chart-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chart-header h3 {
+            margin: 0;
+            color: #2c3e50;
+            font-weight: 600;
+        }
+
+        .chart-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .chart-body {
+            padding: 1.5rem;
+        }
+
+        .department-stats {
+            margin-bottom: 1.5rem;
+        }
+
+        .stats-table-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .table-actions {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .table-actions select {
+            width: 200px;
+        }
+
+        .table-container {
+            padding: 1.5rem;
+        }
+
+        .trend-indicator {
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .trend-indicator.positive {
+            color: #28a745;
+        }
+
+        .trend-indicator.negative {
+            color: #dc3545;
+        }
+
+        @media (max-width: 768px) {
+            .period-selector {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .period-buttons {
+                justify-content: center;
+            }
+            
+            .date-range {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .date-range input {
+                width: 100%;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .table-actions {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .table-actions select {
+                width: 100%;
+            }
+        }
+    </style>
+</body>
+</html>

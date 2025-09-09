@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot Admin Portal - Login</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="login-page">
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <h1>Chatbot Admin Portal</h1>
+                <p>Sign in to access your dashboard</p>
+            </div>
+
+            <!-- Loading indicator -->
+            <div id="loading-indicator" class="text-center" style="display: none;">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2">Signing you in...</p>
+            </div>
+
+            <form id="login-form" class="login-form">
+                <div class="form-group">
+                    <select id="role" name="role" class="form-control form-select" required>
+                        <option value="">Select Role</option>
+                        <option value="admin">Admin</option>
+                        <option value="sub-admin">Sub-Admin</option>
+                    </select>
+                </div>
+
+                <div class="form-group" id="office-group" style="display: none;">
+                    <select id="office" name="office" class="form-control form-select">
+                        <option value="">Select Office</option>
+                        <option value="admissions">Admissions</option>
+                        <option value="registrar">Registrar</option>
+                        <option value="guidance">Guidance</option>
+                        <option value="ict">ICT</option>
+                        <option value="osa">OSA (Office of Student Affairs)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <input type="email" id="email" name="email" class="form-control" placeholder="Email address" required>
+                </div>
+
+                <div class="form-group">
+                    <div class="password-input-wrapper">
+                        <input type="password" id="password" name="password" class="form-control" placeholder="Password" required>
+                        <button type="button" class="password-toggle" id="toggle-password">
+                            <i class="fas fa-eye" id="password-icon"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-login">
+                    Sign in
+                    <i class="fas fa-arrow-right"></i>
+                </button>
+            </form>
+
+            <!-- Toast notification container -->
+            <div id="toast-container" class="position-fixed top-0 end-0 p-3" style="z-index: 1050;"></div>
+        </div>
+    </div>
+
+    <script>
+        // Toast notification system
+        const toast = {
+            success: function(message) {
+                this.show(message, 'success');
+            },
+            error: function(message) {
+                this.show(message, 'error');
+            },
+            show: function(message, type) {
+                const toastContainer = document.getElementById('toast-container');
+                const toastId = 'toast-' + Date.now();
+                const bgClass = type === 'success' ? 'bg-success' : 'bg-danger';
+                
+                const toastHtml = `
+                    <div id="${toastId}" class="toast ${bgClass} text-white" role="alert">
+                        <div class="toast-body">
+                            ${message}
+                        </div>
+                    </div>
+                `;
+                
+                toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+                
+                const toastElement = document.getElementById(toastId);
+                const bsToast = new bootstrap.Toast(toastElement);
+                bsToast.show();
+                
+                // Remove toast element after it's hidden
+                toastElement.addEventListener('hidden.bs.toast', () => {
+                    toastElement.remove();
+                });
+            }
+        };
+
+        /**
+         * AuthManager - Handles authentication and session management with MongoDB backend
+         */
+        class AuthManager {
+            constructor() {
+                this.sessionKey = 'educhat_session';
+                this.apiBaseUrl = '/api/auth'; // Backend API endpoint
+                this.sessionTimeout = 24 * 60 * 60 * 1000; // 24 hours
+                this.init();
+            }
+
+            /**
+             * Initialize authentication system
+             */
+            init() {
+                // Check if session is still valid
+                this.refreshSession();
+            }
+
+            /**
+             * Login with email, password, role, and office
+             */
+            async login(email, password, role, office = null) {
+                try {
+                    const response = await fetch(`${this.apiBaseUrl}/login`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            email: email,
+                            password: password,
+                            role: role,
+                            office: office
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok && result.success) {
+                        // Store session locally
+                        const session = {
+                            user: result.user,
+                            token: result.token,
+                            loginTime: new Date().toISOString(),
+                            expiresAt: new Date(Date.now() + this.sessionTimeout).toISOString()
+                        };
+
+                        localStorage.setItem(this.sessionKey, JSON.stringify(session));
+                        
+                        return {
+                            success: true,
+                            user: result.user,
+                            token: result.token
+                        };
+                    } else {
+                        return {
+                            success: false,
+                            message: result.message || 'Login failed'
+                        };
+                    }
+                } catch (error) {
+                    console.error('Login error:', error);
+                    return {
+                        success: false,
+                        message: 'Network error. Please check your connection and try again.'
+                    };
+                }
+            }
+
+            /**
+             * Logout current user
+             */
+            async logout() {
+                try {
+                    const session = this.getSession();
+                    if (session && session.token) {
+                        // Notify backend about logout
+                        await fetch(`${this.apiBaseUrl}/logout`, {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bearer ${session.token}`,
+                                'Content-Type': 'application/json',
+                            }
+                        });
+                    }
+                } catch (error) {
+                    console.error('Logout error:', error);
+                } finally {
+                    // Always clear local session
+                    localStorage.removeItem(this.sessionKey);
+                }
+                
+                return { success: true };
+            }
+
+            /**
+             * Get current user
+             */
+            getCurrentUser() {
+                const session = this.getSession();
+                return session ? session.user : null;
+            }
+
+            /**
+             * Get current session token
+             */
+            getToken() {
+                const session = this.getSession();
+                return session ? session.token : null;
+            }
+
+            /**
+             * Check if user is authenticated
+             */
+            checkAuth() {
+                const session = this.getSession();
+                if (!session) return false;
+
+                // Check if session has expired
+                const now = new Date();
+                const expiresAt = new Date(session.expiresAt);
+                
+                if (now > expiresAt) {
+                    this.logout();
+                    return false;
+                }
+
+                return true;
+            }
+
+            /**
+             * Require authentication - redirect if not authenticated
+             */
+            requireAuth() {
+                if (!this.checkAuth()) {
+                    window.location.href = "/";
+                    return false;
+                }
+                return true;
+            }
+
+            /**
+             * Refresh session timeout
+             */
+            refreshSession() {
+                const session = this.getSession();
+                if (session) {
+                    session.expiresAt = new Date(Date.now() + this.sessionTimeout).toISOString();
+                    localStorage.setItem(this.sessionKey, JSON.stringify(session));
+                }
+            }
+
+            /**
+             * Get current session
+             */
+            getSession() {
+                try {
+                    const sessionData = localStorage.getItem(this.sessionKey);
+                    return sessionData ? JSON.parse(sessionData) : null;
+                } catch (error) {
+                    console.error('Error getting session:', error);
+                    return null;
+                }
+            }
+        }
+
+        // Initialize when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            const authManager = new AuthManager();
+            
+            // Check if already logged in
+            if (authManager.checkAuth()) {
+                const user = authManager.getCurrentUser();
+                if (user?.role === "admin") {
+                    window.location.href = "/dashboard";
+                } else if (user?.role === "sub-admin") {
+                    window.location.href = `/sub-dashboard?office=${user.office}`;
+                }
+                return;
+            }
+
+            setupEventListeners();
+        });
+
+        function setupEventListeners() {
+            const loginForm = document.getElementById('login-form');
+            const togglePassword = document.getElementById('toggle-password');
+            const roleSelect = document.getElementById('role');
+            const officeGroup = document.getElementById('office-group');
+            const officeSelect = document.getElementById('office');
+
+            // Role change handler to show/hide office dropdown
+            roleSelect.addEventListener('change', function() {
+                const selectedRole = this.value;
+                
+                if (selectedRole === 'sub-admin') {
+                    officeGroup.style.display = 'block';
+                    officeSelect.required = true;
+                    
+                    // Add smooth slide down animation
+                    officeGroup.style.opacity = '0';
+                    officeGroup.style.transform = 'translateY(-10px)';
+                    
+                    setTimeout(() => {
+                        officeGroup.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                        officeGroup.style.opacity = '1';
+                        officeGroup.style.transform = 'translateY(0)';
+                    }, 10);
+                } else {
+                    officeGroup.style.display = 'none';
+                    officeSelect.required = false;
+                    officeSelect.value = ''; // Reset selection
+                }
+            });
+
+            // Login form submission
+            loginForm.addEventListener('submit', handleLogin);
+
+            // Password toggle functionality
+            togglePassword.addEventListener('click', function() {
+                const passwordInput = document.getElementById('password');
+                const passwordIcon = document.getElementById('password-icon');
+                
+                if (passwordInput.type === 'password') {
+                    passwordInput.type = 'text';
+                    passwordIcon.classList.remove('fa-eye');
+                    passwordIcon.classList.add('fa-eye-slash');
+                } else {
+                    passwordInput.type = 'password';
+                    passwordIcon.classList.remove('fa-eye-slash');
+                    passwordIcon.classList.add('fa-eye');
+                }
+            });
+        }
+
+        async function handleLogin(event) {
+            event.preventDefault();
+            
+            const formData = new FormData(event.target);
+            const role = formData.get('role');
+            const office = formData.get('office');
+            const email = formData.get('email');
+            const password = formData.get('password');
+
+            // Validate office selection for sub-admin
+            if (role === 'sub-admin' && !office) {
+                toast.error('Please select an office for Sub-Admin role');
+                return;
+            }
+
+            // Show loading indicator
+            const loadingIndicator = document.getElementById('loading-indicator');
+            const loginForm = document.getElementById('login-form');
+            
+            loadingIndicator.style.display = 'block';
+            loginForm.style.display = 'none';
+
+            const authManager = new AuthManager();
+            
+            try {
+                // Pass the role and office to the login method
+                const result = await authManager.login(email, password, role, office);
+                
+                if (result.success) {
+                    toast.success('Login successful! Redirecting...');
+
+                    setTimeout(() => {
+                        if (role === "admin") {
+                            window.location.href = "/dashboard";
+                        } else if (role === "sub-admin") {
+                            window.location.href = `/sub-dashboard?office=${office}`;
+                        }
+                    }, 1000);
+                } else {
+                    toast.error(result.message || 'Invalid credentials');
+                    // Hide loading and show form again
+                    loadingIndicator.style.display = 'none';
+                    loginForm.style.display = 'block';
+                }
+            } catch (error) {
+                toast.error('Login failed: ' + error.message);
+                // Hide loading and show form again
+                loadingIndicator.style.display = 'none';
+                loginForm.style.display = 'block';
+            }
+        }
+    </script>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <style>
+        .login-page {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .login-container {
+            width: 100%;
+            max-width: 400px;
+            padding: 1rem;
+        }
+
+        .login-card {
+            background: white;
+            border-radius: 16px;
+            padding: 2.5rem;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .login-header {
+            margin-bottom: 2rem;
+        }
+
+        .login-header h1 {
+            font-size: 1.75rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 0.5rem;
+        }
+
+        .login-header p {
+            color: #6c757d;
+            margin: 0;
+            font-size: 0.875rem;
+        }
+
+        .login-form {
+            margin-bottom: 1rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-control, .form-select {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            font-size: 0.875rem;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+
+        .form-select {
+            cursor: pointer;
+        }
+
+        .form-control:focus, .form-select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            background: white;
+        }
+
+        .form-control::placeholder {
+            color: #9ca3af;
+        }
+
+        .password-input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 12px;
+            background: none;
+            border: none;
+            color: #6c757d;
+            cursor: pointer;
+            padding: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.2s ease;
+            border-radius: 6px;
+        }
+
+        .password-toggle:hover {
+            color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        .password-toggle:focus {
+            outline: none;
+            color: #667eea;
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+            color: white;
+        }
+
+        .btn-login:focus {
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+        }
+
+        .btn-login:active {
+            transform: translateY(0);
+        }
+
+        /* Office dropdown animation styles */
+        #office-group {
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+
+        /* Highlight office dropdown when required */
+        #office-group.required #office {
+            border-color: #667eea;
+            background-color: #f8faff;
+        }
+
+        /* Loading indicator styles */
+        #loading-indicator {
+            color: #667eea;
+        }
+
+        .spinner-border {
+            width: 2rem;
+            height: 2rem;
+        }
+
+        /* Toast styles */
+        .toast {
+            border: none;
+            border-radius: 12px;
+        }
+
+        /* Responsive design */
+        @media (max-width: 480px) {
+            .login-card {
+                padding: 2rem;
+                margin: 1rem;
+            }
+            
+            .login-header h1 {
+                font-size: 1.5rem;
+            }
+        }
+
+        /* Form validation styles */
+        .form-control:invalid {
+            border-color: #dc3545;
+        }
+
+        .form-control:valid {
+            border-color: #28a745;
+        }
+
+        /* Animation for form appearance */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .login-card {
+            animation: fadeInUp 0.6s ease;
+        }
+    </style>
+</body>
+</html>

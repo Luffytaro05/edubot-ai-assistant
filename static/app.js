@@ -546,7 +546,7 @@ class Chatbox {
 
         // Try to use backend API, fallback to local responses
         if (typeof fetch !== 'undefined') {
-            fetch('http://127.0.0.1:5000/predict', {
+            fetch('/predict', {
                 method: 'POST',
                 body: JSON.stringify({ message: text1, user_id: this.user_id }),
                 mode: 'cors',

@@ -1,9 +1,1097 @@
+/* =======================
+   COLLEGE WEBSITE STYLES
+   ======================= */
+
 body {
-    font-family: Arial, sans-serif;
-    background: #f1f1f1;
     margin: 0;
+    font-family: Arial, sans-serif;
+    color: #000;
+    padding-top: 100px;
+    background: #f1f1f1;
+}
+
+header {
+    background-color: #fdf378;
+    padding: 10px 20px;
+    border-bottom: 1px solid #ccc;
+    position: fixed;
+    top: 0;
+    width: 100%;
+    z-index: 1000;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.navbar {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.logo-section {
+    display: flex;
+    align-items: center;
+}
+
+.logo {
+    width: 60px;
+    margin-right: 10px;
+}
+
+.college-name h1 {
+    margin: 0;
+    font-size: 18px;
+}
+
+.college-name p {
+    margin: 0;
+    font-size: 12px;
+}
+
+.nav-links {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+}
+
+.dropdown {
+    position: relative;
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background-color: white;
+    min-width: 180px;
+    box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.2);
+    z-index: 999;
+    flex-direction: column;
+}
+
+.dropdown-content a {
+    display: block;
+    padding: 10px 15px;
+    color: black;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.dropdown-content a:hover {
+    background-color: #f0f0f0;
+}
+
+.dropdown:hover .dropdown-content {
+    display: block;
+}
+
+.nav-links a {
+    position: relative;
+    display: inline-block;
+    padding: 10px 15px;
+    text-decoration: none;
+    color: black;
+    font-weight: bold;
+}
+
+.nav-links a::after {
+    content: "";
+    position: absolute;
+    width: 0%;
+    height: 2px;
+    background-color: black;
+    left: 0;
+    bottom: 0;
+    transition: width 0.3s ease;
+}
+
+.nav-links a:hover::after {
+    width: 100%;
+}
+
+.hero {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 50px;
+    background: #f1f1f1;
+}
+
+.hero-text {
+    max-width: 50%;
+}
+
+.hero-text h2 {
+    font-size: 36px;
+    font-weight: bold;
+    margin-bottom: 20px;
+}
+
+.hero-text p {
+    font-size: 18px;
+    margin-bottom: 30px;
+}
+
+.hero-text button {
+    padding: 10px 20px;
+    border: 2px solid black;
+    background: none;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+}
+
+.hero-text button:hover {
+    background: black;
+    color: white;
+}
+
+.hero-image {
+    background: #1d3abf;
+    padding: 10px;
+    border-radius: 15px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+}
+
+.hero-image img {
+    max-width: 100%;
+    border-radius: 10px;
+}
+
+.why-choose {
+    background-color: #f9fbff;
+    padding: 60px 30px;
+    text-align: center;
+}
+
+.why-choose h2 {
+    font-size: 28px;
+    font-weight: bold;
+    margin-bottom: 40px;
+}
+
+.features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 20px;
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.feature-card {
+    background-color: #f8946d;
+    border-radius: 12px;
+    padding: 30px 20px;
+    color: white;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease;
+}
+
+.feature-card:hover {
+    transform: translateY(-5px);
+}
+
+.icon {
+    font-size: 36px;
+    margin-bottom: 15px;
+}
+
+.feature-card h3 {
+    margin-bottom: 10px;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.feature-card p {
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.academic-programs {
+    background-color: #fdf378;
+    padding: 60px 30px;
+    text-align: center;
+}
+
+.academic-programs h2 {
+    font-size: 28px;
+    font-weight: bold;
+    margin-bottom: 40px;
+}
+
+.program-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 30px;
+    max-width: 1200px;
+    margin: 0 auto 40px;
+}
+
+.program-card {
+    background: white;
+    padding: 30px 20px;
+    border-radius: 10px;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
+    text-align: left;
+}
+
+.program-card h3 {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.program-card p {
+    font-size: 14px;
+    color: #333;
+    margin-bottom: 15px;
+}
+
+.program-card a {
+    color: #1d3abf;
+    font-weight: bold;
+    text-decoration: none;
+}
+
+.view-all {
+    margin-top: 20px;
+}
+
+.view-button {
+    background-color: #1d3abf;
+    color: white;
+    padding: 12px 24px;
+    border-radius: 25px;
+    text-decoration: none;
+    font-weight: bold;
+    display: inline-block;
+    transition: background-color 0.3s ease;
+}
+
+.view-button:hover {
+    background-color: #1527a0;
+}
+
+.cta {
+    background-color: #fdfdfd;
+    text-align: center;
+    padding: 60px 30px;
+}
+
+.cta h2 {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 20px;
+}
+
+.cta p {
+    font-size: 16px;
+    color: #333;
+    margin-bottom: 30px;
+    line-height: 1.6;
+}
+
+.cta-button {
+    display: inline-block;
+    background-color: #ff4d4d;
+    color: white;
+    padding: 14px 30px;
+    border-radius: 30px;
+    font-weight: bold;
+    text-decoration: none;
+    transition: background-color 0.3s ease;
+}
+
+.cta-button:hover {
+    background-color: #e63939;
+}
+
+.site-footer {
+    background-color: #fdf378;
+    padding: 40px 30px 20px;
+    font-size: 14px;
+    color: #000;
+}
+
+.footer-content {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 30px;
+    margin-bottom: 20px;
+}
+
+.footer-column h3 {
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.footer-column p,
+.footer-column a,
+.footer-bottom {
+    color: #000;
+    text-decoration: none;
+    margin-bottom: 8px;
+}
+
+.footer-column ul {
+    list-style: none;
     padding: 0;
 }
+
+.footer-column ul li {
+    margin-bottom: 6px;
+}
+
+.footer-column ul li a:hover {
+    text-decoration: underline;
+}
+
+.footer-bottom {
+    text-align: center;
+    font-size: 13px;
+    border-top: 1px solid #e84141;
+    padding-top: 10px;
+    margin-top: 10px;
+}
+
+/* =======================
+   ABOUT PAGE STYLES
+   ======================= */
+
+.tcc-glance {
+    background-color: #1d3585;
+    color: white;
+    text-align: center;
+    padding: 60px 20px;
+}
+
+.tcc-glance h2 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 15px;
+}
+
+.tcc-glance p {
+    max-width: 800px;
+    margin: 0 auto;
+    font-size: 1.1rem;
+    line-height: 1.6;
+}
+
+.history-section {
+    padding: 60px 20px;
+    background-color: #f9f9fb;
+}
+
+.history-container {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 40px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.history-text {
+    flex: 1 1 55%;
+    color: #1d3585;
+}
+
+.history-text h2 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 20px;
+}
+
+.history-text p {
+    font-size: 1rem;
+    color: #333;
+    line-height: 1.7;
+    margin-bottom: 15px;
+}
+
+.history-image {
+    flex: 1 1 40%;
+    background: #f1f3f6;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+.history-image img {
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+}
+
+.commitment-section {
+    padding: 60px 20px;
+    background-color: #f9fafa;
+    text-align: center;
+}
+
+.commitment-section h2 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1d3585;
+    margin-bottom: 40px;
+}
+
+.commitment-cards {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 30px;
+}
+
+.commitment-card {
+    background: #ffffff;
+    padding: 30px 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    max-width: 320px;
+    flex: 1 1 280px;
+    text-align: center;
+    transition: transform 0.3s ease;
+}
+
+.commitment-card:hover {
+    transform: translateY(-5px);
+}
+
+.icon-circle {
+    background-color: #e3ecff;
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    margin: 0 auto 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.commitment-icon {
+    font-size: 24px;
+}
+
+.commitment-card h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 15px;
+    color: #000;
+}
+
+.commitment-card p {
+    color: #333;
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+.tcc-numbers {
+    text-align: center;
+    padding: 60px 20px;
+    background-color: #fff;
+    font-family: Arial, sans-serif;
+}
+
+.section-title {
+    font-size: 28px;
+    font-weight: bold;
+    color: #12377B;
+    margin-bottom: 40px;
+}
+
+.numbers-grid {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 40px;
+}
+
+.number-item h3 {
+    font-size: 32px;
+    color: #12377B;
+    margin-bottom: 10px;
+}
+
+.number-item p {
+    font-size: 16px;
+    color: #333;
+}
+
+.learn-more-section {
+    background-color: #f9fafb;
+    padding: 60px 20px;
+    text-align: center;
+    font-family: Arial, sans-serif;
+}
+
+.learn-title {
+    font-size: 28px;
+    font-weight: bold;
+    color: #12377B;
+    margin-bottom: 40px;
+}
+
+.learn-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 20px;
+}
+
+.learn-card {
+    background-color: white;
+    border-radius: 10px;
+    padding: 20px;
+    width: 250px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.08);
+    text-align: left;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    cursor: pointer;
+}
+
+.learn-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 12px rgba(0, 0, 0, 0.1);
+}
+
+.learn-card h3 {
+    color: #12377B;
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.learn-card p {
+    font-size: 14px;
+    color: #333;
+}
+
+/* =======================
+   MISSION, VISION & CORE VALUES PAGE STYLES
+   ======================= */
+
+.mission-section {
+    background-color: #1d3b87; /* Deep blue background */
+    color: white;
+    text-align: center;
+    padding: 60px 20px;
+}
+
+.mission-section h1 {
+    font-size: 32px;
+    font-weight: bold;
+    margin-bottom: 20px;
+}
+
+.mission-section p {
+    font-size: 18px;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.mission-vision-cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    justify-content: center;
+    padding: 40px 20px;
+    background-color: #ffffff;
+}
+
+.mission-vision-cards .card {
+    background-color: #f0f6ff;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+    max-width: 600px;
+    flex: 1 1 450px;
+    transition: transform 0.3s ease;
+}
+
+.mission-vision-cards .card:hover {
+    transform: translateY(-5px);
+}
+
+.icon-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.icon-title .icon {
+    width: 40px;
+    height: 40px;
+    background-color: #1d3b87;
+    color: white;
+    font-size: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+.mission-vision-cards .card h2 {
+    font-size: 24px;
+    color: #1d3b87;
+    margin: 0;
+}
+
+.mission-vision-cards .card p {
+    font-size: 16px;
+    color: #1a1a1a;
+    line-height: 1.6;
+}
+
+.core-values {
+    padding: 60px 20px;
+    background-color: #f9f9fb;
+    text-align: center;
+    font-family: Arial, sans-serif;
+}
+
+.core-values-header {
+    max-width: 800px;
+    margin: 0 auto 40px;
+}
+
+.icon-heart {
+    width: 50px;
+    height: 50px;
+    background-color: #1d3b87;
+    color: white;
+    font-size: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    margin: 0 auto 10px;
+}
+
+.core-values h2 {
+    font-size: 28px;
+    color: #1d3b87;
+    margin-bottom: 10px;
+}
+
+.core-values p {
+    font-size: 16px;
+    color: #333;
+}
+
+.values-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.value-card {
+    background-color: #fff;
+    padding: 25px 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+    text-align: left;
+}
+
+.value-card h3 {
+    color: #1d3b87;
+    margin-bottom: 10px;
+    font-size: 18px;
+}
+
+.value-card p {
+    font-size: 15px;
+    color: #333;
+    line-height: 1.5;
+}
+
+.commitment-students {
+    padding: 60px 20px;
+    background-color: #dedef7;
+    text-align: center;
+    font-family: Arial, sans-serif;
+}
+
+.commitment-students-header {
+    max-width: 800px;
+    margin: 0 auto 40px;
+}
+
+.commitment-students h2 {
+    font-size: 28px;
+    color: #1d3b87;
+    margin-bottom: 10px;
+}
+
+.commitment-students p {
+    font-size: 16px;
+    color: #333;
+}
+
+/* =======================
+   ACADEMIC PROGRAMS PAGE STYLES
+   ======================= */
+
+.academic-programs-section {
+    background-color: #1e398f;
+    color: white;
+    padding: 60px 20px;
+    text-align: center;
+}
+
+.academic-programs-section .container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.academic-programs-section h2 {
+    font-size: 2.5rem;
+    font-weight: bold;
+    margin-bottom: 20px;
+}
+
+.academic-programs-section p {
+    font-size: 1.2rem;
+    line-height: 1.6;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.education-excellence {
+    background-color: #fff;
+    text-align: center;
+    padding: 60px 20px;
+}
+
+.education-excellence .container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.education-excellence h2 {
+    font-size: 2.2rem;
+    color: #1e398f;
+    font-weight: 700;
+    margin-bottom: 20px;
+}
+
+.education-excellence .description {
+    max-width: 900px;
+    margin: 0 auto 50px;
+    font-size: 1.1rem;
+    line-height: 1.8;
+    color: #333;
+}
+
+.education-excellence .features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 20px;
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+.feature-box {
+    background: #fff;
+    border-radius: 10px;
+    padding: 30px 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    transition: transform 0.2s ease-in-out;
+}
+
+.feature-box:hover {
+    transform: translateY(-5px);
+}
+
+.feature-box .icon {
+    background: #e7efff;
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    margin: 0 auto 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.feature-box .icon img {
+    width: 28px;
+    height: 28px;
+}
+
+.feature-box h3 {
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-bottom: 10px;
+    color: #111;
+}
+
+.feature-box p {
+    font-size: 0.95rem;
+    color: #555;
+}
+
+.college-section {
+    padding: 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+    background: #f1f1f1;
+}
+
+.college-section > h2 {
+    color: #0a2c82;
+    text-align: center;
+    font-size: 2.5rem;
+    font-weight: bold;
+    margin-bottom: 20px;
+}
+
+.college-card {
+    display: flex;
+    background: white;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    flex-wrap: wrap;
+}
+
+.college-card.reverse {
+    flex-direction: row-reverse;
+}
+
+.college-text {
+    flex: 1;
+    padding: 30px;
+}
+
+.college-image {
+    flex: 1;
+    min-width: 300px;
+}
+
+.college-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.college-text h2 {
+    color: #0a2c82;
+    margin-top: 0;
+    font-size: 1.5rem;
+}
+
+.college-text .icon {
+    margin-right: 10px;
+    font-size: 1.2rem;
+}
+
+.college-text h3 {
+    color: #0a2c82;
+    margin-top: 20px;
+}
+
+.subtitle {
+    margin-bottom: 20px;
+    font-size: 1rem;
+    color: #555;
+}
+
+.programs {
+    list-style-type: disc;
+    margin-left: 20px;
+    margin-top: 10px;
+}
+
+.cta-section {
+    background-color: #193a8b;
+    color: white;
+    text-align: center;
+    padding: 60px 20px;
+}
+
+.cta-section h2 {
+    font-size: 2rem;
+    margin-bottom: 15px;
+    font-weight: bold;
+}
+
+.cta-section p {
+    font-size: 1rem;
+    max-width: 600px;
+    margin: 0 auto 30px;
+}
+
+.cta-section .cta-button {
+    display: inline-block;
+    background-color: white;
+    color: #193a8b;
+    padding: 12px 30px;
+    font-weight: bold;
+    text-decoration: none;
+    border-radius: 25px;
+    transition: background 0.3s, color 0.3s;
+}
+
+.cta-section .cta-button:hover {
+    background-color: #f0f0f0;
+    color: #10235b;
+}
+
+/* =======================
+   BOARD OF TRUSTEES PAGE STYLES
+   ======================= */
+
+.board-trustees {
+    background-color: #1d3585; /* deep blue background */
+    color: white;
+    text-align: center;
+    padding: 60px 20px;
+}
+
+.board-trustees h2 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 15px;
+}
+
+.board-trustees p {
+    max-width: 800px;
+    margin: 0 auto;
+    font-size: 1.1rem;
+    line-height: 1.6;
+}
+
+.leadership-section {
+    padding: 60px 20px;
+    background-color: #fff;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    text-align: center;
+}
+
+.leadership-section .section-title {
+    font-size: 2rem;
+    color: #0d2b6a;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.section-description {
+    max-width: 900px;
+    margin: 0 auto 40px;
+    font-size: 1rem;
+    color: #333;
+    line-height: 1.6;
+}
+
+.cards {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 30px;
+}
+
+.leadership-section .card {
+    background-color: #f9f9f9;
+    border-radius: 12px;
+    overflow: hidden;
+    width: 300px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    transition: transform 0.3s ease;
+}
+
+.leadership-section .card:hover {
+    transform: translateY(-5px);
+}
+
+.leadership-section .card img {
+    width: 100%;
+    height: 280px;
+    object-fit: cover;
+}
+
+.card-content {
+    padding: 20px;
+    text-align: left;
+}
+
+.card-content h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: #0d2b6a;
+    font-weight: bold;
+}
+
+.card-content .position {
+    color: #0033cc;
+    font-weight: 600;
+    margin: 5px 0;
+}
+
+.card-content p {
+    font-size: 0.95rem;
+    color: #444;
+}
+
+.responsibilities-section {
+    padding: 60px 20px;
+    background-color: #f9fafc;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    text-align: center;
+}
+
+.responsibilities-section .section-title {
+    font-size: 2rem;
+    color: #0d2b6a;
+    font-weight: bold;
+    margin-bottom: 30px;
+}
+
+.responsibilities-card {
+    max-width: 900px;
+    margin: 0 auto;
+    background-color: #fff;
+    padding: 30px 40px;
+    border-radius: 10px;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
+    text-align: left;
+}
+
+.responsibilities-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.responsibilities-list li {
+    font-size: 1rem;
+    color: #1a1a1a;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: flex-start;
+}
+
+.responsibilities-list .icon {
+    display: inline-block;
+    margin-right: 12px;
+    color: #3b82f6;
+    font-size: 1.2rem;
+}
+
+/* =======================
+   CHATBOT STYLES
+   ======================= */
 
 /* Chatbox container */
 .chatbox {
@@ -684,5 +1772,102 @@ body {
     .chatbox__announcements svg, .chatbox__tts svg, .chatbox__clear svg, .chatbox__reset svg {
         width: 12px;
         height: 12px;
+    }
+
+    /* Mobile adjustments for college website */
+    .hero {
+        flex-direction: column;
+        padding: 30px 20px;
+        text-align: center;
+    }
+    
+    .hero-text {
+        max-width: 100%;
+        margin-bottom: 30px;
+    }
+    
+    .hero-text h2 {
+        font-size: 28px;
+    }
+    
+    .hero-text p {
+        font-size: 16px;
+    }
+    
+    .navbar {
+        flex-direction: column;
+        gap: 10px;
+        padding: 10px;
+    }
+    
+    .nav-links {
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    
+    .features, .program-cards, .education-excellence .features {
+        grid-template-columns: 1fr;
+    }
+    
+    .why-choose, .academic-programs, .cta, .education-excellence, .academic-programs-section, .cta-section, .board-trustees, .leadership-section, .responsibilities-section, .mission-section, .core-values, .commitment-students {
+        padding: 40px 20px;
+    }
+    
+    .college-section {
+        padding: 20px;
+    }
+    
+    .college-card {
+        flex-direction: column;
+    }
+    
+    .college-card.reverse {
+        flex-direction: column;
+    }
+    
+    .college-image {
+        min-width: auto;
+        min-height: 200px;
+    }
+    
+    .history-container {
+        flex-direction: column;
+    }
+    
+    .history-text {
+        flex: none;
+    }
+    
+    .history-image {
+        flex: none;
+    }
+    
+    .commitment-cards, .learn-grid, .cards, .mission-vision-cards {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .numbers-grid {
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+    }
+    
+    .leadership-section .card {
+        width: 280px;
+    }
+    
+    .responsibilities-card {
+        padding: 20px;
+    }
+    
+    .mission-vision-cards .card {
+        max-width: 100%;
+        flex: none;
+    }
+    
+    .values-grid {
+        grid-template-columns: 1fr;
     }
 }

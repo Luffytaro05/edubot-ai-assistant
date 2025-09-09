@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - EduChat Admin Portal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="{{ url_for('static', filename='assets/css/style.css') }}" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h3>EduChat Admin</h3>
+            </div>
+           <nav class="sidebar-nav">
+    <ul>
+        <li class="{% if active_page == 'dashboard' %}active{% endif %}">
+            <a href="{{ url_for('dashboard') }}"><i class="fas fa-th-large"></i> Dashboard</a>
+        </li>
+        
+        <li class="section-header">USER MANAGEMENT</li>
+        <li class="{% if active_page == 'users' %}active{% endif %}">
+            <a href="{{ url_for('users') }}"><i class="fas fa-users"></i> User Accounts</a>
+        </li>
+        <li class="{% if active_page == 'roles' %}active{% endif %}">
+            <a href="{{ url_for('roles') }}"><i class="fas fa-user-shield"></i> Roles & Permissions</a>
+        </li>
+        
+        <li class="section-header">CHATBOT MANAGEMENT</li>
+        <li class="{% if active_page == 'conversations' %}active{% endif %}">
+            <a href="{{ url_for('conversations') }}"><i class="fas fa-comments"></i> Conversation Logs</a>
+        </li>
+        <li class="{% if active_page == 'faq' %}active{% endif %}">
+            <a href="{{ url_for('faq') }}"><i class="fas fa-question-circle"></i> FAQ Management</a>
+        </li>
+        <li class="{% if active_page == 'settings' %}active{% endif %}">
+            <a href="{{ url_for('settings') }}"><i class="fas fa-cog"></i> Bot Settings</a>
+        </li>
+        
+        <li class="section-header">ANALYTICS</li>
+        <li class="{% if active_page == 'usage' %}active{% endif %}">
+            <a href="{{ url_for('usage') }}"><i class="fas fa-chart-bar"></i> Usage Statistics</a>
+        </li>
+        <li class="{% if active_page == 'feedback' %}active{% endif %}">
+            <a href="{{ url_for('feedback') }}"><i class="fas fa-heart"></i> User Feedback</a>
+        </li>
+    </ul>
+</nav>
+
+            
+            <!-- User Profile at Bottom -->
+            <div class="sidebar-user-profile">
+                <div class="user-avatar">A</div>
+                <div class="user-details">
+                    <div class="user-name">Admin User</div>
+                    <div class="user-role">Super Administrator</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <div class="header-left">
+                    <div class="search-bar">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="Search" class="search-input" data-search-type="dashboard">
+                    </div>
+                </div>
+                <div class="header-right">
+                    <div class="notification-icon">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge">3</span>
+                    </div>
+                    <div class="user-info">
+                        <div class="user-avatar">A</div>
+                        <div class="user-details">
+                            <div class="user-name">Admin User</div>
+                            <div class="user-role">Super Administrator</div>
+                        </div>
+                    </div>
+                    <div class="logout-icon" onclick="new AuthManager().logout().then(() => window.location.href='/admin/index')">
+    <i class="fas fa-sign-out-alt"></i>
+</div>
+
+                </div>
+            </header>
+
+            <!-- Page Content -->
+            <div class="page-content">
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title">Admin Dashboard</h1>
+                        <p class="page-subtitle">Welcome back! Here's what's happening with EduChat today.</p>
+                    </div>
+                </div>
+
+                <!-- KPI Cards -->
+                <div class="kpi-grid">
+                    <div class="kpi-card" id="total-users">
+                        <div class="kpi-icon" style="background: #3b82f6;">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="kpi-content">
+                            <h3 id="total-users-count">1,248</h3>
+                            <p>Total Users</p>
+                            <span class="kpi-change positive">+12%</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card" id="chatbot-sessions">
+                        <div class="kpi-icon" style="background: #10b981;">
+                            <i class="fas fa-comments"></i>
+                        </div>
+                        <div class="kpi-content">
+                            <h3 id="chatbot-sessions-count">3,456</h3>
+                            <p>Chatbot Sessions</p>
+                            <span class="kpi-change positive">+8%</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card" id="resolved-queries">
+                        <div class="kpi-icon" style="background: #8b5cf6;">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="kpi-content">
+                            <h3 id="resolved-queries-count">2,980</h3>
+                            <p>Resolved Queries</p>
+                            <span class="kpi-change positive">+5%</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card" id="escalated-issues">
+                        <div class="kpi-icon" style="background: #ef4444;">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <div class="kpi-content">
+                            <h3 id="escalated-issues-count">42</h3>
+                            <p>Escalated Issues</p>
+                            <span class="kpi-change negative">+3%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Section -->
+                <div class="row">
+                    <div class="col-lg-8">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title">Chatbot Usage Analytics</h5>
+                                <div class="chart-tabs">
+                                    <button class="btn btn-sm btn-outline-primary active" data-period="daily">Daily</button>
+                                    <button class="btn btn-sm btn-outline-secondary" data-period="weekly">Weekly</button>
+                                    <button class="btn btn-sm btn-outline-secondary" data-period="monthly">Monthly</button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="usageChart" height="300"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title">Office Activity</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="office-activity">
+                                    <div class="activity-item">
+                                        <div class="activity-icon" style="background: #3b82f6;">
+                                            <i class="fas fa-file-alt"></i>
+                                        </div>
+                                        <div class="activity-content">
+                                            <h6>Registrar's Office</h6>
+                                            <p>Updated 12 FAQ entries</p>
+                                            <span class="activity-time">2 hours ago</span>
+                                        </div>
+                                    </div>
+                                    <div class="activity-item">
+                                        <div class="activity-icon" style="background: #10b981;">
+                                            <i class="fas fa-comments"></i>
+                                        </div>
+                                        <div class="activity-content">
+                                            <h6>Admissions Office</h6>
+                                            <p>Added 3 new admission responses</p>
+                                            <span class="activity-time">4 hours ago</span>
+                                        </div>
+                                    </div>
+                                    <div class="activity-item">
+                                        <div class="activity-icon" style="background: #8b5cf6;">
+                                            <i class="fas fa-user"></i>
+                                        </div>
+                                        <div class="activity-content">
+                                            <h6>Guidance Office</h6>
+                                            <p>Updated counseling schedule</p>
+                                            <span class="activity-time">6 hours ago</span>
+                                        </div>
+                                    </div>
+                                    <div class="activity-item">
+                                        <div class="activity-icon" style="background: #f59e0b;">
+                                            <i class="fas fa-clock"></i>
+                                        </div>
+                                        <div class="activity-content">
+                                            <h6>ICT Services</h6>
+                                            <p>Added new database links</p>
+                                            <span class="activity-time">Yesterday</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity Section -->
+                <div class="row mt-4">
+                    <div class="col-lg-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title">Recent User Accounts</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="recent-users">
+                                    <div class="user-item">
+                                        <div class="user-avatar">J</div>
+                                        <div class="user-info">
+                                            <h6>John Smith</h6>
+                                            <p>Guidance Office</p>
+                                        </div>
+                                        <span class="user-status active">Active</span>
+                                    </div>
+                                    <div class="user-item">
+                                        <div class="user-avatar">S</div>
+                                        <div class="user-info">
+                                            <h6>Sarah Wilson</h6>
+                                            <p>Registrar Office</p>
+                                        </div>
+                                        <span class="user-status active">Active</span>
+                                    </div>
+                                    <div class="user-item">
+                                        <div class="user-avatar">M</div>
+                                        <div class="user-info">
+                                            <h6>Mike Johnson</h6>
+                                            <p>ICT Office</p>
+                                        </div>
+                                        <span class="user-status inactive">Inactive</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title">Escalated Issues</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="escalated-issues">
+                                    <div class="issue-item">
+                                        <div class="issue-icon">
+                                            <i class="fas fa-exclamation-circle text-warning"></i>
+                                        </div>
+                                        <div class="issue-content">
+                                            <h6>Scholarship Application</h6>
+                                            <p>Student portal login issues</p>
+                                            <span class="issue-time">2 hours ago</span>
+                                        </div>
+                                        <div class="issue-status">
+                                            <span class="badge bg-warning">Pending</span>
+                                        </div>
+                                    </div>
+                                    <div class="issue-item">
+                                        <div class="issue-icon">
+                                            <i class="fas fa-exclamation-circle text-danger"></i>
+                                        </div>
+                                        <div class="issue-content">
+                                            <h6>System Error</h6>
+                                            <p>Database connection timeout</p>
+                                            <span class="issue-time">4 hours ago</span>
+                                        </div>
+                                        <div class="issue-status">
+                                            <span class="badge bg-danger">Critical</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="{{ url_for('static', filename='assets/js/core/BaseManager.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/js/modules/AuthManager.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/js/modules/UserManager.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/js/modules/ConversationManager.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/js/modules/FAQManager.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/js/modules/UsageStatsManager.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/js/utils/toast.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/js/app.js') }}"></script>
+
+    <script>
+    let usageChart;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize AuthManager
+        const authManager = new AuthManager();
+        
+        // Check authentication
+        if (!authManager.checkAuth()) {
+            window.location.href = '/';
+            return;
+        }
+
+        // Get current user and update UI
+        const currentUser = authManager.getCurrentUser();
+        updateUserUI(currentUser);
+        
+        initializeCharts();
+        setupEventListeners();
+        updateDashboardStats();
+    });
+
+    function updateUserUI(user) {
+        if (!user) return;
+        
+        // Update sidebar user profile
+        const sidebarUserName = document.querySelector('.sidebar-user-profile .user-name');
+        const sidebarUserRole = document.querySelector('.sidebar-user-profile .user-role');
+        const sidebarUserAvatar = document.querySelector('.sidebar-user-profile .user-avatar');
+        
+        if (sidebarUserName) sidebarUserName.textContent = user.name || 'Admin User';
+        if (sidebarUserRole) sidebarUserRole.textContent = user.role === 'admin' ? 'Super Administrator' : `${user.role} - ${user.office}`;
+        if (sidebarUserAvatar) sidebarUserAvatar.textContent = (user.name || 'A').charAt(0).toUpperCase();
+        
+        // Update header user info
+        const headerUserName = document.querySelector('.header .user-name');
+        const headerUserRole = document.querySelector('.header .user-role');
+        const headerUserAvatar = document.querySelector('.header .user-avatar');
+        
+        if (headerUserName) headerUserName.textContent = user.name || 'Admin User';
+        if (headerUserRole) headerUserRole.textContent = user.role === 'admin' ? 'Super Administrator' : `${user.role} - ${user.office}`;
+        if (headerUserAvatar) headerUserAvatar.textContent = (user.name || 'A').charAt(0).toUpperCase();
+    }
+
+    function initializeCharts() {
+        // Usage Chart - Initialize with default data
+        const usageCtx = document.getElementById('usageChart').getContext('2d');
+        
+        usageChart = new Chart(usageCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+                datasets: [{
+                    label: 'Usage',
+                    data: [120, 180, 220, 160, 200, 140, 100],
+                    backgroundColor: ['#1e40af', '#3b82f6', '#1e40af', '#3b82f6', '#1e40af', '#3b82f6', '#1e40af'],
+                    borderColor: ['#1e40af', '#3b82f6', '#1e40af', '#3b82f6', '#1e40af', '#3b82f6', '#1e40af'],
+                    borderWidth: 0,
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 240,
+                        ticks: {
+                            stepSize: 60
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Load real usage data
+        loadUsageData();
+    }
+
+    async function loadUsageData() {
+        try {
+            const authManager = new AuthManager();
+            const response = await authManager.makeAuthenticatedRequest('/api/dashboard/usage');
+            
+            if (response && response.ok) {
+                const data = await response.json();
+                if (data.usage_data) {
+                    const usageValues = data.usage_data.map(item => item.usage);
+                    usageChart.data.datasets[0].data = usageValues;
+                    usageChart.update();
+                }
+            }
+        } catch (error) {
+            console.error('Error loading usage data:', error);
+        }
+    }
+
+    function setupEventListeners() {
+        // Chart period tabs
+        document.querySelectorAll('.chart-tabs .btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.chart-tabs .btn').forEach(b => {
+                    b.classList.remove('btn-primary', 'active');
+                    b.classList.add('btn-outline-secondary');
+                });
+                this.classList.remove('btn-outline-secondary');
+                this.classList.add('btn-primary', 'active');
+                updateChartData(this.dataset.period);
+            });
+        });
+    }
+
+    function updateChartData(period) {
+        let data;
+        switch(period) {
+            case 'daily':
+                data = [120, 180, 220, 160, 200, 140, 100];
+                break;
+            case 'weekly':
+                data = [800, 1200, 1500, 1100, 1400, 900, 700];
+                break;
+            case 'monthly':
+                data = [3500, 5200, 6500, 4800, 6100, 3900, 3000];
+                break;
+            default:
+                data = [120, 180, 220, 160, 200, 140, 100];
+        }
+        
+        usageChart.data.datasets[0].data = data;
+        usageChart.update();
+        
+        // Also load real data for the selected period
+        loadUsageData();
+    }
+
+    async function updateDashboardStats() {
+        try {
+            const authManager = new AuthManager();
+            const response = await authManager.makeAuthenticatedRequest('/api/dashboard/stats');
+            
+            if (response && response.ok) {
+                const data = await response.json();
+                const stats = data.stats;
+                
+                // Update KPI cards
+                if (stats.total_users !== undefined) {
+                    document.getElementById('total-users-count').textContent = stats.total_users.toLocaleString();
+                }
+                if (stats.chatbot_sessions !== undefined) {
+                    document.getElementById('chatbot-sessions-count').textContent = stats.chatbot_sessions.toLocaleString();
+                }
+                if (stats.resolved_queries !== undefined) {
+                    document.getElementById('resolved-queries-count').textContent = stats.resolved_queries.toLocaleString();
+                }
+                if (stats.escalated_issues !== undefined) {
+                    document.getElementById('escalated-issues-count').textContent = stats.escalated_issues.toLocaleString();
+                }
+                
+                // Load recent activity
+                await loadRecentActivity();
+            }
+        } catch (error) {
+            console.error('Error updating dashboard stats:', error);
+            showToast('Error loading dashboard statistics', 'error');
+        }
+    }
+
+    async function loadRecentActivity() {
+        try {
+            const authManager = new AuthManager();
+            const response = await authManager.makeAuthenticatedRequest('/api/dashboard/activity');
+            
+            if (response && response.ok) {
+                const data = await response.json();
+                console.log('Recent activity loaded:', data.activities);
+            }
+        } catch (error) {
+            console.error('Error loading recent activity:', error);
+        }
+    }
+
+    async function logout() {
+    try {
+        const token = localStorage.getItem("educhat_session");
+
+        if (!token) {
+            console.warn("No token found, redirecting to login...");
+            window.location.href = "/admin/index";
+            return;
+        }
+
+        // Call backend logout API
+        const response = await fetch("/api/auth/logout", {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${token}`,
+                "Content-Type": "application/json"
+            }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            console.log("Logout successful:", data.message);
+        } else {
+            console.warn("Logout failed:", data.message);
+        }
+
+    } catch (err) {
+        console.error("Logout error:", err);
+    } finally {
+        // Clear session anyway
+        localStorage.removeItem("educhat_session");
+        window.location.href = "/admin/index"; // or "/" if you added the root route
+    }
+}
+
+
+    function showToast(message, type = 'info') {
+        const toast = document.createElement('div');
+        toast.className = `alert alert-${type === 'error' ? 'danger' : type === 'success' ? 'success' : 'info'} alert-dismissible fade show`;
+        toast.style.position = 'fixed';
+        toast.style.top = '20px';
+        toast.style.right = '20px';
+        toast.style.zIndex = '9999';
+        toast.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.parentNode.removeChild(toast);
+            }
+        }, 5000);
+    }
+
+    window.logout = logout;
+
+    // AuthManager class for MongoDB backend
+    class AuthManager {
+        constructor() {
+            this.sessionKey = 'educhat_session';
+            this.apiBaseUrl = '/api/auth';
+            this.sessionTimeout = 24 * 60 * 60 * 1000;
+        }
+
+        getCurrentUser() {
+            const session = this.getSession();
+            return session ? session.user : null;
+        }
+
+        getToken() {
+            const session = this.getSession();
+            return session ? session.token : null;
+        }
+
+        checkAuth() {
+            const session = this.getSession();
+            if (!session) return false;
+
+            const now = new Date();
+            const expiresAt = new Date(session.expiresAt);
+            
+            if (now > expiresAt) {
+                this.logout();
+                return false;
+            }
+
+            return true;
+        }
+
+        getSession() {
+            try {
+                const sessionData = localStorage.getItem(this.sessionKey);
+                return sessionData ? JSON.parse(sessionData) : null;
+            } catch (error) {
+                console.error('Error getting session:', error);
+                return null;
+            }
+        }
+
+        async logout() {
+            try {
+                const session = this.getSession();
+                if (session && session.token) {
+                    await fetch(`${this.apiBaseUrl}/logout`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${session.token}`,
+                            'Content-Type': 'application/json',
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Logout error:', error);
+            } finally {
+                localStorage.removeItem(this.sessionKey);
+            }
+            
+            return { success: true };
+        }
+
+        async makeAuthenticatedRequest(url, options = {}) {
+            const token = this.getToken();
+            if (!token) {
+                throw new Error('Not authenticated');
+            }
+
+            const defaultOptions = {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                    ...options.headers
+                }
+            };
+
+            const mergedOptions = { ...defaultOptions, ...options };
+            
+            try {
+                const response = await fetch(url, mergedOptions);
+                
+                if (response.status === 401) {
+                    this.logout();
+                    window.location.href = "/";
+                    return null;
+                }
+
+                return response;
+            } catch (error) {
+                console.error('Authenticated request error:', error);
+                throw error;
+            }
+        }
+    }
+</script>
+
+    <style>
+        .sidebar-user-profile {
+            position: absolute;
+            bottom: 1.5rem;
+            left: 1.5rem;
+            right: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1rem;
+            background: rgba(59, 130, 246, 0.1);
+            border-radius: 8px;
+        }
+
+        .sidebar-user-profile .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #3b82f6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+
+        .sidebar-user-profile .user-details {
+            flex: 1;
+        }
+
+        .sidebar-user-profile .user-name {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: white;
+            margin: 0;
+        }
+
+        .sidebar-user-profile .user-role {
+            font-size: 0.75rem;
+            color: #93c5fd;
+            margin: 0;
+        }
+
+        .header .user-info {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .header .user-details {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header .user-name {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #1e293b;
+            margin: 0;
+        }
+
+        .header .user-role {
+            font-size: 0.75rem;
+            color: #64748b;
+            margin: 0;
+        }
+
+        .chart-tabs .btn {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.75rem;
+            border-radius: 6px;
+        }
+
+        .office-activity {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .activity-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.75rem;
+            border-radius: 8px;
+            background: #f8fafc;
+        }
+
+        .activity-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1rem;
+        }
+
+        .activity-content h6 {
+            margin: 0;
+            color: #1e293b;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+
+        .activity-content p {
+            margin: 0.25rem 0;
+            color: #64748b;
+            font-size: 0.75rem;
+        }
+
+        .activity-time {
+            color: #94a3b8;
+            font-size: 0.75rem;
+        }
+
+        .recent-users {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .user-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.75rem;
+            border-radius: 8px;
+            background: #f8fafc;
+        }
+
+        .user-item .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #3b82f6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+
+        .user-item .user-info h6 {
+            margin: 0;
+            color: #1e293b;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+
+        .user-item .user-info p {
+            margin: 0;
+            color: #64748b;
+            font-size: 0.75rem;
+        }
+
+        .user-item .user-status {
+            margin-left: auto;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+        }
+
+        .user-item .user-status.active {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .user-item .user-status.inactive {
+            background: #fef2f2;
+            color: #dc2626;
+        }
+
+        .escalated-issues {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .issue-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.75rem;
+            border-radius: 8px;
+            background: #f8fafc;
+        }
+
+        .issue-icon {
+            font-size: 1.25rem;
+        }
+
+        .issue-content h6 {
+            margin: 0;
+            color: #1e293b;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+
+        .issue-content p {
+            margin: 0.25rem 0;
+            color: #64748b;
+            font-size: 0.75rem;
+        }
+
+        .issue-time {
+            color: #94a3b8;
+            font-size: 0.75rem;
+        }
+
+        .issue-status {
+            margin-left: auto;
+        }
+
+        .badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+        }
+
+        .bg-warning {
+            background: #fef3c7 !important;
+            color: #92400e !important;
+        }
+
+        .bg-danger {
+            background: #fef2f2 !important;
+            color: #dc2626 !important;
+        }
+
+        @media (max-width: 768px) {
+            .kpi-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .card-header {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: stretch;
+            }
+
+            .chart-tabs {
+                justify-content: center;
+            }
+        }
+    </style>
+</body>
+</html>

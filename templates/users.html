@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management - EduChat Admin Portal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="{{ url_for('static', filename='assets/css/style.css') }}" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h3>EduChat Admin</h3>
+            </div>
+            <nav class="sidebar-nav">
+    <ul>
+        <li class="{% if active_page == 'dashboard' %}active{% endif %}">
+            <a href="{{ url_for('dashboard') }}"><i class="fas fa-th-large"></i> Dashboard</a>
+        </li>
+        
+        <li class="section-header">USER MANAGEMENT</li>
+        <li class="{% if active_page == 'users' %}active{% endif %}">
+            <a href="{{ url_for('users') }}"><i class="fas fa-users"></i> User Accounts</a>
+        </li>
+        <li class="{% if active_page == 'roles' %}active{% endif %}">
+            <a href="{{ url_for('roles') }}"><i class="fas fa-user-shield"></i> Roles & Permissions</a>
+        </li>
+        
+        <li class="section-header">CHATBOT MANAGEMENT</li>
+        <li class="{% if active_page == 'conversations' %}active{% endif %}">
+            <a href="{{ url_for('conversations') }}"><i class="fas fa-comments"></i> Conversation Logs</a>
+        </li>
+        <li class="{% if active_page == 'faq' %}active{% endif %}">
+            <a href="{{ url_for('faq') }}"><i class="fas fa-question-circle"></i> FAQ Management</a>
+        </li>
+        <li class="{% if active_page == 'settings' %}active{% endif %}">
+            <a href="{{ url_for('settings') }}"><i class="fas fa-cog"></i> Bot Settings</a>
+        </li>
+        
+        <li class="section-header">ANALYTICS</li>
+        <li class="{% if active_page == 'usage' %}active{% endif %}">
+            <a href="{{ url_for('usage') }}"><i class="fas fa-chart-bar"></i> Usage Statistics</a>
+        </li>
+        <li class="{% if active_page == 'feedback' %}active{% endif %}">
+            <a href="{{ url_for('feedback') }}"><i class="fas fa-heart"></i> User Feedback</a>
+        </li>
+    </ul>
+</nav>
+
+            
+            <!-- User Profile at Bottom -->
+            <div class="sidebar-user-profile">
+                <div class="user-avatar">A</div>
+                <div class="user-details">
+                    <div class="user-name">Admin User</div>
+                    <div class="user-role">Super Administrator</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <div class="header-left">
+                    <div class="search-bar">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="Search" class="search-input" data-search-type="users">
+                    </div>
+                </div>
+                <div class="header-right">
+                    <div class="notification-icon">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge">3</span>
+                    </div>
+                    <div class="user-info">
+                        <div class="user-avatar">A</div>
+                        <div class="user-details">
+                            <div class="user-name">Admin User</div>
+                            <div class="user-role">Super Administrator</div>
+                        </div>
+                    </div>
+                    <div class="logout-icon" onclick="logout()">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Page Content -->
+            <div class="page-content">
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title">User Management</h1>
+                    </div>
+                    <button class="btn btn-primary" onclick="showAddUserModal()">
+                        <i class="fas fa-plus"></i>
+                        + Add User
+                    </button>
+                </div>
+
+                <!-- Users Table -->
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Role / Office</th>
+                                <th>Status</th>
+                                <th>Last Login</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="users-table-body">
+                            <!-- Users will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Add User Modal -->
+    <div class="modal" id="add-user-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4>Add New User</h4>
+                <button class="btn-close" onclick="closeModal('add-user-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="add-user-form">
+                    <div class="form-group">
+                        <label for="add-name">Name</label>
+                        <input type="text" id="add-name" name="name" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="add-email">Email</label>
+                        <input type="email" id="add-email" name="email" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="add-role">Role</label>
+                        <select id="add-role" name="role" class="form-control" required>
+                            <option value="">Select Role</option>
+                            <option value="Sub Admin">Sub Admin</option>
+                            <option value="Manager">Manager</option>
+                            <option value="Staff">Staff</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="add-office">Office</label>
+                        <select id="add-office" name="office" class="form-control" required>
+                            <option value="">Select Office</option>
+                            <option value="Registrar Office">Registrar Office</option>
+                            <option value="Office of Student Affairs (OSA)">Office of Student Affairs (OSA)</option>
+                            <option value="Guidance Office">Guidance Office</option>
+                            <option value="Admissions Office">Admissions Office</option>
+                            <option value="ICT Office">ICT Office</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="add-status">Status</label>
+                        <select id="add-status" name="status" class="form-control" required>
+                            <option value="Active">Active</option>
+                            <option value="Inactive">Inactive</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="add-password">Password</label>
+                        <input type="password" id="add-password" name="password" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="add-confirm-password">Confirm Password</label>
+                        <input type="password" id="add-confirm-password" name="confirmPassword" class="form-control" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('add-user-modal')">Cancel</button>
+                <button class="btn btn-primary" onclick="addUser()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit User Modal -->
+    <div class="modal" id="edit-user-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4>Edit User</h4>
+                <button class="btn-close" onclick="closeModal('edit-user-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="edit-user-form">
+                    <input type="hidden" id="edit-user-id" name="id">
+                    <div class="form-group">
+                        <label for="edit-name">Name</label>
+                        <input type="text" id="edit-name" name="name" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-email">Email</label>
+                        <input type="email" id="edit-email" name="email" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-role">Role</label>
+                        <select id="edit-role" name="role" class="form-control" required>
+                            <option value="">Select Role</option>
+                            <option value="Sub Admin">Sub Admin</option>
+                            <option value="Manager">Manager</option>
+                            <option value="Staff">Staff</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-office">Office</label>
+                        <select id="edit-office" name="office" class="form-control" required>
+                            <option value="">Select Office</option>
+                            <option value="Registrar Office">Registrar Office</option>
+                            <option value="Office of Student Affairs (OSA)">Office of Student Affairs (OSA)</option>
+                            <option value="Guidance Office">Guidance Office</option>
+                            <option value="Admissions Office">Admissions Office</option>
+                            <option value="ICT Office">ICT Office</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-status">Status</label>
+                        <select id="edit-status" name="status" class="form-control" required>
+                            <option value="Active">Active</option>
+                            <option value="Inactive">Inactive</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-password">Password</label>
+                        <input type="password" id="edit-password" name="password" class="form-control" placeholder="Leave blank to keep current password">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-confirm-password">Confirm Password</label>
+                        <input type="password" id="edit-confirm-password" name="confirmPassword" class="form-control" placeholder="Leave blank to keep current password">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('edit-user-modal')">Cancel</button>
+                <button class="btn btn-primary" onclick="updateUser()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="{{ url_for('static', filename='assets/js/core/BaseManager.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/js/modules/AuthManager.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/js/modules/UserManager.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/js/utils/toast.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/js/app.js') }}"></script>
+
+    <script>
+        let userManager;
+        let currentUsers = [];
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const authManager = new AuthManager();
+            if (!authManager.checkAuth()) {
+                window.location.href = '../index.html';
+                return;
+            }
+
+            userManager = new UserManager();
+            loadUsers();
+            setupEventListeners();
+        });
+
+        function setupEventListeners() {
+            // Search functionality
+            const searchInput = document.querySelector('.search-input');
+            searchInput.addEventListener('input', function() {
+                const query = this.value.trim();
+                if (query) {
+                    const filteredUsers = userManager.searchUsers(query);
+                    renderUsersTable(filteredUsers);
+                } else {
+                    loadUsers();
+                }
+            });
+        }
+
+        function loadUsers() {
+            currentUsers = userManager.getAll();
+            renderUsersTable(currentUsers);
+        }
+
+        function renderUsersTable(users) {
+            const tbody = document.getElementById('users-table-body');
+            tbody.innerHTML = '';
+
+            users.forEach(user => {
+                const row = document.createElement('tr');
+                const initials = user.name.split(' ').map(n => n[0]).join('').toUpperCase();
+                
+                row.innerHTML = `
+                    <td>
+                        <div class="user-info-cell">
+                            <div class="user-avatar">${initials}</div>
+                            <div class="user-details">
+                                <div class="user-name">${user.name}</div>
+                                <div class="user-email">${user.email}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>${user.role} / ${user.office}</td>
+                    <td>
+                        <span class="status-badge ${user.status.toLowerCase()}">${user.status}</span>
+                    </td>
+                    <td>${formatDate(user.lastLogin)}</td>
+                    <td>
+                        <div class="action-buttons">
+                            ${user.status === 'Active' ? 
+                                `<button class="btn btn-sm btn-outline-danger" onclick="toggleUserStatus('${user.id}')" title="Deactivate">
+                                    <i class="fas fa-times"></i>
+                                </button>` :
+                                `<button class="btn btn-sm btn-outline-success" onclick="toggleUserStatus('${user.id}')" title="Activate">
+                                    <i class="fas fa-check"></i>
+                                </button>`
+                            }
+                            <button class="btn btn-sm btn-outline-primary" onclick="editUser('${user.id}')" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteUser('${user.id}')" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return 'Never';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true
+            });
+        }
+
+        function showAddUserModal() {
+            document.getElementById('add-user-modal').style.display = 'flex';
+            document.getElementById('add-user-form').reset();
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        function addUser() {
+            const form = document.getElementById('add-user-form');
+            const formData = new FormData(form);
+            
+            const userData = {
+                name: formData.get('name'),
+                email: formData.get('email'),
+                role: formData.get('role'),
+                office: formData.get('office'),
+                status: formData.get('status'),
+                password: formData.get('password'),
+                confirmPassword: formData.get('confirmPassword')
+            };
+
+            // Validation
+            if (!userData.name || !userData.email || !userData.role || !userData.office || !userData.status) {
+                toast.error('All fields are required');
+                return;
+            }
+
+            if (userData.password !== userData.confirmPassword) {
+                toast.error('Passwords do not match');
+                return;
+            }
+
+            if (userData.password.length < 6) {
+                toast.error('Password must be at least 6 characters long');
+                return;
+            }
+
+            const result = userManager.addUser(userData);
+            
+            if (result.success) {
+                toast.success('User added successfully');
+                closeModal('add-user-modal');
+                loadUsers();
+            } else {
+                toast.error(result.message);
+            }
+        }
+
+        function editUser(userId) {
+            const user = userManager.getById(userId);
+            if (!user) {
+                toast.error('User not found');
+                return;
+            }
+
+            // Populate form
+            document.getElementById('edit-user-id').value = user.id;
+            document.getElementById('edit-name').value = user.name;
+            document.getElementById('edit-email').value = user.email;
+            document.getElementById('edit-role').value = user.role;
+            document.getElementById('edit-office').value = user.office;
+            document.getElementById('edit-status').value = user.status;
+            document.getElementById('edit-password').value = '';
+            document.getElementById('edit-confirm-password').value = '';
+
+            document.getElementById('edit-user-modal').style.display = 'flex';
+        }
+
+        function updateUser() {
+            const form = document.getElementById('edit-user-form');
+            const formData = new FormData(form);
+            
+            const userId = formData.get('id');
+            const updates = {
+                name: formData.get('name'),
+                email: formData.get('email'),
+                role: formData.get('role'),
+                office: formData.get('office'),
+                status: formData.get('status')
+            };
+
+            const password = formData.get('password');
+            const confirmPassword = formData.get('confirmPassword');
+
+            // Validation
+            if (!updates.name || !updates.email || !updates.role || !updates.office || !updates.status) {
+                toast.error('All fields are required');
+                return;
+            }
+
+            if (password || confirmPassword) {
+                if (password !== confirmPassword) {
+                    toast.error('Passwords do not match');
+                    return;
+                }
+                if (password.length < 6) {
+                    toast.error('Password must be at least 6 characters long');
+                    return;
+                }
+                updates.password = password;
+            }
+
+            const result = userManager.updateUser(userId, updates);
+            
+            if (result.success) {
+                toast.success('User updated successfully');
+                closeModal('edit-user-modal');
+                loadUsers();
+            } else {
+                toast.error(result.message);
+            }
+        }
+
+        function toggleUserStatus(userId) {
+            const result = userManager.toggleStatus(userId);
+            
+            if (result.success) {
+                toast.success(`User ${result.newStatus.toLowerCase()} successfully`);
+                loadUsers();
+            } else {
+                toast.error(result.message);
+            }
+        }
+
+        function deleteUser(userId) {
+            if (confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+                const result = userManager.delete(userId);
+                
+                if (result.success) {
+                    toast.success('User deleted successfully');
+                    loadUsers();
+                } else {
+                    toast.error(result.message);
+                }
+            }
+        }
+
+        function logout() {
+            const authManager = new AuthManager();
+            authManager.logout();
+            window.location.href = '../index.html';
+        }
+
+        // Global functions
+        window.showAddUserModal = showAddUserModal;
+        window.closeModal = closeModal;
+        window.addUser = addUser;
+        window.editUser = editUser;
+        window.updateUser = updateUser;
+        window.toggleUserStatus = toggleUserStatus;
+        window.deleteUser = deleteUser;
+        window.logout = logout;
+    </script>
+
+    <style>
+        .sidebar-user-profile {
+            position: absolute;
+            bottom: 1.5rem;
+            left: 1.5rem;
+            right: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1rem;
+            background: rgba(59, 130, 246, 0.1);
+            border-radius: 8px;
+        }
+
+        .sidebar-user-profile .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #3b82f6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+
+        .sidebar-user-profile .user-details {
+            flex: 1;
+        }
+
+        .sidebar-user-profile .user-name {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: white;
+            margin: 0;
+        }
+
+        .sidebar-user-profile .user-role {
+            font-size: 0.75rem;
+            color: #93c5fd;
+            margin: 0;
+        }
+
+        .header .user-info {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .header .user-details {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header .user-name {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #1e293b;
+            margin: 0;
+        }
+
+        .header .user-role {
+            font-size: 0.75rem;
+            color: #64748b;
+            margin: 0;
+        }
+
+        .user-info-cell {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .user-info-cell .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #3b82f6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+
+        .user-info-cell .user-details {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .user-info-cell .user-name {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin: 0;
+        }
+
+        .user-info-cell .user-email {
+            font-size: 0.75rem;
+            color: #64748b;
+            margin: 0;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 0.25rem;
+        }
+
+        .action-buttons .btn {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+        }
+
+        .action-buttons .btn i {
+            font-size: 0.75rem;
+        }
+
+        @media (max-width: 768px) {
+            .user-info-cell {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+                gap: 0.25rem;
+            }
+        }
+    </style>
+</body>
+</html>

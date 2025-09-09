@@ -3,10 +3,515 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TCC Assistant</title>
+    <title>Tanauan City College - TCC Assistant</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
+    <!-- College Website Header -->
+    <header>
+        <div class="navbar">
+            <div class="logo-section">
+                <img src="/images/TCC2014 Logo.png" alt="Tanauan City College Logo" class="logo" />
+                <div class="college-name">
+                    <h1>TANAUAN CITY COLLEGE</h1>
+                    <p>Excellence in Education</p>
+                </div>
+            </div>
+            <nav class="nav-links">
+                <a href="#" onclick="showHomePage()">HOME</a>
+
+                <div class="dropdown">
+                    <a href="#">THIS IS TCC &#9662;</a>
+                    <div class="dropdown-content">
+                        <a href="#" onclick="showAboutPage()">TCC at a Glance</a>
+                        <a href="#" onclick="showMVCVPage()">Mission, Vision & Core Values</a>
+                        <a href="#" onclick="showBoardPage()">Board of Trustees</a>
+                        <a href="#">TCC Officer In Charge</a>
+                        <a href="#">College Officials</a>
+                    </div>
+                </div>
+
+                <div class="dropdown">
+                    <a href="#">ACADEMICS &#9662;</a>
+                    <div class="dropdown-content">
+                        <a href="#" onclick="showAcademicPage()">College Programs</a>
+                    </div>
+                </div>
+
+                <div class="dropdown">
+                    <a href="#">COMMUNITY &#9662;</a>
+                    <div class="dropdown-content">
+                        <a href="#">TCC Facebook</a>
+                        <a href="#">TCC ILC (Iskolar ng Lungsod Council)</a>
+                        <a href="#">TCC MISU</a>
+                    </div>
+                </div>
+
+                <div class="dropdown">
+                    <a href="#">ADMISSION &#9662;</a>
+                    <div class="dropdown-content">
+                        <a href="#">TCC Admission</a>
+                    </div>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- College Website Main Content - Homepage -->
+    <div id="homepage-content">
+        <main class="hero">
+            <div class="hero-text">
+                <h2>Welcome to Tanauan City College</h2>
+                <p>Empowering minds, building futures, and serving the community through quality education.</p>
+                <button onclick="showAboutPage()">Learn More</button>
+            </div>
+            <div class="hero-image">
+                <img src="/images/Background-image.png" alt="Graduation Celebration" />
+            </div>
+        </main>
+
+        <section class="why-choose">
+            <h2>Why Choose TCC</h2>
+            <div class="features">
+                <div class="feature-card">
+                    <div class="icon">📖</div>
+                    <h3>Quality Education</h3>
+                    <p>Comprehensive programs designed to prepare students for future careers.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">👨‍🏫</div>
+                    <h3>Dedicated Faculty</h3>
+                    <p>Experienced educators committed to student success and academic excellence.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">🎓</div>
+                    <h3>Student Support</h3>
+                    <p>Comprehensive support services to help students achieve their academic goals.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">📅</div>
+                    <h3>Modern Facilities</h3>
+                    <p>State-of-the-art classrooms and resources for an optimal learning environment.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="academic-programs">
+            <h2>Academic Programs</h2>
+            <div class="program-cards">
+                <div class="program-card">
+                    <h3>Business Administration</h3>
+                    <p>Develop essential skills for success in the business world with our comprehensive program.</p>
+                    <a href="#" onclick="showAcademicPage()">Learn more →</a>
+                </div>
+                <div class="program-card">
+                    <h3>Information Technology</h3>
+                    <p>Prepare for careers in the fast-growing tech industry with cutting-edge IT education.</p>
+                    <a href="#" onclick="showAcademicPage()">Learn more →</a>
+                </div>
+                <div class="program-card">
+                    <h3>Education</h3>
+                    <p>Shape future generations with our comprehensive education degree programs.</p>
+                    <a href="#" onclick="showAcademicPage()">Learn more →</a>
+                </div>
+            </div>
+            <div class="view-all">
+                <a href="#" class="view-button" onclick="showAcademicPage()">View All Programs</a>
+            </div>
+        </section>
+
+        <section class="cta">
+            <h2>Begin Your Journey at Tanauan City College</h2>
+            <p>
+                Take the first step toward a brighter future. Apply now and join our<br />
+                community of learners and future leaders.
+            </p>
+            <a href="#" class="cta-button">Apply for Admission</a>
+        </section>
+    </div>
+
+    <!-- College Website - About Page Content -->
+    <div id="about-content" style="display: none;">
+        <section class="tcc-glance">
+            <div class="glance-content">
+                <h2>TCC at a Glance</h2>
+                <p>Discover the history, mission, and vision of Tanauan City College – a beacon of educational excellence in our community.</p>
+            </div>
+        </section>
+
+        <section class="history-section">
+            <div class="history-container">
+                <div class="history-text">
+                    <h2>Our History</h2>
+                    <p>Tanauan City College was established with the vision of providing quality and accessible higher education to the residents of Tanauan City and neighboring communities.</p>
+                    <p>Over the years, TCC has grown from a small institution to a comprehensive college offering diverse academic programs that meet the needs of our students and the demands of the workforce.</p>
+                    <p>Today, TCC stands as a testament to the city's commitment to educational excellence and community development, continuously evolving to provide the best learning experience for our students.</p>
+                </div>
+                <div class="history-image">
+                    <img src="/images/Background-image.png" alt="TCC Auditorium">
+                </div>
+            </div>
+        </section>
+
+        <section class="commitment-section">
+            <h2>Our Commitment</h2>
+            <div class="commitment-cards">
+                <div class="commitment-card">
+                    <div class="icon-circle">
+                        <div class="commitment-icon">🎓</div>
+                    </div>
+                    <h3>Academic Excellence</h3>
+                    <p>We are committed to providing high-quality education through innovative teaching methods and a comprehensive curriculum.</p>
+                </div>
+                <div class="commitment-card">
+                    <div class="icon-circle">
+                        <div class="commitment-icon">🤝</div>
+                    </div>
+                    <h3>Community Service</h3>
+                    <p>We actively engage with our community through outreach programs, partnerships, and service-learning opportunities.</p>
+                </div>
+                <div class="commitment-card">
+                    <div class="icon-circle">
+                        <div class="commitment-icon">👨‍🎓</div>
+                    </div>
+                    <h3>Student Development</h3>
+                    <p>We foster holistic growth by providing opportunities for leadership, creativity, and personal development.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="tcc-numbers">
+            <h2 class="section-title">TCC by the Numbers</h2>
+            <div class="numbers-grid">
+                <div class="number-item">
+                    <h3>1,500+</h3>
+                    <p>Students Enrolled</p>
+                </div>
+                <div class="number-item">
+                    <h3>50+</h3>
+                    <p>Faculty Members</p>
+                </div>
+                <div class="number-item">
+                    <h3>10+</h3>
+                    <p>Academic Programs</p>
+                </div>
+                <div class="number-item">
+                    <h3>95%</h3>
+                    <p>Employment Rate</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="learn-more-section">
+            <h2 class="learn-title">Learn More About TCC</h2>
+            <div class="learn-grid">
+                <div class="learn-card" onclick="showMVCVPage()">
+                    <h3>Mission, Vision & Core Values</h3>
+                    <p>Discover what drives us and shapes our educational philosophy.</p>
+                </div>
+                <div class="learn-card" onclick="showBoardPage()">
+                    <h3>Board of Trustees</h3>
+                    <p>Meet the dedicated leaders guiding our institution.</p>
+                </div>
+                <div class="learn-card">
+                    <h3>TCC Officer In Charge</h3>
+                    <p>Learn about our college's leadership and administration.</p>
+                </div>
+                <div class="learn-card">
+                    <h3>College Officials</h3>
+                    <p>Get to know our administrative team and department heads.</p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- College Website - Mission, Vision & Core Values Page Content -->
+    <div id="mvcv-content" style="display: none;">
+        <section class="mission-section">
+            <h1>Mission, Vision & Core Values</h1>
+            <p>
+                The guiding principles that define our purpose and shape our journey at Tanauan City College.
+            </p>
+        </section>
+        
+        <section class="mission-vision-cards">
+            <div class="card">
+                <div class="icon-title">
+                    <div class="icon"><span>🎯</span></div>
+                    <h2>Our Mission</h2>
+                </div>
+                <p>
+                    In implementing its vision, the TCC endeavors:
+                    <br><br>1. To provide relevant educational opportunities geared towards local and global demands of an emerging agro-industrial and industrial-tourist-commercial community at reasonable price for constituents of Tanauan, Batangas and its adjacent Municipalities and Cities in Luzon;
+                    <br>2. To provide quality education through excellence in training and instruction in technology and sciences, and excellence in languages, humanities and the arts;
+                    <br>3. To provide advanced studies, applied research and extension services, and experimentation in the field of agro-business, commerce and tourism, technology, and social sciences; and
+                    <br>4. Finally, its aims to model the patriotism and nationalism of its visionary leaders in Philippine History: Apolinario M. Mabini and Jose Laurel.
+                </p>
+            </div>
+
+            <div class="card">
+                <div class="icon-title">
+                    <div class="icon"><span>👁️</span></div>
+                    <h2>Our Vision</h2>
+                </div>
+                <p>
+                    In 2030, the Tanauan City College will be globally competitive self-sustaining technological-vocational college of the Constituents of Tanauan, Batangas which produces Filipino professionals who are patriotic and nationalistic in character, productively contributing to society, highly skilled and technology driven.
+                </p>
+            </div>
+        </section>
+        
+        <section class="core-values">
+            <div class="core-values-header">
+                <div class="icon-heart">❤️</div>
+                <h2>Our Core Values</h2>
+                <p>These principles guide our actions, decisions, and relationships within our academic community.</p>
+            </div>
+
+            <div class="values-grid">
+                <div class="value-card">
+                    <h3>Professionalism</h3>
+                    <p>We pursue the highest standards of performance in all our academic and administrative endeavors, constantly striving to exceed expectations and achieve outstanding results.</p>
+                </div>
+                <div class="value-card">
+                    <h3>Integrity</h3>
+                    <p>We uphold honesty, transparency, and ethical behavior in all our actions, fostering an environment of trust and accountability within our college community.</p>
+                </div>
+                <div class="value-card">
+                    <h3>Value for Excellence</h3>
+                    <p>We embrace creativity and forward-thinking approaches to education, encouraging the development of new ideas and solutions to address evolving challenges.</p>
+                </div>
+                <div class="value-card">
+                    <h3>Open for Innovation</h3>
+                    <p>We value diversity and ensure that all members of our community feel welcome, respected, and have equal opportunities to succeed and contribute.</p>
+                </div>
+                <div class="value-card">
+                    <h3>Teamwork</h3>
+                    <p>We are dedicated to serving our students, our community, and society at large, using our knowledge and resources to address social needs and promote the common good.</p>
+                </div>
+            </div>
+        </section>
+        
+        <section class="commitment-students">
+            <div class="commitment-students-header">
+                <h2>Our Commitment to Students</h2>
+                <p>At Tanauan City College, we are committed to providing a supportive and enriching educational environment where students can discover their potential, develop their talents, and prepare for meaningful careers. Our mission, vision, and core values guide us in creating learning experiences that transform lives and contribute to the betterment of society.</p>
+            </div>
+        </section>
+    </div>
+
+    <!-- College Website - Academic Programs Page Content -->
+    <div id="academic-content" style="display: none;">
+        <section class="academic-programs-section">
+            <div class="container">
+                <h2>Academic Programs</h2>
+                <p>
+                    Discover our diverse range of academic programs designed to prepare you for success<br>
+                    in your chosen field.
+                </p>
+            </div>
+        </section>
+
+        <section class="education-excellence">
+            <div class="container">
+                <h2>Excellence in Education</h2>
+                <p class="description">
+                    Tanauan City College offers comprehensive academic programs across various disciplines, designed to provide
+                    students with the knowledge, skills, and experiences needed for successful careers and lifelong learning.
+                    Our curriculum combines theoretical foundations with practical applications, preparing graduates who are
+                    ready to meet the challenges of the modern workplace.
+                </p>
+
+                <div class="features">
+                    <div class="feature-box">
+                        <div class="icon">
+                            <img src="path-to-icons/book-icon.svg" alt="Curriculum Icon" />
+                        </div>
+                        <h3>Quality Curriculum</h3>
+                        <p>Comprehensive and up-to-date programs aligned with industry standards and requirements.</p>
+                    </div>
+                    <div class="feature-box">
+                        <div class="icon">
+                            <img src="path-to-icons/faculty-icon.svg" alt="Faculty Icon" />
+                        </div>
+                        <h3>Expert Faculty</h3>
+                        <p>Learn from experienced educators and industry professionals dedicated to student success.</p>
+                    </div>
+                    <div class="feature-box">
+                        <div class="icon">
+                            <img src="path-to-icons/partnerships-icon.svg" alt="Partnerships Icon" />
+                        </div>
+                        <h3>Industry Partnerships</h3>
+                        <p>Gain practical experience through internships and collaborations with leading organizations.</p>
+                    </div>
+                    <div class="feature-box">
+                        <div class="icon">
+                            <img src="path-to-icons/career-icon.svg" alt="Career Support Icon" />
+                        </div>
+                        <h3>Career Support</h3>
+                        <p>Comprehensive guidance and resources to help you achieve your professional goals.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="college-section">
+            <h2>Our Colleges</h2>
+            <div class="college-card">
+                <div class="college-text">
+                    <h2><i class="icon">👨‍💻</i> College of Information Technology</h2>
+                    <p class="subtitle">Preparing students for careers in the rapidly evolving field of information technology.</p>
+
+                    <h3>Mission</h3>
+                    <p>To produce globally competitive IT professionals with strong technical skills, innovative mindset, and ethical values.</p>
+
+                    <h3>Vision</h3>
+                    <p>To be recognized as a center of excellence in IT education, research, and development.</p>
+
+                    <h3>Programs Offered</h3>
+                    <ul class="programs">
+                        <li>Bachelor of Science in Information Technology</li>
+                        <li>Bachelor of Science in Information Systems</li>
+                        <li>Bachelor of Science in Computer Science</li>
+                    </ul>
+                </div>
+                <div class="college-image">
+                    <img src="e05a4b9f-18bd-40d1-b68c-081546cf5826.png" alt="IT Department" />
+                </div>
+            </div>
+
+            <div class="college-card reverse">
+                <div class="college-image">
+                    <img src="25f08110-f3e4-4b88-8348-c81ab6cce940.png" alt="Business Department" />
+                </div>
+                <div class="college-text">
+                    <h2><i class="icon">🏢</i> College of Business Administration</h2>
+                    <p class="subtitle">Developing future business leaders through quality education and practical experience.</p>
+
+                    <h3>Mission</h3>
+                    <p>To provide students with the knowledge, skills, and values necessary for success in the dynamic business environment.</p>
+
+                    <h3>Vision</h3>
+                    <p>To be the premier business education provider in the region, known for producing competent, ethical, and innovative business professionals.</p>
+
+                    <h3>Programs Offered</h3>
+                    <ul class="programs">
+                        <li>Bachelor of Science in Business Administration</li>
+                        <li>Bachelor of Science in Marketing Management</li>
+                        <li>Bachelor of Science in Accountancy</li>
+                        <li>Bachelor of Science in Hospitality Management</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section class="cta-section">
+            <div class="cta-content">
+                <h2>Start Your Academic Journey</h2>
+                <p>
+                    Ready to explore our academic programs and take the first step toward your future career?
+                    Contact our Admissions Office today.
+                </p>
+                <a href="#apply" class="cta-button">Apply Now</a>
+            </div>
+        </section>
+    </div>
+
+    <!-- College Website - Board of Trustees Page Content -->
+    <div id="board-content" style="display: none;">
+        <section class="board-trustees">
+            <div class="trustees-content">
+                <h2>Board of Trustees</h2>
+                <p>Meet the dedicated leaders who guide the strategic direction and governance of Tanauan City College.</p>
+            </div>
+        </section>
+
+        <section class="leadership-section">
+            <div class="container">
+                <h2 class="section-title">Leadership & Governance</h2>
+                <p class="section-description">
+                    The Board of Trustees is the governing body of Tanauan City College, responsible for establishing policies, approving strategic plans, and ensuring the institution's financial stability. Our trustees bring diverse expertise and a shared commitment to advancing the college's mission of providing quality education to the community.
+                </p>
+
+                <div class="cards">
+                    <div class="card">
+                        <img src="images/nelson-collantes.jpg" alt="Hon. Mayor Nelson P. Collantes">
+                        <div class="card-content">
+                            <h3>Hon. Mayor Nelson P. Collantes</h3>
+                            <p class="position">Chairman of the Board</p>
+                            <p>Mayor of Tanauan City and Chairman of the TCC Board of Trustees.</p>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <img src="images/maria-santos.jpg" alt="Dr. Maria A. Santos">
+                        <div class="card-content">
+                            <h3>Dr. Maria A. Santos</h3>
+                            <p class="position">Vice Chairman</p>
+                            <p>Educational leader with over 25 years of experience in higher education administration.</p>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <img src="images/roberto-mendoza.jpg" alt="Atty. Roberto C. Mendoza">
+                        <div class="card-content">
+                            <h3>Atty. Roberto C. Mendoza</h3>
+                            <p class="position">Member</p>
+                            <p>Legal counsel with expertise in educational law and institutional governance.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="responsibilities-section">
+            <div class="container">
+                <h2 class="section-title">Board Responsibilities</h2>
+                <div class="responsibilities-card">
+                    <ul class="responsibilities-list">
+                        <li><span class="icon">✔️</span> Establish and review the college's mission, vision, and strategic direction</li>
+                        <li><span class="icon">✔️</span> Approve policies and procedures to ensure academic quality and institutional effectiveness</li>
+                        <li><span class="icon">✔️</span> Oversee the college's financial health and approve annual budgets</li>
+                        <li><span class="icon">✔️</span> Appoint and evaluate the performance of the College President</li>
+                        <li><span class="icon">✔️</span> Ensure compliance with legal and regulatory requirements</li>
+                        <li><span class="icon">✔️</span> Foster relationships with the community, government, and other educational institutions</li>
+                        <li><span class="icon">✔️</span> Advocate for the college's interests and needs at local and national levels</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <footer class="site-footer">
+        <div class="footer-content">
+            <div class="footer-column">
+                <h3>Tanauan City College</h3>
+                <p>Providing quality education and fostering excellence in our community.</p>
+                <p>📍 Tanauan City, Batangas, Philippines</p>
+                <p>📞 (043) 123-4567</p>
+                <p>✉️ info@tanauancitycollege.edu.ph</p>
+            </div>
+
+            <div class="footer-column">
+                <h3>Quick Links</h3>
+                <ul>
+                    <li><a href="#" onclick="showHomePage()">Home</a></li>
+                    <li><a href="#" onclick="showAboutPage()">About TCC</a></li>
+                    <li><a href="#" onclick="showAcademicPage()">Academic Programs</a></li>
+                    <li><a href="#">Admission</a></li>
+                    <li><a href="#">Community</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-column">
+                <h3>Connect With Us</h3>
+                <p>🔗 <a href="#">Follow us on Facebook</a></p>
+            </div>
+        </div>
+        <hr />
+        <p class="footer-bottom">© 2025 Tanauan City College. All rights reserved.</p>
+    </footer>
+
+    <!-- TCC Assistant Chatbot -->
     <div class="chatbox">
         <div class="chatbox__support">
             <!-- Header -->
@@ -49,7 +554,7 @@
                 <div class="announcements-header">
                     <h3>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 8px;">
-                            <path d="M12.87 15.07l-2.54-2.51.03-.03c1.74-1.94 2.01-4.65.75-6.78L6.87 1H4v4.84c-.46.63-.79 1.33-.98 2.09-.19.76-.19 1.55 0 2.31C3.46 12.13 4 13.56 4 15v1c0 .55.45 1 1 1h6.77c.12.38.31.76.57 1.10l1.86 1.82L12.87 15.07z"/>
+                            <path d="M12.87 15.07l-2.54-2.51.03-.03c1.74-1.94 2.01-4.65.75-6.78L6.87 1H4v4.84c-.46.63-.79 1.33-.98 2.09-.19.76-.19 1.55 0 2.31C3.46 12.13 4 13.56 4 15v1c0 .55.45 1 1 1h6.77c.12.38.31.76.57 1.1l1.86 1.82L12.87 15.07z"/>
                         </svg>
                         College Announcements
                     </h3>
@@ -126,7 +631,52 @@
     </div>
 
     <script>
-        $SCRIPT_ROOT = {{ request.script_root|tojson }};
+        
+        // Page navigation functions
+        function showHomePage() {
+            document.getElementById('homepage-content').style.display = 'block';
+            document.getElementById('about-content').style.display = 'none';
+            document.getElementById('mvcv-content').style.display = 'none';
+            document.getElementById('academic-content').style.display = 'none';
+            document.getElementById('board-content').style.display = 'none';
+        }
+        
+        function showAboutPage() {
+            document.getElementById('homepage-content').style.display = 'none';
+            document.getElementById('about-content').style.display = 'block';
+            document.getElementById('mvcv-content').style.display = 'none';
+            document.getElementById('academic-content').style.display = 'none';
+            document.getElementById('board-content').style.display = 'none';
+        }
+        
+        function showMVCVPage() {
+            document.getElementById('homepage-content').style.display = 'none';
+            document.getElementById('about-content').style.display = 'none';
+            document.getElementById('mvcv-content').style.display = 'block';
+            document.getElementById('academic-content').style.display = 'none';
+            document.getElementById('board-content').style.display = 'none';
+        }
+        
+        function showAcademicPage() {
+            document.getElementById('homepage-content').style.display = 'none';
+            document.getElementById('about-content').style.display = 'none';
+            document.getElementById('mvcv-content').style.display = 'none';
+            document.getElementById('academic-content').style.display = 'block';
+            document.getElementById('board-content').style.display = 'none';
+        }
+        
+        function showBoardPage() {
+            document.getElementById('homepage-content').style.display = 'none';
+            document.getElementById('about-content').style.display = 'none';
+            document.getElementById('mvcv-content').style.display = 'none';
+            document.getElementById('academic-content').style.display = 'none';
+            document.getElementById('board-content').style.display = 'block';
+        }
+        
+        // Initialize with homepage showing
+        document.addEventListener('DOMContentLoaded', function() {
+            showHomePage();
+        });
     </script>
     <script src="{{ url_for('static', filename='app.js') }}"></script>
 </body>

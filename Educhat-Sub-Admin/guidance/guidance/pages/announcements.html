@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Announcements - Guidance Office</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="../assets/css/style.css" rel="stylesheet">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h5 class="sidebar-title">
+                    <i class="fas fa-comments me-2"></i>
+                    Guidance Office
+                </h5>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <a href="dashboard.html" class="nav-item">
+                        <i class="fas fa-th-large"></i>
+                        Dashboard
+                    </a>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">CHATBOT MANAGEMENT</div>
+                    <a href="conversations.html" class="nav-item">
+                        <i class="fas fa-comments"></i>
+                        Conversation Logs
+                    </a>
+                    <a href="faq.html" class="nav-item">
+                        <i class="fas fa-question-circle"></i>
+                        FAQ Management
+                    </a>
+                    <a href="announcements.html" class="nav-item active">
+                        <i class="fas fa-bullhorn"></i>
+                        Announcements
+                    </a>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">ANALYTICS</div>
+                    <a href="usage-stats.html" class="nav-item">
+                        <i class="fas fa-chart-bar"></i>
+                        Usage Statistics
+                    </a>
+                    <a href="feedback.html" class="nav-item">
+                        <i class="fas fa-heart"></i>
+                        User Feedback
+                    </a>
+                </div>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="user-details">
+                        <div class="user-name">Guidance Office</div>
+                        <div class="user-role">Sub Admin</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Header -->
+            <div class="header">
+                <div class="header-search">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Search" class="form-control">
+                </div>
+                
+                <div class="header-actions">
+                    <div class="notification-bell">
+                        <i class="fas fa-bell"></i>
+                        <div class="notification-dot"></div>
+                    </div>
+                    <div class="user-profile">
+                        <div class="user-info">
+                            <div class="user-name">Guidance Office</div>
+                            <div class="user-role">Sub Admin</div>
+                        </div>
+                        <div class="user-avatar">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <button class="logout-btn" onclick="logout()">
+                            <i class="fas fa-sign-out-alt"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Content -->
+            <div class="content">
+                <h1 class="page-title">Announcement</h1>
+                <p class="page-subtitle">Manage chatbot content, settings, and permissions</p>
+
+                <!-- Search and Add Button -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="search-bar">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="announcementSearch" placeholder="Search announcements..." class="form-control">
+                        </div>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <button class="btn btn-primary" onclick="openAddAnnouncementModal()">
+                            <i class="fas fa-plus"></i> + Add Announcement
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Announcements Table -->
+                <div class="table-container">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Date Range</th>
+                                    <th>Priority</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="announcementTableBody">
+                                <!-- Announcement rows will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Announcement Modal -->
+    <div class="modal fade" id="announcementModal" tabindex="-1" aria-labelledby="announcementModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="announcementModalLabel">Add Announcement</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="announcementForm">
+                        <input type="hidden" id="announcementId" name="id">
+                        <div class="mb-3">
+                            <label for="announcementTitle" class="form-label">Title</label>
+                            <input type="text" class="form-control" id="announcementTitle" name="title" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="announcementContent" class="form-label">Description</label>
+                            <textarea class="form-control" id="announcementContent" name="content" rows="4" required></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="announcementStartDate" class="form-label">Start Date</label>
+                                    <input type="date" class="form-control" id="announcementStartDate" name="startDate" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="announcementEndDate" class="form-label">End Date</label>
+                                    <input type="date" class="form-control" id="announcementEndDate" name="endDate" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="announcementPriority" class="form-label">Priority</label>
+                                    <select class="form-control" id="announcementPriority" name="priority" required>
+                                        <option value="low">Low</option>
+                                        <option value="medium">Medium</option>
+                                        <option value="high">High</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="announcementStatus" class="form-label">Status</label>
+                                    <select class="form-control" id="announcementStatus" name="status" required>
+                                        <option value="draft">Draft</option>
+                                        <option value="scheduled">Scheduled</option>
+                                        <option value="active">Active</option>
+                                        <option value="inactive">Inactive</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="saveAnnouncement()">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Announcement Modal -->
+    <div class="modal fade" id="viewAnnouncementModal" tabindex="-1" aria-labelledby="viewAnnouncementModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="viewAnnouncementModalLabel">View Announcement</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Title:</label>
+                        <p id="viewAnnouncementTitle"></p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Description:</label>
+                        <p id="viewAnnouncementContent"></p>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Start Date:</label>
+                                <p id="viewAnnouncementStartDate"></p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">End Date:</label>
+                                <p id="viewAnnouncementEndDate"></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Priority:</label>
+                                <span id="viewAnnouncementPriority"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Status:</label>
+                                <span id="viewAnnouncementStatus"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Created:</label>
+                        <p id="viewAnnouncementCreated"></p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Last Updated:</label>
+                        <p id="viewAnnouncementUpdated"></p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container position-fixed top-0 end-0 p-3">
+        <div id="toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header">
+                <strong class="me-auto" id="toastTitle">Notification</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body" id="toastMessage">
+                This is a toast message.
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../assets/js/core/StorageManager.js"></script>
+    <script src="../assets/js/modules/AuthManager.js"></script>
+    <script src="../assets/js/UIManager.js"></script>
+    <script src="../assets/js/modules/AnnouncementManager.js"></script>
+    <script>
+        // Global variables
+        let announcementManager;
+        let uiManager;
+        let storageManager;
+
+        // Initialize Announcements page
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Announcements page loading...');
+            
+            // Wait for all scripts to load
+            setTimeout(() => {
+                try {
+                    console.log('Initializing managers...');
+                    
+                    // Initialize managers
+                    storageManager = new StorageManager();
+                    uiManager = new UIManager();
+                    announcementManager = new AnnouncementManager();
+                    
+                    console.log('Managers initialized:', {
+                        storageManager: !!storageManager,
+                        uiManager: !!uiManager,
+                        announcementManager: !!announcementManager
+                    });
+                    
+                    // Check authentication - but don't block if auth manager is not available
+                    if (window.authManager) {
+                        if (!window.authManager.requireAuth()) {
+                            console.log('Authentication required, redirecting...');
+                            return;
+                        }
+                    } else {
+                        console.log('Auth manager not available, proceeding without authentication');
+                    }
+
+                    // Initialize Announcement manager
+                    announcementManager.initialize();
+                    console.log('Announcements page initialized successfully');
+                    
+                    // Test if announcements are loaded
+                    const announcements = storageManager.getAnnouncements();
+                    console.log('Loaded announcements from storage:', announcements);
+                    
+                } catch (error) {
+                    console.error('Error initializing Announcements page:', error);
+                    alert('Error initializing Announcements page: ' + error.message);
+                }
+            }, 100);
+        });
+
+        // Logout function
+        function logout() {
+            if (window.authManager) {
+                window.authManager.logout();
+            }
+            window.location.href = '../index.html';
+        }
+
+        // Global functions for modal operations
+        function openAddAnnouncementModal() {
+            console.log('Opening add announcement modal');
+            document.getElementById('announcementModalLabel').textContent = 'Add Announcement';
+            document.getElementById('announcementForm').reset();
+            document.getElementById('announcementId').value = '';
+            document.querySelector('#announcementModal .btn-primary').textContent = 'Save';
+            
+            if (uiManager && uiManager.showModal) {
+                uiManager.showModal('announcementModal');
+            } else {
+                const modal = new bootstrap.Modal(document.getElementById('announcementModal'));
+                modal.show();
+            }
+        }
+
+        function saveAnnouncement() {
+            console.log('Saving announcement...');
+            if (announcementManager && announcementManager.saveAnnouncement) {
+                announcementManager.saveAnnouncement();
+            } else {
+                console.error('Announcement Manager not initialized or saveAnnouncement method not found');
+                alert('Announcement Manager not properly initialized');
+            }
+        }
+
+        // Global functions for announcement actions
+        function viewAnnouncement(id) {
+            console.log('Viewing announcement:', id);
+            if (announcementManager && announcementManager.viewAnnouncement) {
+                announcementManager.viewAnnouncement(id);
+            } else {
+                console.error('Announcement Manager not initialized or viewAnnouncement method not found');
+            }
+        }
+
+        function editAnnouncement(id) {
+            console.log('Editing announcement:', id);
+            if (announcementManager && announcementManager.editAnnouncement) {
+                announcementManager.editAnnouncement(id);
+            } else {
+                console.error('Announcement Manager not initialized or editAnnouncement method not found');
+            }
+        }
+
+        function deleteAnnouncement(id) {
+            console.log('Deleting announcement:', id);
+            if (announcementManager && announcementManager.deleteAnnouncement) {
+                announcementManager.deleteAnnouncement(id);
+            } else {
+                console.error('Announcement Manager not initialized or deleteAnnouncement method not found');
+            }
+        }
+    </script>
+</body>
+</html>
