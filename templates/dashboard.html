@@ -1,3 +1,4 @@
+<!--(dashboard.html):-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -85,10 +86,9 @@
                             <div class="user-role">Super Administrator</div>
                         </div>
                     </div>
-                    <div class="logout-icon" onclick="new AuthManager().logout().then(() => window.location.href='/admin/index')">
-    <i class="fas fa-sign-out-alt"></i>
-</div>
-
+                    <div class="logout-icon" onclick="logout()">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </div>
                 </div>
             </header>
 
@@ -99,6 +99,22 @@
                         <h1 class="page-title">Admin Dashboard</h1>
                         <p class="page-subtitle">Welcome back! Here's what's happening with EduChat today.</p>
                     </div>
+                    <div class="page-actions">
+                        <button class="btn btn-outline-primary btn-sm" onclick="refreshDashboard()">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                        <button class="btn btn-primary btn-sm" onclick="exportDashboardData()">
+                            <i class="fas fa-download"></i> Export
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Loading Indicator -->
+                <div id="dashboard-loading" class="text-center py-4" style="display: none;">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2 text-muted">Loading dashboard data...</p>
                 </div>
 
                 <!-- KPI Cards -->
@@ -108,9 +124,9 @@
                             <i class="fas fa-users"></i>
                         </div>
                         <div class="kpi-content">
-                            <h3 id="total-users-count">1,248</h3>
+                            <h3 id="total-users-count">0</h3>
                             <p>Total Users</p>
-                            <span class="kpi-change positive">+12%</span>
+                            <span class="kpi-change" id="users-growth">+0%</span>
                         </div>
                     </div>
                     <div class="kpi-card" id="chatbot-sessions">
@@ -118,9 +134,9 @@
                             <i class="fas fa-comments"></i>
                         </div>
                         <div class="kpi-content">
-                            <h3 id="chatbot-sessions-count">3,456</h3>
-                            <p>Chatbot Sessions</p>
-                            <span class="kpi-change positive">+8%</span>
+                            <h3 id="chatbot-sessions-count">0</h3>
+                            <p>Total Conversations</p>
+                            <span class="kpi-change" id="conversations-growth">+0%</span>
                         </div>
                     </div>
                     <div class="kpi-card" id="resolved-queries">
@@ -128,9 +144,9 @@
                             <i class="fas fa-check-circle"></i>
                         </div>
                         <div class="kpi-content">
-                            <h3 id="resolved-queries-count">2,980</h3>
+                            <h3 id="resolved-queries-count">0</h3>
                             <p>Resolved Queries</p>
-                            <span class="kpi-change positive">+5%</span>
+                            <span class="kpi-change" id="resolution-growth">+0%</span>
                         </div>
                     </div>
                     <div class="kpi-card" id="escalated-issues">
@@ -138,9 +154,9 @@
                             <i class="fas fa-exclamation-triangle"></i>
                         </div>
                         <div class="kpi-content">
-                            <h3 id="escalated-issues-count">42</h3>
+                            <h3 id="escalated-issues-count">0</h3>
                             <p>Escalated Issues</p>
-                            <span class="kpi-change negative">+3%</span>
+                            <span class="kpi-change" id="escalated-growth">+0%</span>
                         </div>
                     </div>
                 </div>
@@ -150,11 +166,11 @@
                     <div class="col-lg-8">
                         <div class="card">
                             <div class="card-header">
-                                <h5 class="card-title">Chatbot Usage Analytics</h5>
+                                <h5 class="card-title">Usage Analytics</h5>
                                 <div class="chart-tabs">
-                                    <button class="btn btn-sm btn-outline-primary active" data-period="daily">Daily</button>
+                                    <button class="btn btn-sm btn-primary active" data-period="daily">Daily</button>
                                     <button class="btn btn-sm btn-outline-secondary" data-period="weekly">Weekly</button>
-                                    <button class="btn btn-sm btn-outline-secondary" data-period="monthly">Monthly</button>
+                                    <button class="btn btn-sm btn-outline-secondary" data-period="hourly">Hourly</button>
                                 </div>
                             </div>
                             <div class="card-body">
@@ -165,51 +181,10 @@
                     <div class="col-lg-4">
                         <div class="card">
                             <div class="card-header">
-                                <h5 class="card-title">Office Activity</h5>
+                                <h5 class="card-title">Department Distribution</h5>
                             </div>
                             <div class="card-body">
-                                <div class="office-activity">
-                                    <div class="activity-item">
-                                        <div class="activity-icon" style="background: #3b82f6;">
-                                            <i class="fas fa-file-alt"></i>
-                                        </div>
-                                        <div class="activity-content">
-                                            <h6>Registrar's Office</h6>
-                                            <p>Updated 12 FAQ entries</p>
-                                            <span class="activity-time">2 hours ago</span>
-                                        </div>
-                                    </div>
-                                    <div class="activity-item">
-                                        <div class="activity-icon" style="background: #10b981;">
-                                            <i class="fas fa-comments"></i>
-                                        </div>
-                                        <div class="activity-content">
-                                            <h6>Admissions Office</h6>
-                                            <p>Added 3 new admission responses</p>
-                                            <span class="activity-time">4 hours ago</span>
-                                        </div>
-                                    </div>
-                                    <div class="activity-item">
-                                        <div class="activity-icon" style="background: #8b5cf6;">
-                                            <i class="fas fa-user"></i>
-                                        </div>
-                                        <div class="activity-content">
-                                            <h6>Guidance Office</h6>
-                                            <p>Updated counseling schedule</p>
-                                            <span class="activity-time">6 hours ago</span>
-                                        </div>
-                                    </div>
-                                    <div class="activity-item">
-                                        <div class="activity-icon" style="background: #f59e0b;">
-                                            <i class="fas fa-clock"></i>
-                                        </div>
-                                        <div class="activity-content">
-                                            <h6>ICT Services</h6>
-                                            <p>Added new database links</p>
-                                            <span class="activity-time">Yesterday</span>
-                                        </div>
-                                    </div>
-                                </div>
+                                <canvas id="departmentChart" height="300"></canvas>
                             </div>
                         </div>
                     </div>
@@ -220,33 +195,15 @@
                     <div class="col-lg-6">
                         <div class="card">
                             <div class="card-header">
-                                <h5 class="card-title">Recent User Accounts</h5>
+                                <h5 class="card-title">Office Activity</h5>
                             </div>
                             <div class="card-body">
-                                <div class="recent-users">
-                                    <div class="user-item">
-                                        <div class="user-avatar">J</div>
-                                        <div class="user-info">
-                                            <h6>John Smith</h6>
-                                            <p>Guidance Office</p>
+                                <div class="office-activity" id="office-activity-list">
+                                    <div class="text-center py-3">
+                                        <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                            <span class="visually-hidden">Loading...</span>
                                         </div>
-                                        <span class="user-status active">Active</span>
-                                    </div>
-                                    <div class="user-item">
-                                        <div class="user-avatar">S</div>
-                                        <div class="user-info">
-                                            <h6>Sarah Wilson</h6>
-                                            <p>Registrar Office</p>
-                                        </div>
-                                        <span class="user-status active">Active</span>
-                                    </div>
-                                    <div class="user-item">
-                                        <div class="user-avatar">M</div>
-                                        <div class="user-info">
-                                            <h6>Mike Johnson</h6>
-                                            <p>ICT Office</p>
-                                        </div>
-                                        <span class="user-status inactive">Inactive</span>
+                                        <p class="mt-2 text-muted small">Loading activity...</p>
                                     </div>
                                 </div>
                             </div>
@@ -255,35 +212,15 @@
                     <div class="col-lg-6">
                         <div class="card">
                             <div class="card-header">
-                                <h5 class="card-title">Escalated Issues</h5>
+                                <h5 class="card-title">Recent Users</h5>
                             </div>
                             <div class="card-body">
-                                <div class="escalated-issues">
-                                    <div class="issue-item">
-                                        <div class="issue-icon">
-                                            <i class="fas fa-exclamation-circle text-warning"></i>
+                                <div class="recent-users" id="recent-users-list">
+                                    <div class="text-center py-3">
+                                        <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                            <span class="visually-hidden">Loading...</span>
                                         </div>
-                                        <div class="issue-content">
-                                            <h6>Scholarship Application</h6>
-                                            <p>Student portal login issues</p>
-                                            <span class="issue-time">2 hours ago</span>
-                                        </div>
-                                        <div class="issue-status">
-                                            <span class="badge bg-warning">Pending</span>
-                                        </div>
-                                    </div>
-                                    <div class="issue-item">
-                                        <div class="issue-icon">
-                                            <i class="fas fa-exclamation-circle text-danger"></i>
-                                        </div>
-                                        <div class="issue-content">
-                                            <h6>System Error</h6>
-                                            <p>Database connection timeout</p>
-                                            <span class="issue-time">4 hours ago</span>
-                                        </div>
-                                        <div class="issue-status">
-                                            <span class="badge bg-danger">Critical</span>
-                                        </div>
+                                        <p class="mt-2 text-muted small">Loading users...</p>
                                     </div>
                                 </div>
                             </div>
@@ -302,65 +239,102 @@
     <script src="{{ url_for('static', filename='assets/js/modules/FAQManager.js') }}"></script>
     <script src="{{ url_for('static', filename='assets/js/modules/UsageStatsManager.js') }}"></script>
     <script src="{{ url_for('static', filename='assets/js/utils/toast.js') }}"></script>
-    <script src="{{ url_for('static', filename='assets/js/app.js') }}"></script>
 
     <script>
+    // Global variables
     let usageChart;
+    let departmentChart;
+    let authManager;
+    let usageStatsManager;
+    let currentPeriod = 'daily';
 
-    document.addEventListener('DOMContentLoaded', function() {
-        // Initialize AuthManager
-        const authManager = new AuthManager();
-        
-        // Check authentication
-        if (!authManager.checkAuth()) {
-            window.location.href = '/';
-            return;
+    document.addEventListener('DOMContentLoaded', async function() {
+        try {
+            // Initialize managers
+            authManager = new AuthManager();
+            usageStatsManager = new UsageStatsManager();
+            
+            // Check authentication
+            if (!authManager.checkAuth()) {
+                window.location.href = '/admin/index';
+                return;
+            }
+
+            // Get current user and update UI
+            const currentUser = authManager.getCurrentUser();
+            updateUserUI(currentUser);
+            
+            // Initialize dashboard
+            await initializeDashboard();
+            
+            // Setup event listeners
+            setupEventListeners();
+            
+            // Auto-refresh every 5 minutes
+            setInterval(async () => {
+                await refreshDashboardData();
+            }, 5 * 60 * 1000);
+            
+        } catch (error) {
+            console.error('Dashboard initialization error:', error);
+            showToast('Failed to initialize dashboard', 'error');
         }
-
-        // Get current user and update UI
-        const currentUser = authManager.getCurrentUser();
-        updateUserUI(currentUser);
-        
-        initializeCharts();
-        setupEventListeners();
-        updateDashboardStats();
     });
+
+    async function initializeDashboard() {
+        showLoading(true);
+        
+        try {
+            // Initialize charts first
+            initializeCharts();
+            
+            // Load all dashboard data
+            await Promise.all([
+                updateKPICards(),
+                updateUsageChart(currentPeriod),
+                updateDepartmentChart(),
+                loadRecentActivity()
+            ]);
+            
+            showToast('Dashboard loaded successfully', 'success');
+        } catch (error) {
+            console.error('Dashboard initialization error:', error);
+            showToast('Error loading dashboard data', 'error');
+        } finally {
+            showLoading(false);
+        }
+    }
 
     function updateUserUI(user) {
         if (!user) return;
         
-        // Update sidebar user profile
-        const sidebarUserName = document.querySelector('.sidebar-user-profile .user-name');
-        const sidebarUserRole = document.querySelector('.sidebar-user-profile .user-role');
-        const sidebarUserAvatar = document.querySelector('.sidebar-user-profile .user-avatar');
+        const userElements = [
+            { selector: '.sidebar-user-profile .user-name', content: user.name || 'Admin User' },
+            { selector: '.sidebar-user-profile .user-role', content: user.role === 'admin' ? 'Super Administrator' : `${user.role} - ${user.office}` },
+            { selector: '.sidebar-user-profile .user-avatar', content: (user.name || 'A').charAt(0).toUpperCase() },
+            { selector: '.header .user-name', content: user.name || 'Admin User' },
+            { selector: '.header .user-role', content: user.role === 'admin' ? 'Super Administrator' : `${user.role} - ${user.office}` },
+            { selector: '.header .user-avatar', content: (user.name || 'A').charAt(0).toUpperCase() }
+        ];
         
-        if (sidebarUserName) sidebarUserName.textContent = user.name || 'Admin User';
-        if (sidebarUserRole) sidebarUserRole.textContent = user.role === 'admin' ? 'Super Administrator' : `${user.role} - ${user.office}`;
-        if (sidebarUserAvatar) sidebarUserAvatar.textContent = (user.name || 'A').charAt(0).toUpperCase();
-        
-        // Update header user info
-        const headerUserName = document.querySelector('.header .user-name');
-        const headerUserRole = document.querySelector('.header .user-role');
-        const headerUserAvatar = document.querySelector('.header .user-avatar');
-        
-        if (headerUserName) headerUserName.textContent = user.name || 'Admin User';
-        if (headerUserRole) headerUserRole.textContent = user.role === 'admin' ? 'Super Administrator' : `${user.role} - ${user.office}`;
-        if (headerUserAvatar) headerUserAvatar.textContent = (user.name || 'A').charAt(0).toUpperCase();
+        userElements.forEach(({ selector, content }) => {
+            const element = document.querySelector(selector);
+            if (element) element.textContent = content;
+        });
     }
 
     function initializeCharts() {
-        // Usage Chart - Initialize with default data
+        // Usage Chart
         const usageCtx = document.getElementById('usageChart').getContext('2d');
-        
         usageChart = new Chart(usageCtx, {
             type: 'bar',
             data: {
-                labels: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+                labels: [],
                 datasets: [{
                     label: 'Usage',
-                    data: [120, 180, 220, 160, 200, 140, 100],
-                    backgroundColor: ['#1e40af', '#3b82f6', '#1e40af', '#3b82f6', '#1e40af', '#3b82f6', '#1e40af'],
-                    borderColor: ['#1e40af', '#3b82f6', '#1e40af', '#3b82f6', '#1e40af', '#3b82f6', '#1e40af'],
+                    data: [],
+                    backgroundColor: '#3b82f6',
+                    borderColor: '#1e40af',
                     borderWidth: 0,
                     borderRadius: 4
                 }]
@@ -369,172 +343,279 @@
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: {
-                        display: false
-                    }
+                    legend: { display: false }
                 },
                 scales: {
-                    y: {
-                        beginAtZero: true,
-                        max: 240,
-                        ticks: {
-                            stepSize: 60
-                        }
-                    }
+                    y: { beginAtZero: true }
                 }
             }
         });
-        
-        // Load real usage data
-        loadUsageData();
-    }
 
-    async function loadUsageData() {
-        try {
-            const authManager = new AuthManager();
-            const response = await authManager.makeAuthenticatedRequest('/api/dashboard/usage');
-            
-            if (response && response.ok) {
-                const data = await response.json();
-                if (data.usage_data) {
-                    const usageValues = data.usage_data.map(item => item.usage);
-                    usageChart.data.datasets[0].data = usageValues;
-                    usageChart.update();
+        // Department Chart
+        const deptCtx = document.getElementById('departmentChart').getContext('2d');
+        departmentChart = new Chart(deptCtx, {
+            type: 'doughnut',
+            data: {
+                labels: [],
+                datasets: [{
+                    data: [],
+                    backgroundColor: [
+                        '#3b82f6', '#10b981', '#8b5cf6', '#f59e0b', '#ef4444'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom' }
                 }
             }
+        });
+    }
+
+    async function updateKPICards() {
+        try {
+            const kpiData = await usageStatsManager.getKPIData();
+            const growth = await usageStatsManager.getGrowthPercentage();
+            
+            // Update KPI values
+            const updates = [
+                { id: 'total-users-count', value: kpiData.uniqueUsers || 0 },
+                { id: 'chatbot-sessions-count', value: kpiData.totalConversations || 0 },
+                { id: 'resolved-queries-count', value: kpiData.resolvedQueries || 0 },
+                { id: 'escalated-issues-count', value: kpiData.escalatedIssues || 0 }
+            ];
+            
+            updates.forEach(({ id, value }) => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.textContent = formatNumber(value);
+                }
+            });
+            
+            // Update growth percentages
+            const growthUpdates = [
+                { id: 'users-growth', value: growth.users || 0 },
+                { id: 'conversations-growth', value: growth.conversations || 0 },
+                { id: 'resolution-growth', value: growth.resolution || 0 },
+                { id: 'escalated-growth', value: growth.resolution || 0 }
+            ];
+            
+            growthUpdates.forEach(({ id, value }) => {
+                const element = document.getElementById(id);
+                if (element) {
+                    const isPositive = value >= 0;
+                    element.textContent = `${isPositive ? '+' : ''}${value.toFixed(1)}%`;
+                    element.className = `kpi-change ${isPositive ? 'positive' : 'negative'}`;
+                }
+            });
+            
         } catch (error) {
-            console.error('Error loading usage data:', error);
+            console.error('Error updating KPI cards:', error);
+            showToast('Error loading KPI data', 'error');
+        }
+    }
+
+    async function updateUsageChart(period = 'daily') {
+        try {
+            const usageData = await usageStatsManager.getUsageByTimeData(period);
+            
+            usageChart.data.labels = usageData.labels;
+            usageChart.data.datasets[0].data = usageData.data;
+            usageChart.update();
+            
+        } catch (error) {
+            console.error('Error updating usage chart:', error);
+            showToast('Error loading usage chart', 'error');
+        }
+    }
+
+    async function updateDepartmentChart() {
+        try {
+            const deptData = await usageStatsManager.getDepartmentStats();
+            
+            departmentChart.data.labels = deptData.labels;
+            departmentChart.data.datasets[0].data = deptData.data;
+            departmentChart.update();
+            
+        } catch (error) {
+            console.error('Error updating department chart:', error);
+            showToast('Error loading department chart', 'error');
+        }
+    }
+
+    async function loadRecentActivity() {
+        try {
+            // Mock recent activity data - replace with actual API call
+            const activities = [
+                {
+                    icon: 'fas fa-file-alt',
+                    iconBg: '#3b82f6',
+                    title: "Registrar's Office",
+                    description: 'Updated 12 FAQ entries',
+                    time: '2 hours ago'
+                },
+                {
+                    icon: 'fas fa-comments',
+                    iconBg: '#10b981',
+                    title: 'Admissions Office',
+                    description: 'Added 3 new admission responses',
+                    time: '4 hours ago'
+                },
+                {
+                    icon: 'fas fa-user',
+                    iconBg: '#8b5cf6',
+                    title: 'Guidance Office',
+                    description: 'Updated counseling schedule',
+                    time: '6 hours ago'
+                }
+            ];
+            
+            const activityHTML = activities.map(activity => `
+                <div class="activity-item">
+                    <div class="activity-icon" style="background: ${activity.iconBg};">
+                        <i class="${activity.icon}"></i>
+                    </div>
+                    <div class="activity-content">
+                        <h6>${activity.title}</h6>
+                        <p>${activity.description}</p>
+                        <span class="activity-time">${activity.time}</span>
+                    </div>
+                </div>
+            `).join('');
+            
+            document.getElementById('office-activity-list').innerHTML = activityHTML;
+            
+            // Load recent users
+            const users = [
+                { name: 'John Smith', office: 'Guidance Office', status: 'Active' },
+                { name: 'Sarah Wilson', office: 'Registrar Office', status: 'Active' },
+                { name: 'Mike Johnson', office: 'ICT Office', status: 'Inactive' }
+            ];
+            
+            const usersHTML = users.map(user => `
+                <div class="user-item">
+                    <div class="user-avatar">${user.name.charAt(0)}</div>
+                    <div class="user-info">
+                        <h6>${user.name}</h6>
+                        <p>${user.office}</p>
+                    </div>
+                    <span class="user-status ${user.status.toLowerCase()}">${user.status}</span>
+                </div>
+            `).join('');
+            
+            document.getElementById('recent-users-list').innerHTML = usersHTML;
+            
+        } catch (error) {
+            console.error('Error loading recent activity:', error);
         }
     }
 
     function setupEventListeners() {
         // Chart period tabs
         document.querySelectorAll('.chart-tabs .btn').forEach(btn => {
-            btn.addEventListener('click', function() {
+            btn.addEventListener('click', async function() {
+                // Update tab styles
                 document.querySelectorAll('.chart-tabs .btn').forEach(b => {
                     b.classList.remove('btn-primary', 'active');
                     b.classList.add('btn-outline-secondary');
                 });
                 this.classList.remove('btn-outline-secondary');
                 this.classList.add('btn-primary', 'active');
-                updateChartData(this.dataset.period);
+                
+                // Update chart
+                currentPeriod = this.dataset.period;
+                await updateUsageChart(currentPeriod);
             });
         });
     }
 
-    function updateChartData(period) {
-        let data;
-        switch(period) {
-            case 'daily':
-                data = [120, 180, 220, 160, 200, 140, 100];
-                break;
-            case 'weekly':
-                data = [800, 1200, 1500, 1100, 1400, 900, 700];
-                break;
-            case 'monthly':
-                data = [3500, 5200, 6500, 4800, 6100, 3900, 3000];
-                break;
-            default:
-                data = [120, 180, 220, 160, 200, 140, 100];
-        }
+    async function refreshDashboard() {
+        showToast('Refreshing dashboard...', 'info');
         
-        usageChart.data.datasets[0].data = data;
-        usageChart.update();
-        
-        // Also load real data for the selected period
-        loadUsageData();
-    }
-
-    async function updateDashboardStats() {
         try {
-            const authManager = new AuthManager();
-            const response = await authManager.makeAuthenticatedRequest('/api/dashboard/stats');
+            // Clear cache
+            usageStatsManager.clearCache();
             
-            if (response && response.ok) {
-                const data = await response.json();
-                const stats = data.stats;
-                
-                // Update KPI cards
-                if (stats.total_users !== undefined) {
-                    document.getElementById('total-users-count').textContent = stats.total_users.toLocaleString();
-                }
-                if (stats.chatbot_sessions !== undefined) {
-                    document.getElementById('chatbot-sessions-count').textContent = stats.chatbot_sessions.toLocaleString();
-                }
-                if (stats.resolved_queries !== undefined) {
-                    document.getElementById('resolved-queries-count').textContent = stats.resolved_queries.toLocaleString();
-                }
-                if (stats.escalated_issues !== undefined) {
-                    document.getElementById('escalated-issues-count').textContent = stats.escalated_issues.toLocaleString();
-                }
-                
-                // Load recent activity
-                await loadRecentActivity();
-            }
+            // Refresh all data
+            await Promise.all([
+                updateKPICards(),
+                updateUsageChart(currentPeriod),
+                updateDepartmentChart(),
+                loadRecentActivity()
+            ]);
+            
+            showToast('Dashboard refreshed successfully', 'success');
         } catch (error) {
-            console.error('Error updating dashboard stats:', error);
-            showToast('Error loading dashboard statistics', 'error');
+            console.error('Error refreshing dashboard:', error);
+            showToast('Error refreshing dashboard', 'error');
         }
     }
 
-    async function loadRecentActivity() {
+    async function exportDashboardData() {
         try {
-            const authManager = new AuthManager();
-            const response = await authManager.makeAuthenticatedRequest('/api/dashboard/activity');
+            showToast('Exporting dashboard data...', 'info');
             
-            if (response && response.ok) {
-                const data = await response.json();
-                console.log('Recent activity loaded:', data.activities);
-            }
+            const csvData = await usageStatsManager.exportToCSV('kpi');
+            
+            // Create download link
+            const blob = new Blob([csvData], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `dashboard-export-${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            
+            showToast('Dashboard data exported successfully', 'success');
         } catch (error) {
-            console.error('Error loading recent activity:', error);
+            console.error('Error exporting dashboard data:', error);
+            showToast('Error exporting dashboard data', 'error');
+        }
+    }
+
+    async function refreshDashboardData() {
+        try {
+            await usageStatsManager.refreshData();
+            await updateKPICards();
+        } catch (error) {
+            console.error('Auto-refresh error:', error);
         }
     }
 
     async function logout() {
-    try {
-        const token = localStorage.getItem("educhat_session");
-
-        if (!token) {
-            console.warn("No token found, redirecting to login...");
-            window.location.href = "/admin/index";
-            return;
+        try {
+            await authManager.logout();
+            window.location.href = '/admin/index';
+        } catch (error) {
+            console.error('Logout error:', error);
+            window.location.href = '/admin/index';
         }
-
-        // Call backend logout API
-        const response = await fetch("/api/auth/logout", {
-            method: "POST",
-            headers: {
-                "Authorization": `Bearer ${token}`,
-                "Content-Type": "application/json"
-            }
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            console.log("Logout successful:", data.message);
-        } else {
-            console.warn("Logout failed:", data.message);
-        }
-
-    } catch (err) {
-        console.error("Logout error:", err);
-    } finally {
-        // Clear session anyway
-        localStorage.removeItem("educhat_session");
-        window.location.href = "/admin/index"; // or "/" if you added the root route
     }
-}
 
+    function showLoading(show) {
+        const loadingElement = document.getElementById('dashboard-loading');
+        if (loadingElement) {
+            loadingElement.style.display = show ? 'block' : 'none';
+        }
+    }
+
+    function formatNumber(num) {
+        if (num >= 1000000) {
+            return (num / 1000000).toFixed(1) + 'M';
+        } else if (num >= 1000) {
+            return (num / 1000).toFixed(1) + 'K';
+        }
+        return num.toString();
+    }
 
     function showToast(message, type = 'info') {
         const toast = document.createElement('div');
         toast.className = `alert alert-${type === 'error' ? 'danger' : type === 'success' ? 'success' : 'info'} alert-dismissible fade show`;
-        toast.style.position = 'fixed';
-        toast.style.top = '20px';
-        toast.style.right = '20px';
-        toast.style.zIndex = '9999';
+        toast.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
         toast.innerHTML = `
             ${message}
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
@@ -549,107 +630,25 @@
         }, 5000);
     }
 
+    // Global functions
+    window.refreshDashboard = refreshDashboard;
+    window.exportDashboardData = exportDashboardData;
     window.logout = logout;
-
-    // AuthManager class for MongoDB backend
-    class AuthManager {
-        constructor() {
-            this.sessionKey = 'educhat_session';
-            this.apiBaseUrl = '/api/auth';
-            this.sessionTimeout = 24 * 60 * 60 * 1000;
-        }
-
-        getCurrentUser() {
-            const session = this.getSession();
-            return session ? session.user : null;
-        }
-
-        getToken() {
-            const session = this.getSession();
-            return session ? session.token : null;
-        }
-
-        checkAuth() {
-            const session = this.getSession();
-            if (!session) return false;
-
-            const now = new Date();
-            const expiresAt = new Date(session.expiresAt);
-            
-            if (now > expiresAt) {
-                this.logout();
-                return false;
-            }
-
-            return true;
-        }
-
-        getSession() {
-            try {
-                const sessionData = localStorage.getItem(this.sessionKey);
-                return sessionData ? JSON.parse(sessionData) : null;
-            } catch (error) {
-                console.error('Error getting session:', error);
-                return null;
-            }
-        }
-
-        async logout() {
-            try {
-                const session = this.getSession();
-                if (session && session.token) {
-                    await fetch(`${this.apiBaseUrl}/logout`, {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${session.token}`,
-                            'Content-Type': 'application/json',
-                        }
-                    });
-                }
-            } catch (error) {
-                console.error('Logout error:', error);
-            } finally {
-                localStorage.removeItem(this.sessionKey);
-            }
-            
-            return { success: true };
-        }
-
-        async makeAuthenticatedRequest(url, options = {}) {
-            const token = this.getToken();
-            if (!token) {
-                throw new Error('Not authenticated');
-            }
-
-            const defaultOptions = {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                    ...options.headers
-                }
-            };
-
-            const mergedOptions = { ...defaultOptions, ...options };
-            
-            try {
-                const response = await fetch(url, mergedOptions);
-                
-                if (response.status === 401) {
-                    this.logout();
-                    window.location.href = "/";
-                    return null;
-                }
-
-                return response;
-            } catch (error) {
-                console.error('Authenticated request error:', error);
-                throw error;
-            }
-        }
-    }
 </script>
 
     <style>
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .page-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
         .sidebar-user-profile {
             position: absolute;
             bottom: 1.5rem;
@@ -723,13 +722,21 @@
             border-radius: 6px;
         }
 
-        .office-activity {
+        .kpi-change.positive {
+            color: #059669;
+        }
+
+        .kpi-change.negative {
+            color: #dc2626;
+        }
+
+        .office-activity, .recent-users {
             display: flex;
             flex-direction: column;
             gap: 1rem;
         }
 
-        .activity-item {
+        .activity-item, .user-item {
             display: flex;
             align-items: center;
             gap: 1rem;
@@ -749,14 +756,14 @@
             font-size: 1rem;
         }
 
-        .activity-content h6 {
+        .activity-content h6, .user-info h6 {
             margin: 0;
             color: #1e293b;
             font-weight: 600;
             font-size: 0.875rem;
         }
 
-        .activity-content p {
+        .activity-content p, .user-info p {
             margin: 0.25rem 0;
             color: #64748b;
             font-size: 0.75rem;
@@ -765,21 +772,6 @@
         .activity-time {
             color: #94a3b8;
             font-size: 0.75rem;
-        }
-
-        .recent-users {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
-
-        .user-item {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            padding: 0.75rem;
-            border-radius: 8px;
-            background: #f8fafc;
         }
 
         .user-item .user-avatar {
@@ -795,20 +787,7 @@
             font-size: 0.875rem;
         }
 
-        .user-item .user-info h6 {
-            margin: 0;
-            color: #1e293b;
-            font-weight: 600;
-            font-size: 0.875rem;
-        }
-
-        .user-item .user-info p {
-            margin: 0;
-            color: #64748b;
-            font-size: 0.75rem;
-        }
-
-        .user-item .user-status {
+        .user-status {
             margin-left: auto;
             padding: 0.25rem 0.75rem;
             border-radius: 20px;
@@ -818,79 +797,29 @@
             letter-spacing: 0.025em;
         }
 
-        .user-item .user-status.active {
+        .user-status.active {
             background: #dcfce7;
             color: #166534;
         }
 
-        .user-item .user-status.inactive {
+        .user-status.inactive {
             background: #fef2f2;
             color: #dc2626;
-        }
-
-        .escalated-issues {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
-
-        .issue-item {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            padding: 0.75rem;
-            border-radius: 8px;
-            background: #f8fafc;
-        }
-
-        .issue-icon {
-            font-size: 1.25rem;
-        }
-
-        .issue-content h6 {
-            margin: 0;
-            color: #1e293b;
-            font-weight: 600;
-            font-size: 0.875rem;
-        }
-
-        .issue-content p {
-            margin: 0.25rem 0;
-            color: #64748b;
-            font-size: 0.75rem;
-        }
-
-        .issue-time {
-            color: #94a3b8;
-            font-size: 0.75rem;
-        }
-
-        .issue-status {
-            margin-left: auto;
-        }
-
-        .badge {
-            padding: 0.25rem 0.75rem;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.025em;
-        }
-
-        .bg-warning {
-            background: #fef3c7 !important;
-            color: #92400e !important;
-        }
-
-        .bg-danger {
-            background: #fef2f2 !important;
-            color: #dc2626 !important;
         }
 
         @media (max-width: 768px) {
             .kpi-grid {
                 grid-template-columns: repeat(2, 1fr);
+            }
+
+            .page-header {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: stretch;
+            }
+
+            .page-actions {
+                justify-content: center;
             }
 
             .card-header {
@@ -902,6 +831,90 @@
             .chart-tabs {
                 justify-content: center;
             }
+
+            .user-info .user-details {
+                display: none;
+            }
+        }
+
+        .logout-icon {
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 50%;
+            transition: background-color 0.2s;
+        }
+
+        .logout-icon:hover {
+            background-color: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+        }
+
+        .notification-icon {
+            position: relative;
+            cursor: pointer;
+            padding: 0.5rem;
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: 0.25rem;
+            right: 0.25rem;
+            background: #ef4444;
+            color: white;
+            border-radius: 50%;
+            width: 1.25rem;
+            height: 1.25rem;
+            font-size: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .search-bar {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .search-bar i {
+            position: absolute;
+            left: 1rem;
+            color: #64748b;
+            z-index: 1;
+        }
+
+        .search-input {
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 0.75rem 1rem 0.75rem 2.5rem;
+            background: white;
+            font-size: 0.875rem;
+            min-width: 300px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .btn-sm {
+            font-size: 0.875rem;
+            padding: 0.375rem 0.75rem;
+        }
+
+        .spinner-border-sm {
+            width: 1rem;
+            height: 1rem;
+        }
+
+        .text-muted {
+            color: #64748b;
+        }
+
+        .small {
+            font-size: 0.875rem;
         }
     </style>
 </body>

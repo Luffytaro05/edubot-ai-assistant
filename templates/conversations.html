@@ -1,3 +1,4 @@
+<!--(conversations.html):-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -84,7 +85,7 @@
                             <div class="user-role">Super Administrator</div>
                         </div>
                     </div>
-                    <div class="logout-icon" onclick="logout()">
+                    <div class="logout-icon" onclick="new AuthManager().logout().then(() => window.location.href='/admin/index')">
                         <i class="fas fa-sign-out-alt"></i>
                     </div>
                 </div>
@@ -128,23 +129,24 @@
                                 </div>
                                 <div class="col-md-3">
                                     <div class="form-group">
-                                        <label>Sentiment</label>
-                                        <select class="form-control" id="sentiment-filter">
-                                            <option value="">All Sentiments</option>
-                                            <option value="positive">Positive</option>
-                                            <option value="neutral">Neutral</option>
-                                            <option value="negative">Negative</option>
+                                        <label>Office</label>
+                                        <select class="form-control" id="office-filter">
+                                            <option value="">All Offices</option>
+                                            <option value="admissions">Admissions Office</option>
+                                            <option value="registrar">Registrar Office</option>
+                                            <option value="guidance">Guidance Office</option>
+                                            <option value="transportation">Office of Student Affairs</option>
+                                            <option value="it">ICT Office</option>
                                         </select>
                                     </div>
                                 </div>
                                 <div class="col-md-3">
                                     <div class="form-group">
-                                        <label>User Type</label>
-                                        <select class="form-control" id="user-type">
-                                            <option value="">All Users</option>
-                                            <option value="student">Students</option>
-                                            <option value="faculty">Faculty</option>
-                                            <option value="staff">Staff</option>
+                                        <label>Sender</label>
+                                        <select class="form-control" id="sender-filter">
+                                            <option value="">All Senders</option>
+                                            <option value="user">User</option>
+                                            <option value="bot">Bot</option>
                                         </select>
                                     </div>
                                 </div>
@@ -175,9 +177,8 @@
                             <tr>
                                 <th>User</th>
                                 <th>Message</th>
-                                <th>Response</th>
-                                <th>Sentiment</th>
-                                <th>Status</th>
+                                <th>Sender</th>
+                                <th>Office</th>
                                 <th>Date</th>
                                 <th>Actions</th>
                             </tr>
@@ -231,7 +232,7 @@
                             </div>
                         </div>
                         <div class="conversation-meta">
-                            <span class="sentiment-badge positive">Positive</span>
+                            <span class="office-badge">Admissions Office</span>
                             <span class="status-badge resolved">Resolved</span>
                         </div>
                     </div>
@@ -244,7 +245,7 @@
                 <button class="btn btn-secondary" onclick="closeModal('conversation-detail-modal')">Close</button>
                 <button class="btn btn-primary" onclick="escalateConversation()">Escalate</button>
             </div>
-        </div>
+        </main>
     </div>
 
     <!-- Scripts -->
@@ -255,82 +256,66 @@
     <script src="{{ url_for('static', filename='assets/js/app.js') }}"></script>
 
     <script>
-        // Updated JavaScript for conversations.html to work with MongoDB backend
-// This replaces the script section in your conversations.html file
-
-let conversationManager;
+        let conversationManager;
 let currentPage = 1;
 let itemsPerPage = 10;
 let currentFilters = {};
-let totalPages = 1;
 
 document.addEventListener('DOMContentLoaded', function() {
     const authManager = new AuthManager();
     if (!authManager.checkAuth()) {
-        window.location.href = '../index.html';
+        window.location.href = '/';
         return;
     }
 
     conversationManager = new ConversationManager();
     loadConversations();
     setupEventListeners();
-    
-    // Check if we need to initialize sample data
-    checkAndInitializeSampleData();
 });
 
 function setupEventListeners() {
-    // Search functionality with debouncing
+    // Search functionality
     const searchInput = document.querySelector('.search-input');
-    let searchTimeout;
-    
     searchInput.addEventListener('input', function() {
-        clearTimeout(searchTimeout);
         const query = this.value.trim();
-        
-        searchTimeout = setTimeout(() => {
-            if (query) {
-                currentFilters.search = query;
-                currentPage = 1; // Reset to first page
-                loadConversations();
-            } else {
-                delete currentFilters.search;
-                loadConversations();
-            }
-        }, 500); // 500ms debounce
+        if (query) {
+            const filteredConversations = conversationManager.searchConversations(query);
+            renderConversations(filteredConversations);
+        } else {
+            loadConversations();
+        }
     });
 
     // Filter change events
     document.getElementById('date-range').addEventListener('change', applyFilters);
-    document.getElementById('sentiment-filter').addEventListener('change', applyFilters);
-    document.getElementById('user-type').addEventListener('change', applyFilters);
+    document.getElementById('office-filter').addEventListener('change', applyFilters);
+    document.getElementById('sender-filter').addEventListener('change', applyFilters);
     document.getElementById('status-filter').addEventListener('change', applyFilters);
 }
 
+// Updated loadConversations function with async/await and fetch
 async function loadConversations() {
     try {
-        showLoadingState();
-        
-        const options = {
-            page: currentPage,
-            per_page: itemsPerPage,
-            ...currentFilters
-        };
-
-        const response = await conversationManager.getAll(options);
-        
-        if (response.success) {
-            renderConversations(response.conversations);
-            updatePagination(response.pagination);
-        } else {
-            throw new Error(response.message || 'Failed to load conversations');
+        const response = await fetch("http://localhost:5000/api/conversations");
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
+        const conversations = await response.json();
+        
+        // Enhanced debugging - log first conversation structure
+        if (conversations.length > 0) {
+            console.log('Sample conversation structure:');
+            console.log(JSON.stringify(conversations[0], null, 2));
+            console.log('All available keys:', Object.keys(conversations[0]));
+        }
+        
+        renderConversations(conversations);
+        updatePagination(conversations.length);
     } catch (error) {
-        console.error('Error loading conversations:', error);
-        toast.error('Failed to load conversations: ' + error.message);
-        renderConversations([]); // Show empty state
-    } finally {
-        hideLoadingState();
+        console.error("Error loading conversations:", error);
+        // Show user-friendly error message
+        const tbody = document.getElementById('conversations-table-body');
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger">Failed to load conversations. Please try again.</td></tr>';
     }
 }
 
@@ -338,345 +323,266 @@ function renderConversations(conversations) {
     const tbody = document.getElementById('conversations-table-body');
     tbody.innerHTML = '';
 
-    if (conversations.length === 0) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="7" class="text-center py-4">
-                    <div class="empty-state">
-                        <i class="fas fa-comments fa-3x mb-3 text-muted"></i>
-                        <h5>No conversations found</h5>
-                        <p class="text-muted">Try adjusting your filters or search terms.</p>
-                    </div>
-                </td>
-            </tr>
-        `;
-        return;
-    }
-
     conversations.forEach(conversation => {
+        console.log('Rendering conversation:', conversation);
+
         const row = document.createElement('tr');
-        const timestamp = new Date(conversation.timestamp);
+
+        // Get the sender field - this is the key change
+        const sender = conversation.sender || 'unknown';
+        const senderDisplay = sender.toLowerCase() === 'user' ? 'User' : sender.toLowerCase() === 'bot' ? 'Bot' : 'Unknown';
         
+        // Get the message content
+        const message = conversation.message || '';
+        
+        // Truncate long messages for table display
+        const truncatedMessage = message.length > 100 ? message.substring(0, 100) + '...' : message;
+
+        // DEBUG: Log the data to see what we're working with
+        console.log('Sender:', sender);
+        console.log('Message:', message);
+        console.log('Available fields:', Object.keys(conversation));
+
         row.innerHTML = `
+            <!-- User Column -->
             <td>
                 <div class="user-info-cell">
-                    <div class="user-avatar">${conversation.user.name.charAt(0).toUpperCase()}</div>
+                    <div class="user-avatar">${(conversation.user || 'Guest').charAt(0).toUpperCase()}</div>
                     <div class="user-details">
-                        <div class="user-name">${escapeHtml(conversation.user.name)}</div>
-                        <div class="user-email">${escapeHtml(conversation.user.email)}</div>
+                        <div class="user-name">${conversation.user || 'Guest'}</div>
+                        <div class="user-email">${conversation.email || ''}</div>
                     </div>
                 </div>
             </td>
+
+            <!-- Message Column -->
             <td>
-                <div class="message-preview" title="${escapeHtml(conversation.message)}">
-                    <strong>${escapeHtml(truncateText(conversation.message, 50))}</strong>
+                <div class="message-preview" style="max-width: 400px; white-space: pre-wrap; overflow: hidden; text-overflow: ellipsis; max-height: 100px;">
+                    ${truncatedMessage}
                 </div>
+                ${message.length > 100 ? '<small class="text-muted">Click view for full message</small>' : ''}
             </td>
+
+            <!-- Sender Column - NEW -->
             <td>
-                <div class="response-preview" title="${escapeHtml(conversation.response)}">
-                    ${escapeHtml(truncateText(conversation.response, 50))}
-                </div>
+                <span class="sender-badge sender-${sender.toLowerCase()}">
+                    <i class="fas ${sender.toLowerCase() === 'user' ? 'fa-user' : sender.toLowerCase() === 'bot' ? 'fa-robot' : 'fa-question'}"></i>
+                    ${senderDisplay}
+                </span>
             </td>
+
+            <!-- Office Column -->
             <td>
-                <span class="sentiment-badge ${conversation.sentiment.toLowerCase()}">${conversation.sentiment}</span>
+                <span class="office-badge">${conversation.office || conversation.department || conversation.category || 'General'}</span>
             </td>
-            <td>
-                <span class="status-badge ${conversation.status.toLowerCase()}">${conversation.status}</span>
-            </td>
+
+            <!-- Date Column -->
             <td>
                 <div class="date-info">
-                    <div class="date">${timestamp.toLocaleDateString()}</div>
-                    <div class="time">${timestamp.toLocaleTimeString()}</div>
+                    <div class="date">${formatDate(conversation.date || conversation.timestamp || conversation.created_at)}</div>
+                    <div class="time">${formatTime(conversation.date || conversation.timestamp || conversation.created_at)}</div>
                 </div>
             </td>
+
+            <!-- Actions Column -->
             <td>
                 <div class="action-buttons">
-                    <button class="btn btn-sm btn-outline-primary" onclick="viewConversation('${conversation._id}')" title="View">
+                    <button class="btn btn-sm btn-outline-primary" onclick="viewConversation('${conversation._id || conversation.id}')" title="View Full Conversation">
                         <i class="fas fa-eye"></i>
                     </button>
-                    ${conversation.status !== 'Escalated' ? `
-                        <button class="btn btn-sm btn-outline-warning" onclick="escalateConversation('${conversation._id}')" title="Escalate">
-                            <i class="fas fa-flag"></i>
-                        </button>
-                    ` : ''}
-                    <button class="btn btn-sm btn-outline-success" onclick="editConversation('${conversation._id}')" title="Edit">
-                        <i class="fas fa-edit"></i>
+                    <button class="btn btn-sm btn-outline-warning" onclick="escalateConversation('${conversation._id || conversation.id}')" title="Escalate">
+                        <i class="fas fa-flag"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteConversation('${conversation._id || conversation.id}')" title="Delete">
+                        <i class="fas fa-trash"></i>
                     </button>
                 </div>
             </td>
         `;
         tbody.appendChild(row);
     });
+
+    // If no conversations found
+    if (conversations.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No conversations found</td></tr>';
+    }
+}
+
+// Helper functions for date formatting
+function formatDate(dateString) {
+    if (!dateString) return '';
+    try {
+        return new Date(dateString).toLocaleDateString();
+    } catch (e) {
+        return '';
+    }
+}
+
+function formatTime(dateString) {
+    if (!dateString) return '';
+    try {
+        return new Date(dateString).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    } catch (e) {
+        return '';
+    }
+}
+
+// New deleteConversation function
+async function deleteConversation(id) {
+    if (!confirm("Are you sure you want to delete this conversation?")) return;
+    
+    try {
+        const response = await fetch(`http://localhost:5000/api/conversations/${id}`, { 
+            method: "DELETE" 
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        toast.success('Conversation deleted successfully');
+        loadConversations(); // Reload the conversations
+    } catch (error) {
+        console.error("Error deleting conversation:", error);
+        toast.error('Failed to delete conversation');
+    }
 }
 
 function showFilters() {
     const filtersSection = document.getElementById('filters-section');
-    const isVisible = filtersSection.style.display !== 'none';
-    filtersSection.style.display = isVisible ? 'none' : 'block';
-    
-    // Update button text
-    const filterBtn = document.querySelector('[onclick="showFilters()"]');
-    filterBtn.innerHTML = isVisible ? 
-        '<i class="fas fa-filter"></i> Filters' : 
-        '<i class="fas fa-filter-circle-xmark"></i> Hide Filters';
+    filtersSection.style.display = filtersSection.style.display === 'none' ? 'block' : 'none';
 }
 
-async function applyFilters() {
+function applyFilters() {
     const dateRange = document.getElementById('date-range').value;
-    const sentiment = document.getElementById('sentiment-filter').value;
-    const userType = document.getElementById('user-type').value;
+    const office = document.getElementById('office-filter').value;
+    const sender = document.getElementById('sender-filter').value;
     const status = document.getElementById('status-filter').value;
 
-    currentFilters = {};
+    currentFilters = { dateRange, office, sender, status };
     
-    if (dateRange) currentFilters.date_range = dateRange;
-    if (sentiment) currentFilters.sentiment = sentiment;
-    if (userType) currentFilters.user_type = userType;
-    if (status) currentFilters.status = status;
-    
-    currentPage = 1; // Reset to first page when applying filters
-    await loadConversations();
+    const filteredConversations = conversationManager.getFilteredConversations(currentFilters);
+    renderConversations(filteredConversations);
+    updatePagination(filteredConversations.length);
 }
 
 function clearFilters() {
-    document.getElementById('date-range').value = '';
-    document.getElementById('sentiment-filter').value = '';
-    document.getElementById('user-type').value = '';
+    document.getElementById('date-range').value = 'month';
+    document.getElementById('office-filter').value = '';
+    document.getElementById('sender-filter').value = '';
     document.getElementById('status-filter').value = '';
     
-    // Clear search input
-    document.querySelector('.search-input').value = '';
-    
     currentFilters = {};
-    currentPage = 1;
     loadConversations();
 }
 
-async function viewConversation(id) {
-    try {
-        const conversation = await conversationManager.getById(id);
-        if (!conversation) {
-            toast.error('Conversation not found');
-            return;
-        }
-
-        // Populate conversation detail modal
-        const modal = document.getElementById('conversation-detail-modal');
-        const messagesContainer = document.getElementById('conversation-messages');
-        
-        // Update user info
-        modal.querySelector('.user-name').textContent = conversation.user.name;
-        modal.querySelector('.user-email').textContent = conversation.user.email;
-        modal.querySelector('.user-avatar').textContent = conversation.user.name.charAt(0).toUpperCase();
-        
-        // Update sentiment and status badges
-        const sentimentBadge = modal.querySelector('.sentiment-badge');
-        sentimentBadge.textContent = conversation.sentiment;
-        sentimentBadge.className = `sentiment-badge ${conversation.sentiment.toLowerCase()}`;
-        
-        const statusBadge = modal.querySelector('.status-badge');
-        statusBadge.textContent = conversation.status;
-        statusBadge.className = `status-badge ${conversation.status.toLowerCase()}`;
-
-        // Render conversation messages
-        const timestamp = new Date(conversation.timestamp);
-        messagesContainer.innerHTML = `
-            <div class="message user-message">
-                <div class="message-content">
-                    <div class="message-text">${escapeHtml(conversation.message)}</div>
-                    <div class="message-time">${timestamp.toLocaleString()}</div>
-                </div>
-            </div>
-            <div class="message bot-message">
-                <div class="message-content">
-                    <div class="message-text">${escapeHtml(conversation.response)}</div>
-                    <div class="message-time">${new Date(timestamp.getTime() + 5000).toLocaleString()}</div>
-                </div>
-            </div>
-        `;
-
-        // Store current conversation ID for modal actions
-        modal.dataset.conversationId = id;
-        modal.style.display = 'flex';
-    } catch (error) {
-        console.error('Error viewing conversation:', error);
-        toast.error('Failed to load conversation details');
-    }
-}
-
-async function escalateConversation(id) {
-    if (!confirm('Are you sure you want to escalate this conversation?')) {
+function viewConversation(id) {
+    const conversation = conversationManager.getById(id);
+    if (!conversation) {
+        toast.error('Conversation not found');
         return;
     }
 
-    try {
-        const result = await conversationManager.escalateConversation(id);
-        if (result.success) {
-            await loadConversations(); // Reload to show updated status
-        }
-    } catch (error) {
-        console.error('Error escalating conversation:', error);
-        // Toast error already shown by ConversationManager
-    }
-}
+    // Get message content and sender info
+    const message = conversation.message || '';
+    const sender = conversation.sender || 'unknown';
+    const senderDisplay = sender.toLowerCase() === 'user' ? 'User' : sender.toLowerCase() === 'bot' ? 'Bot' : 'Unknown';
 
-async function editConversation(id) {
-    try {
-        const conversation = await conversationManager.getById(id);
-        if (!conversation) {
-            toast.error('Conversation not found');
-            return;
-        }
-
-        // Show edit modal (you would need to create this modal)
-        showEditModal(conversation);
-    } catch (error) {
-        console.error('Error loading conversation for edit:', error);
-        toast.error('Failed to load conversation for editing');
-    }
-}
-
-async function exportConversations() {
-    try {
-        await conversationManager.downloadCSV(currentFilters);
-    } catch (error) {
-        console.error('Error exporting conversations:', error);
-        // Toast error already shown by ConversationManager
-    }
-}
-
-function updatePagination(pagination) {
-    const { page, per_page, total, pages } = pagination;
+    // Populate conversation detail modal
+    const modal = document.getElementById('conversation-detail-modal');
+    const messagesContainer = document.getElementById('conversation-messages');
     
-    // Update pagination info
-    const startItem = total === 0 ? 0 : (page - 1) * per_page + 1;
-    const endItem = Math.min(page * per_page, total);
+    // Update user info
+    modal.querySelector('.user-name').textContent = conversation.user || 'Guest';
+    modal.querySelector('.user-email').textContent = conversation.email || '';
+    modal.querySelector('.user-avatar').textContent = (conversation.user || 'G').charAt(0).toUpperCase();
+    
+    // Update office and status badges
+    modal.querySelector('.office-badge').textContent = conversation.office || conversation.department || conversation.category || 'General';
+    modal.querySelector('.status-badge').textContent = conversation.status || 'Active';
+    modal.querySelector('.status-badge').className = `status-badge ${(conversation.status || 'active').toLowerCase()}`;
+
+    // Render conversation message with sender info
+    messagesContainer.innerHTML = `
+        <div class="message ${sender.toLowerCase() === 'user' ? 'user-message' : 'bot-message'}">
+            <div class="message-content">
+                <div class="message-sender">
+                    <span class="sender-badge sender-${sender.toLowerCase()}">
+                        <i class="fas ${sender.toLowerCase() === 'user' ? 'fa-user' : sender.toLowerCase() === 'bot' ? 'fa-robot' : 'fa-question'}"></i>
+                        ${senderDisplay}
+                    </span>
+                </div>
+                <div class="message-text" style="white-space: pre-wrap;">${message}</div>
+                <div class="message-time">${new Date(conversation.date || conversation.timestamp || conversation.created_at || Date.now()).toLocaleString()}</div>
+            </div>
+        </div>
+    `;
+
+    modal.style.display = 'flex';
+}
+
+function escalateConversation(id) {
+    if (confirm('Are you sure you want to escalate this conversation?')) {
+        const result = conversationManager.escalateConversation(id);
+        if (result.success) {
+            toast.success('Conversation escalated successfully');
+            loadConversations();
+        } else {
+            toast.error(result.message);
+        }
+    }
+}
+
+function exportConversations() {
+    const conversations = conversationManager.getAll();
+    const csvContent = conversationManager.exportToCSV(conversations);
+    
+    if (csvContent) {
+        const blob = new Blob([csvContent], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `conversations_${new Date().toISOString().split('T')[0]}.csv`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+        toast.success('Conversations exported successfully');
+    } else {
+        toast.error('Failed to export conversations');
+    }
+}
+
+function updatePagination(totalItems) {
+    const startItem = (currentPage - 1) * itemsPerPage + 1;
+    const endItem = Math.min(currentPage * itemsPerPage, totalItems);
     
     document.getElementById('start-item').textContent = startItem;
     document.getElementById('end-item').textContent = endItem;
-    document.getElementById('total-items').textContent = total;
-    
-    // Update current page and total pages
-    currentPage = page;
-    totalPages = pages;
+    document.getElementById('total-items').textContent = totalItems;
     
     // Update button states
-    const prevBtn = document.getElementById('prev-btn');
-    const nextBtn = document.getElementById('next-btn');
-    
-    prevBtn.disabled = page <= 1;
-    nextBtn.disabled = page >= pages;
-    
-    // Update page numbers
-    updatePageNumbers(page, pages);
+    document.getElementById('prev-btn').disabled = currentPage === 1;
+    document.getElementById('next-btn').disabled = endItem >= totalItems;
 }
 
-function updatePageNumbers(currentPage, totalPages) {
-    const pageNumbersContainer = document.querySelector('.page-numbers');
-    pageNumbersContainer.innerHTML = '';
-    
-    // Calculate which page numbers to show
-    let startPage = Math.max(1, currentPage - 2);
-    let endPage = Math.min(totalPages, currentPage + 2);
-    
-    // Adjust if we're near the beginning or end
-    if (endPage - startPage < 4) {
-        if (startPage === 1) {
-            endPage = Math.min(totalPages, startPage + 4);
-        } else {
-            startPage = Math.max(1, endPage - 4);
-        }
-    }
-    
-    // Add page numbers
-    for (let i = startPage; i <= endPage; i++) {
-        const pageBtn = document.createElement('button');
-        pageBtn.className = `btn ${i === currentPage ? 'btn-primary' : 'btn-outline-secondary'}`;
-        pageBtn.textContent = i;
-        pageBtn.onclick = () => goToPage(i);
-        pageNumbersContainer.appendChild(pageBtn);
-    }
-}
-
-async function previousPage() {
+function previousPage() {
     if (currentPage > 1) {
         currentPage--;
-        await loadConversations();
+        loadConversations();
     }
 }
 
-async function nextPage() {
-    if (currentPage < totalPages) {
+function nextPage() {
+    const totalItems = conversationManager.getAll().length;
+    const maxPage = Math.ceil(totalItems / itemsPerPage);
+    
+    if (currentPage < maxPage) {
         currentPage++;
-        await loadConversations();
-    }
-}
-
-async function goToPage(page) {
-    if (page >= 1 && page <= totalPages && page !== currentPage) {
-        currentPage = page;
-        await loadConversations();
+        loadConversations();
     }
 }
 
 function closeModal(modalId) {
     document.getElementById(modalId).style.display = 'none';
-}
-
-function showLoadingState() {
-    const tbody = document.getElementById('conversations-table-body');
-    tbody.innerHTML = `
-        <tr>
-            <td colspan="7" class="text-center py-4">
-                <div class="loading-spinner">
-                    <i class="fas fa-spinner fa-spin fa-2x"></i>
-                    <p class="mt-2">Loading conversations...</p>
-                </div>
-            </td>
-        </tr>
-    `;
-}
-
-function hideLoadingState() {
-    // Loading state will be replaced by renderConversations
-}
-
-async function checkAndInitializeSampleData() {
-    try {
-        const stats = await conversationManager.getStats();
-        if (stats.total === 0) {
-            // No conversations exist, show option to initialize sample data
-            const shouldInitialize = confirm(
-                'No conversations found in the database. Would you like to initialize some sample data for demonstration purposes?'
-            );
-            
-            if (shouldInitialize) {
-                await conversationManager.initializeSampleData();
-                await loadConversations();
-            }
-        }
-    } catch (error) {
-        console.error('Error checking sample data:', error);
-        // Don't show error toast for this as it's not critical
-    }
-}
-
-// Utility functions
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
-function truncateText(text, maxLength) {
-    if (text.length <= maxLength) return text;
-    return text.substring(0, maxLength) + '...';
-}
-
-function showEditModal(conversation) {
-    // Implementation for edit modal would go here
-    // For now, just show an alert
-    alert('Edit functionality would be implemented here. Conversation ID: ' + conversation._id);
 }
 
 function logout() {
@@ -685,18 +591,23 @@ function logout() {
     window.location.href = '../index.html';
 }
 
-// Global functions for onclick handlers
+// Load conversations when page loads (in addition to DOMContentLoaded)
+window.onload = loadConversations;
+
+// Global functions
 window.showFilters = showFilters;
 window.applyFilters = applyFilters;
 window.clearFilters = clearFilters;
 window.viewConversation = viewConversation;
 window.escalateConversation = escalateConversation;
+window.deleteConversation = deleteConversation;
 window.exportConversations = exportConversations;
 window.previousPage = previousPage;
 window.nextPage = nextPage;
 window.closeModal = closeModal;
 window.logout = logout;
     </script>
+
     <style>
         .sidebar-user-profile {
             position: absolute;
@@ -817,11 +728,40 @@ window.logout = logout;
             margin: 0;
         }
 
-        .message-preview, .response-preview {
-            max-width: 200px;
+        .message-preview {
+            max-width: 300px;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+        }
+
+        /* Sender Badge Styles - NEW */
+        .sender-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .sender-badge.sender-user {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .sender-badge.sender-bot {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .sender-badge.sender-unknown {
+            background: #f3f4f6;
+            color: #374151;
         }
 
         .date-info {
@@ -840,28 +780,16 @@ window.logout = logout;
             color: #64748b;
         }
 
-        .sentiment-badge {
+        .office-badge {
             padding: 0.25rem 0.75rem;
             border-radius: 20px;
             font-size: 0.75rem;
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.025em;
-        }
-
-        .sentiment-badge.positive {
-            background: #dcfce7;
-            color: #166534;
-        }
-
-        .sentiment-badge.neutral {
-            background: #f1f5f9;
-            color: #475569;
-        }
-
-        .sentiment-badge.negative {
-            background: #fef2f2;
-            color: #dc2626;
+            background: #e0f2fe;
+            color: #0277bd;
+            white-space: nowrap;
         }
 
         .pagination-container {
@@ -961,42 +889,43 @@ window.logout = logout;
 
         .message {
             display: flex;
-            gap: 0.75rem;
+            flex-direction: column;
+            gap: 0.5rem;
         }
 
-        .message.user-message {
-            justify-content: flex-end;
+        .message.user-message .message-content {
+            background: #dcfce7;
+            border-left: 4px solid #16a34a;
         }
 
-        .message.bot-message {
-            justify-content: flex-start;
+        .message.bot-message .message-content {
+            background: #dbeafe;
+            border-left: 4px solid #2563eb;
         }
 
         .message-content {
-            max-width: 70%;
-            padding: 0.75rem 1rem;
-            border-radius: 12px;
+            padding: 1rem;
+            border-radius: 8px;
             position: relative;
         }
 
-        .user-message .message-content {
-            background: #3b82f6;
-            color: white;
-        }
-
-        .bot-message .message-content {
-            background: #f1f5f9;
-            color: #1e293b;
+        .message-sender {
+            margin-bottom: 0.5rem;
         }
 
         .message-text {
-            margin-bottom: 0.25rem;
+            margin-bottom: 0.5rem;
             line-height: 1.5;
         }
 
         .message-time {
             font-size: 0.75rem;
             opacity: 0.7;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 0.25rem;
         }
 
         @media (max-width: 768px) {
@@ -1016,7 +945,15 @@ window.logout = logout;
             }
 
             .message-content {
-                max-width: 85%;
+                max-width: 95%;
+            }
+
+            .table-container {
+                overflow-x: auto;
+            }
+
+            .message-preview {
+                max-width: 200px;
             }
         }
     </style>

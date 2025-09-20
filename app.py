@@ -1,29 +1,36 @@
 from flask import Flask, render_template, request, jsonify, session
-from conversations import conversations_bp
 from flask_cors import CORS
 from chat import (get_response, reset_user_context, clear_chat_history, 
                   get_active_announcements, add_announcement, get_announcement_by_id,
                   vector_store)
 from pymongo import MongoClient
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
+from conversations import conversations_bp
+from dashboard import init_app
+from users import users_bp
 import jwt
 import os
+import time
 from functools import wraps
 from bson import ObjectId
 import re
+# In-memory cache for user conversations
 
 app = Flask(__name__)
 app.register_blueprint(conversations_bp)
+app.register_blueprint(users_bp)
 CORS(app)
 app.config['SECRET_KEY'] = 'your-secret-key-change-this-in-production'  # Change this in production
 
 # MongoDB connection
 client = MongoClient("mongodb+srv://dxtrzpc26:w1frwdiwmW9VRItO@cluster0.gskdq3p.mongodb.net/")
 db = client["chatbot_db"]
-conversations = db["conversations"]
+# Fix: Use a different name to avoid conflicts with the route function
+conversations_collection = db["conversations"]  # Changed name here
 users_collection = db["users"]
 sessions_collection = db["sessions"]
+init_app(app)
 
 # JWT token expiration time
 TOKEN_EXPIRATION_HOURS = 24
@@ -34,11 +41,11 @@ TOKEN_EXPIRATION_HOURS = 24
 
 def create_default_admin():
     """Create default admin user if it doesn't exist"""
-    admin_user = users_collection.find_one({"email": "admin@educhat.com"})
+    admin_user = users_collection.find_one({"email": "dxtrzpc26@gmail.com"})
     if not admin_user:
         admin_data = {
-            "email": "admin@educhat.com",
-            "password": generate_password_hash("admin123"),
+            "email": "dxtrzpc26@gmail.com",
+            "password": generate_password_hash("dexterpogi123"),
             "name": "Super Admin",
             "role": "admin",
             "office": None,
@@ -584,25 +591,150 @@ def index_page():
     """Render the main index page"""
     return render_template("index.html")
 
+user_contexts = {}  # Stores user_id → last detected office
+office_tags = {     # Example mapping of office tags
+   'admission_office': 'Admission Office',
+    'registrar_office': "Registrar's Office",
+    'ict_office': 'ICT Office',
+    'guidance_office': 'Guidance Office',
+    'osa_office': 'Office of Student Affairs',
+    "general": "General"
+}
+
+def detect_office_from_message(msg):
+    """Detect which office the user is asking about"""
+    msg_lower = msg.lower()
+    
+    # Direct office mentions
+    if 'admission' in msg_lower or 'apply' in msg_lower or 'enroll' in msg_lower:
+        return 'admission_office'
+    elif 'registrar' in msg_lower or 'transcript' in msg_lower or 'grades' in msg_lower or 'academic records' in msg_lower:
+        return 'registrar_office'
+    elif 'ict' in msg_lower or 'password' in msg_lower or 'wifi' in msg_lower or 'internet' in msg_lower or 'student portal' in msg_lower:
+        return 'ict_office'
+    elif 'guidance' in msg_lower or 'counseling' in msg_lower or 'scholarship' in msg_lower or 'career advice' in msg_lower:
+        return 'guidance_office'
+    elif 'osa' in msg_lower or 'student affairs' in msg_lower or 'clubs' in msg_lower or 'activities' in msg_lower or 'events' in msg_lower:
+        return 'osa_office'
+    return None
+
+def save_message(user, sender, message, detected_office=None, status=None):
+    """Save message to MongoDB with error handling and office detection + resolution status"""
+    global conversations_collection
+    
+    if conversations_collection is None:
+        print("MongoDB not available. Message not saved to database.")
+        return None
+    
+    # Determine office based on context or detection
+    office = None
+    
+    if detected_office:
+        office = office_tags.get(detected_office, detected_office)
+    elif user in user_contexts:
+        office = office_tags.get(user_contexts[user], user_contexts[user])
+    elif sender == "user":
+        detected_tag = detect_office_from_message(message)
+        if detected_tag:
+            office = office_tags.get(detected_tag, detected_tag)
+            user_contexts[user] = detected_tag
+    if not office:
+        office = "General"
+    
+    document = {
+        "user": user,
+        "sender": sender,
+        "message": message,
+        "office": office,
+        "status": status,  # ✅ new field
+        "date": datetime.now().isoformat()
+    }
+    
+    try:
+        conversations_collection.insert_one(document)
+        print(f"Message saved (office={office}, status={status})")
+    except Exception as e:
+        print(f"Error saving message: {e}")
+    
+    return office
+  # ✅ Return for reuse in predict()
+
 @app.post("/predict")
 def predict():
     data = request.get_json()
     text = data.get("message")
-    user_id = data.get("user_id", "guest")
+    user = data.get("user", "guest")
 
     if not text or not text.strip():
         return jsonify({"answer": "Please type something."})
 
     try:
-        # Get chatbot response with enhanced vector search
-        response = get_response(text, user_id=user_id)
-        
+        print(f"User {user} asked: {text}")
+
+        # Get chatbot response
+        response = get_response(text)
+
+        # ✅ Common unresolved/fallback patterns
+        unresolved_patterns = [
+            "sorry",
+            "contact support",
+            "i'm not sure how to respond",
+            "please try one of the suggested topics",
+            "rephrase your question",
+            "i'm not sure i understand",
+            "could you rephrase your question",
+            "sorry, i don't have that information yet",
+            "i'm still learning",
+            "i might not have understood that correctly",
+            "i don't quite understand that",
+            "would you like to try asking about a specific office or service",
+            "i'm here to help with information about college offices and services"
+        ]
+        # ✅ Escalation patterns (hand-off to human/office)
+        escalation_patterns = [
+            "escalating to a human agent",
+            "let me connect you to support",
+            "please contact the registrar",
+            "please contact admissions",
+            "please reach out to guidance",
+            "i'm forwarding this to ict",
+            "i think you might be asking about",   # NEW
+            "would you like me to connect you"     # NEW
+        ]
+
+        # Detect resolved/unresolved
+        if response and any(p in response.lower() for p in escalation_patterns):
+            status = "escalated"
+        elif response and not any(p in response.lower() for p in unresolved_patterns):
+            status = "resolved"
+        else:
+            status = "unresolved"
+
+        # Save user query
+        office = save_message(
+            user=user,
+            sender="user",
+            message=text
+        )
+
+        # Save bot response with resolution status
+        save_message(
+            user=user,
+            sender="bot",
+            message=response,
+            detected_office=office,
+            status=status
+        )
+
         return jsonify({
             "answer": response,
+            "office": office,
+            "status": status,  # ✅ shows on frontend/dashboard
+            "context_in_memory": user_contexts.get(user),
             "vector_enabled": vector_store.index is not None,
             "vector_stats": vector_store.get_stats()
         })
-    
+
     except Exception as e:
         print(f"Error in predict: {e}")
         return jsonify({
@@ -610,53 +742,231 @@ def predict():
             "error": str(e)
         }), 500
 
-@app.post("/history")
-def history():
+
+
+
+cleared_users = set()
+
+@app.post("/clear_history")
+def clear_history():
+    """Clear user's chat history from both in-memory and MongoDB with detailed feedback"""
     data = request.get_json()
-    user_id = data.get("user_id", "guest")
+    user = data.get("user") or "guest"
+    clear_mongodb = data.get("clear_mongodb", True)  # Optional parameter
 
     try:
-        history_data = list(conversations.find(
-            {"user_id": user_id}
-        ).sort("timestamp", -1).limit(20))
+        global conversations
+        
+        # Initialize conversations as dict if it's not already
+        if not isinstance(conversations, dict):
+            conversations = {}
 
-        history_data.reverse()
-        history_formatted = [
-            {"name": "User" if m["sender"] == "user" else "Bot", "message": m["message"]}
-            for m in history_data
-        ]
+        # Count messages before deletion
+        memory_count = 0
+        if user in conversations:
+            memory_count = len(conversations[user])
+            
+        # Clear in-memory
+        if user in conversations:
+            conversations[user] = []
+            
+        # Add user to cleared set for tracking
+        cleared_users.add(user)
+        
+        # Clear MongoDB if requested (optional enhancement)
+        mongo_count = 0
+        if clear_mongodb:
+            try:
+                # Count MongoDB documents before deletion
+                mongo_count = conversations_collection.count_documents({"user": user})
+                if mongo_count == 0:
+                    mongo_count = conversations_collection.count_documents({"user_id": user})
+                
+                # Delete from MongoDB
+                result1 = conversations_collection.delete_many({"user": user})
+                result2 = conversations_collection.delete_many({"user_id": user})
+                mongo_deleted = result1.deleted_count + result2.deleted_count
+                
+            except Exception as mongo_err:
+                print(f"MongoDB deletion error: {mongo_err}")
+                mongo_deleted = 0
+        else:
+            mongo_deleted = 0
 
-        return jsonify({"messages": history_formatted})
-    
+        # Simulate brief processing time for better UX
+        time.sleep(0.2)
+
+        return jsonify({
+            "status": "success",
+            "message": f"History cleared successfully",
+            "details": {
+                "memory_cleared": memory_count,
+                "mongodb_cleared": mongo_deleted,
+                "total_cleared": memory_count + mongo_deleted,
+                "user": user,
+                "timestamp": time.time()
+            }
+        })
+
+    except Exception as e:
+        print(f"Error clearing history: {e}")
+        return jsonify({
+            "status": "error",
+            "error": str(e),
+            "message": "Failed to clear history"
+        }), 500
+
+
+@app.post("/history")
+def history():
+    """Load chat history with better error handling and status info"""
+    data = request.get_json()
+    user = data.get("user") or data.get("user_id") or "guest"
+
+    try:
+        global conversations
+
+        # Initialize conversations as dict if it's not already
+        if not isinstance(conversations, dict):
+            conversations = {}
+
+        history_data = []
+        source = "none"
+
+        # 1. If in-memory has data, return that
+        if user in conversations and conversations[user]:
+            history_data = conversations[user]
+            source = "memory"
+        else:
+            # 2. Otherwise, fallback to MongoDB
+            try:
+                history_data = list(conversations_collection.find(
+                    {"user": user}
+                ).sort("timestamp", -1).limit(20))
+
+                if not history_data:
+                    history_data = list(conversations_collection.find(
+                        {"user_id": user}
+                    ).sort("timestamp", -1).limit(20))
+
+                if history_data:
+                    history_data.reverse()  # oldest first
+                    source = "mongodb"
+                    
+            except Exception as mongo_err:
+                print(f"MongoDB query error: {mongo_err}")
+                history_data = []
+                source = "error"
+
+        # Format for frontend
+        history_formatted = []
+        for m in history_data:
+            sender = m.get("sender", "unknown")
+            message = m.get("message", "")
+
+            if sender == "user":
+                display_name = "user"
+            elif sender in ["bot", "assistant"]:
+                display_name = "Bot"
+            else:
+                if "response" in m and message == m.get("response", ""):
+                    display_name = "Bot"
+                else:
+                    display_name = "user"
+
+            history_formatted.append({
+                "name": display_name,
+                "message": message
+            })
+
+            if "response" in m and m["response"] and m["response"] != message:
+                history_formatted.append({
+                    "name": "Bot",
+                    "message": m["response"]
+                })
+
+        return jsonify({
+            "messages": history_formatted,
+            "meta": {
+                "count": len(history_formatted),
+                "source": source,
+                "user": user,
+                "was_recently_cleared": user in cleared_users
+            }
+        })
+
     except Exception as e:
         print(f"Error loading history: {e}")
-        return jsonify({"messages": []})
+        return jsonify({
+            "messages": [],
+            "meta": {
+                "count": 0,
+                "source": "error",
+                "error": str(e)
+            }
+        }), 500
+
+
+@app.post("/clear_status")
+def clear_status():
+    """Check if user's history was recently cleared"""
+    data = request.get_json()
+    user = data.get("user") or "guest"
+    
+    return jsonify({
+        "was_cleared": user in cleared_users,
+        "user": user
+    })
+
+@app.route("/cleanup_cleared_users")
+def cleanup_cleared_users():
+    """Admin endpoint to clean up the cleared users tracking"""
+    global cleared_users
+    count = len(cleared_users)
+    cleared_users.clear()
+    return jsonify({"cleared_count": count})
+
+
+
+# Global dictionary to store user contexts
+# --- Context store ---
+user_contexts = {}
+
+def reset_user_context(user):
+    """
+    Clear stored office/context for a specific user
+    without touching MongoDB history.
+    """
+    if user in user_contexts:
+        last_office = user_contexts[user]
+        del user_contexts[user]
+        print(f"Context reset for user: {user} (last office was {last_office})")
+    else:
+        print(f"No context found for user: {user}")
 
 @app.post("/reset_context")
 def reset_context():
     """Reset user's conversation context"""
     data = request.get_json()
-    user_id = data.get("user_id", "guest")
+    user = data.get("user", "guest")
     
     try:
-        reset_user_context(user_id)
-        return jsonify({"status": "Context reset successfully"})
+        reset_user_context(user)
+        return jsonify({
+            "status": "Context reset successfully",
+            "user": user,
+            "context_cleared": True  # ✅ frontend can use this flag
+        })
     except Exception as e:
         print(f"Error resetting context: {e}")
         return jsonify({"error": str(e)}), 500
 
-@app.post("/clear_history")
-def clear_history():
-    """Clear user's chat history"""
-    data = request.get_json()
-    user_id = data.get("user_id", "guest")
+
+
     
-    try:
-        deleted_count = clear_chat_history(user_id)
-        return jsonify({"status": f"Cleared {deleted_count} messages"})
-    except Exception as e:
-        print(f"Error clearing history: {e}")
-        return jsonify({"error": str(e)}), 500
+
+
+
 
 @app.get("/announcements")
 def get_announcements():
@@ -820,7 +1130,7 @@ def health_check():
         return jsonify({
             "status": "healthy",
             "vector_enabled": vector_store.index is not None,
-            "database_connected": conversations is not None,
+            "database_connected": conversations_collection is not None,
             "vector_stats": vector_store.get_stats()
         })
     except Exception as e:
@@ -884,6 +1194,7 @@ def admin_conversations():
     """Admin conversations page"""
     return render_template("conversations.html")
 
+# Fix: Rename this function to avoid conflicts
 @app.route("/conversations", endpoint='conversations')
 def conversations():
     """Direct conversations route"""
@@ -989,16 +1300,16 @@ def sub_feedback():
 def get_dashboard_stats(current_user):
     """Get dashboard statistics"""
     try:
-        # Get conversation statistics
-        total_conversations = conversations.count_documents({})
-        active_users = len(conversations.distinct("user_id"))
+        # Fix: Use the correct collection name
+        total_conversations = conversations_collection.count_documents({})
+        active_users = len(conversations_collection.distinct("user"))
         
         # Calculate some basic metrics
         resolved_queries = int(total_conversations * 0.86)  # Assuming 86% resolution rate
         escalated_issues = total_conversations - resolved_queries
         
         # Recent activity
-        recent_conversations = list(conversations.find({}).sort("timestamp", -1).limit(10))
+        recent_conversations = list(conversations_collection.find({}).sort("date", -1).limit(10))
         
         # Get user statistics
         total_users = users_collection.count_documents({"is_active": True})
@@ -1041,7 +1352,8 @@ def get_usage_data(current_user):
             {"$sort": {"_id": 1}}
         ]
         
-        usage_data = list(conversations.aggregate(pipeline))
+        # Fix: Use the correct collection name
+        usage_data = list(conversations_collection.aggregate(pipeline))
         
         # Format data for chart
         days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
@@ -1065,8 +1377,8 @@ def get_usage_data(current_user):
 def get_recent_activity(current_user):
     """Get recent system activity"""
     try:
-        # Get recent conversations
-        recent_conversations = list(conversations.find({}).sort("timestamp", -1).limit(20))
+        # Fix: Use the correct collection name
+        recent_conversations = list(conversations_collection.find({}).sort("timestamp", -1).limit(20))
         
         # Format activity data
         activities = []
@@ -1198,6 +1510,52 @@ def revoke_all_sessions(current_user):
             'success': False,
             'message': 'Internal server error'
         }), 500
+# Get KPI Data
+@app.route("/api/dashboard/kpi")
+def get_kpi():
+    total_users = len(conversations.distinct("user"))
+    total_conversations = conversations.count_documents({})
+    resolved_queries = conversations.count_documents({"status": "resolved"})
+    escalated_issues = conversations.count_documents({"status": "escalated"})
+
+    return jsonify({
+        "uniqueUsers": total_users,
+        "totalConversations": total_conversations,
+        "resolvedQueries": resolved_queries,
+        "escalatedIssues": escalated_issues
+    })
+
+
+# Get Usage by Time (daily/weekly/hourly)
+@app.route("/api/dashboard/usage/<period>")
+def get_usage(period):
+    # Example: mock data — replace with real aggregation later
+    if period == "daily":
+        labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+        data = [5, 10, 7, 12, 9, 3, 6]
+    elif period == "weekly":
+        labels = ["Week 1", "Week 2", "Week 3", "Week 4"]
+        data = [30, 45, 50, 60]
+    else:  # hourly
+        labels = [f"{h}:00" for h in range(24)]
+        data = [2, 3, 5, 4, 7, 9, 6, 8, 12, 14, 10, 11, 9, 8, 7, 6, 4, 5, 3, 2, 1, 0, 0, 1]
+
+    return jsonify({"labels": labels, "data": data})
+
+
+# Get Department Distribution
+@app.route("/api/dashboard/departments")
+def get_departments():
+    pipeline = [
+        {"$group": {"_id": "$detected_office", "count": {"$sum": 1}}},
+        {"$sort": {"count": -1}}
+    ]
+    results = list(conversations.aggregate(pipeline))
+
+    labels = [r["_id"] if r["_id"] else "Unknown" for r in results]
+    data = [r["count"] for r in results]
+
+    return jsonify({"labels": labels, "data": data})
 
 # Sub-admin specific API endpoints
 @app.get("/api/sub-admin/stats")
@@ -1212,8 +1570,9 @@ def get_sub_admin_stats(current_user):
         
         # Get office-specific statistics
         # This is a placeholder - you might want to implement office-specific filtering
-        office_conversations = conversations.count_documents({})
-        office_users = len(conversations.distinct("user_id"))
+        # Fix: Use the correct collection name
+        office_conversations = conversations_collection.count_documents({})
+        office_users = len(conversations_collection.distinct("user_id"))
         
         stats = {
             "office": office,

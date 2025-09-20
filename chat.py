@@ -1,3 +1,4 @@
+#(chat.py):
 import random
 import json
 import torch
@@ -11,7 +12,7 @@ from vector_store import VectorStore
 from nltk_utils import bag_of_words, tokenize, clean_text
 from pymongo import MongoClient
 from pymongo.errors import ServerSelectionTimeoutError, ConnectionFailure
-from datetime import datetime, UTC
+from datetime import datetime, UTC, date
 import certifi
 import time
 
@@ -324,13 +325,13 @@ def save_message(user_id, sender, message, detected_office=None):
     
     while retry_count < max_retries:
         try:
-            # Create document with office field
+            # Create document with office field and date instead of timestamp
             document = {
-                "user_id": user_id,
+                "user": user,
                 "sender": sender,
                 "message": message,
                 "office": office,
-                "timestamp": datetime.now(UTC)
+                "date": date.today().isoformat()  # Convert date to ISO string format
             }
             
             conversations.insert_one(document)
@@ -361,7 +362,7 @@ def save_message(user_id, sender, message, detected_office=None):
     
     return False
 
-def clear_chat_history(user_id):
+def clear_chat_history(user):
     """Clear all chat history for a specific user"""
     global conversations
     
@@ -370,7 +371,7 @@ def clear_chat_history(user_id):
         return 0
     
     try:
-        result = conversations.delete_many({"user_id": user_id})
+        result = conversations.delete_many({"user": user})
         return result.deleted_count
     except Exception as e:
         print(f"Error clearing chat history: {e}")
@@ -649,7 +650,7 @@ if __name__ == "__main__":
         print("MongoDB connection issues detected - running in limited mode")
     
     print()
-    user_id = "guest"
+    user = "guest"
 
     while True:
         user_message = input("You: ")
@@ -657,5 +658,5 @@ if __name__ == "__main__":
             print("Bot: Goodbye!")
             break
 
-        bot_reply = get_response(user_message, user_id)
+        bot_reply = get_response(user_message, user)
         print(f"Bot: {bot_reply}")

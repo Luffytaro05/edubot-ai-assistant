@@ -414,94 +414,254 @@ class Chatbox {
         }
     }
 
-    // Clear chat history
-    clearHistory() {
-        if (confirm('Are you sure you want to clear all chat history?')) {
-            this.messages = [];
-            this.updateChatText();
-            
-            // Clear backend history if available
-            if (typeof fetch !== 'undefined') {
-                fetch('/clear_history', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ user_id: this.user_id })
-                }).catch(err => console.log("History clear error:", err));
-            }
-        }
-    }
-
     // Reset conversation context
-    resetContext() {
-        this.currentContext = null;
-        this.updateContextIndicator();
-        
-        // Reset backend context if available
-        if (typeof fetch !== 'undefined') {
-            fetch('/reset_context', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_id: this.user_id })
-            }).catch(err => console.log("Context reset error:", err));
-        }
-        
-        this.resetToMainSuggestions();
-        
-        // Add context reset message
-        const msg = { name: "System", message: "Context reset. You can now ask about any office." };
-        this.messages.push(msg);
-        this.updateChatText();
-    }
-
-    // Update context indicator
-    updateContextIndicator() {
-        const { contextIndicator, contextOffice } = this.args;
-        
-        if (this.currentContext && this.officeNames[this.currentContext]) {
-            contextOffice.textContent = this.officeNames[this.currentContext];
-            contextIndicator.style.display = 'flex';
-        } else {
-            contextIndicator.style.display = 'none';
-        }
-    }
-
-    // Detect office from message (client-side)
-    detectOfficeFromMessage(message) {
-        const msgLower = message.toLowerCase();
-        
-        if (msgLower.includes('admission') || msgLower.includes('apply') || msgLower.includes('enroll')) {
-            return 'admission';
-        } else if (msgLower.includes('registrar') || msgLower.includes('transcript') || msgLower.includes('grades')) {
-            return 'registrar';
-        } else if (msgLower.includes('ict') || msgLower.includes('password') || msgLower.includes('wifi')) {
-            return 'ict';
-        } else if (msgLower.includes('guidance') || msgLower.includes('counseling') || msgLower.includes('scholarship')) {
-            return 'guidance';
-        } else if (msgLower.includes('osa') || msgLower.includes('student affairs') || msgLower.includes('clubs')) {
-            return 'osa';
-        } else if (msgLower.includes('announcement') || msgLower.includes('news') || msgLower.includes("what's new")) {
-            return 'announcements';
-        }
-        
-        return null;
-    }
-
-    // Load chat history from backend (optional)
-    loadChatHistory() {
-        fetch('/history', {
+   resetContext() {
+    this.currentContext = null;
+    this.updateContextIndicator();
+    
+    // Reset backend context if available
+    if (typeof fetch !== 'undefined') {
+        fetch('/reset_context', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id: this.user_id })
+            body: JSON.stringify({ user: this.user })  // FIXED: Using user_id consistently
         })
-        .then(r => r.json())
+        .then(response => response.json())
         .then(data => {
-            this.messages = data.messages || [];
-            this.updateChatText();
+            console.log("Context reset successfully:", data);
         })
         .catch(err => {
-            console.log("History load error (using local mode):", err);
+            console.log("Context reset error:", err);
         });
     }
+    
+    this.resetToMainSuggestions();
+    
+    // Add context reset message
+    const msg = { name: "System", message: "Context reset. You can now ask about any office." };
+    this.messages.push(msg);
+    this.updateChatText();
+}
+
+// Update context indicator
+updateContextIndicator() {
+    const { contextIndicator, contextOffice } = this.args;
+    
+    if (this.currentContext && this.officeNames[this.currentContext]) {
+        contextOffice.textContent = this.officeNames[this.currentContext];
+        contextIndicator.style.display = 'flex';
+    } else {
+        contextIndicator.style.display = 'none';
+    }
+}
+
+// Detect office from message (client-side)
+detectOfficeFromMessage(message) {
+    const msgLower = message.toLowerCase();
+    
+    // Admission Office keywords
+    if (msgLower.includes('admission') || msgLower.includes('apply') || 
+        msgLower.includes('enroll') || msgLower.includes('application') ||
+        msgLower.includes('requirements') || msgLower.includes('entrance')) {
+        return 'admission';
+    } 
+    // Registrar Office keywords
+    else if (msgLower.includes('registrar') || msgLower.includes('transcript') || 
+             msgLower.includes('grades') || msgLower.includes('academic records') ||
+             msgLower.includes('enrollment') || msgLower.includes('subjects') ||
+             msgLower.includes('schedule')) {
+        return 'registrar';
+    } 
+    // ICT Office keywords
+    else if (msgLower.includes('ict') || msgLower.includes('password') || 
+             msgLower.includes('wifi') || msgLower.includes('internet') ||
+             msgLower.includes('student portal') || msgLower.includes('email') ||
+             msgLower.includes('login') || msgLower.includes('technical')) {
+        return 'ict';
+    } 
+    // Guidance Office keywords
+    else if (msgLower.includes('guidance') || msgLower.includes('counseling') || 
+             msgLower.includes('scholarship') || msgLower.includes('career advice') ||
+             msgLower.includes('counselor') || msgLower.includes('mental health')) {
+        return 'guidance';
+    } 
+    // OSA Office keywords
+    else if (msgLower.includes('osa') || msgLower.includes('student affairs') || 
+             msgLower.includes('clubs') || msgLower.includes('activities') ||
+             msgLower.includes('events') || msgLower.includes('organizations') ||
+             msgLower.includes('discipline')) {
+        return 'osa';
+    } 
+    // Announcements keywords
+    else if (msgLower.includes('announcement') || msgLower.includes('news') || 
+             msgLower.includes("what's new") || msgLower.includes('updates') ||
+             msgLower.includes('latest')) {
+        return 'announcements';
+    }
+    
+    return null;
+}
+
+    // Enhanced clear history function with visual feedback
+clearHistory() {
+    if (confirm('Are you sure you want to clear all chat history?')) {
+        // Show loading state
+        const originalChatText = this.chatText;
+        this.chatText = "🗑️ Deleting chat history...";
+        
+        // Optional: Add a visual deletion animation
+        this.showDeletionAnimation();
+        
+        fetch('/clear_history', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user: this.user_id })
+        })
+        .then(r => r.json())
+        .then(res => {
+            console.log("Clear history result:", res);
+            
+            // Clear everything after successful backend deletion
+            this.messages = [];
+            this.chatText = "";
+            
+            // Clear localStorage cache
+            localStorage.removeItem(`chat_${this.user_id}`);
+            
+            // Update UI to show empty state
+            this.updateChatText();
+            
+            // Show success message temporarily
+            this.showTemporaryMessage("✅ Chat history cleared successfully!", 2000);
+        })
+        .catch(err => {
+            console.log("History clear error:", err);
+            
+            // Restore original content on error
+            this.chatText = originalChatText;
+            this.showTemporaryMessage("❌ Failed to clear history. Please try again.", 3000);
+        });
+    }
+}
+
+// Show temporary status message
+showTemporaryMessage(message, duration = 2000) {
+    const originalText = this.chatText;
+    this.chatText = message;
+    
+    setTimeout(() => {
+        if (this.messages.length === 0) {
+            this.chatText = ""; // Keep empty if no messages
+        } else {
+            this.updateChatText(); // Restore chat if messages exist
+        }
+    }, duration);
+}
+
+// Optional: Add deletion animation effect
+showDeletionAnimation() {
+    const chatContainer = document.querySelector('.chat-container'); // Adjust selector as needed
+    if (chatContainer) {
+        // Add fade-out effect
+        chatContainer.style.transition = 'opacity 0.5s ease-out';
+        chatContainer.style.opacity = '0.3';
+        
+        // Create deletion effect with falling text
+        const messages = document.querySelectorAll('.message'); // Adjust selector as needed
+        messages.forEach((msg, index) => {
+            setTimeout(() => {
+                msg.style.transition = 'transform 0.3s ease-in, opacity 0.3s ease-in';
+                msg.style.transform = 'translateY(20px)';
+                msg.style.opacity = '0';
+            }, index * 50);
+        });
+        
+        // Reset container after animation
+        setTimeout(() => {
+            chatContainer.style.opacity = '1';
+        }, 1000);
+    }
+}
+
+// Enhanced save with deletion tracking
+saveMessagesToCache() {
+    if (this.messages.length > 0) {
+        localStorage.setItem(`chat_${this.user_id}`, JSON.stringify(this.messages));
+    } else {
+        // Remove from localStorage if no messages
+        localStorage.removeItem(`chat_${this.user_id}`);
+    }
+}
+
+// Enhanced load with better error handling
+loadMessagesFromCache() {
+    try {
+        const cached = localStorage.getItem(`chat_${this.user_id}`);
+        if (cached) {
+            const parsedMessages = JSON.parse(cached);
+            if (Array.isArray(parsedMessages) && parsedMessages.length > 0) {
+                this.messages = parsedMessages;
+                this.updateChatText();
+                return true; // cache found
+            }
+        }
+    } catch (e) {
+        console.log("Error loading from cache:", e);
+        localStorage.removeItem(`chat_${this.user_id}`); // Remove corrupted cache
+    }
+    return false;
+}
+
+// Enhanced load chat history with deletion state
+loadChatHistory() {
+    // Show loading state
+    this.chatText = "📥 Loading chat history...";
+    
+    // 1. Try local cache first
+    const cacheLoaded = this.loadMessagesFromCache();
+    if (cacheLoaded) {
+        console.log("Loaded chat from local cache.");
+        this.showTemporaryMessage("📥 Loaded from cache", 1000);
+    }
+
+    // 2. Then sync with backend (MongoDB/in-memory)
+    fetch('/history', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user: this.user_id })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.messages && data.messages.length > 0) {
+            this.messages = data.messages;
+            this.updateChatText();
+            this.saveMessagesToCache(); // update local cache
+            
+            if (!cacheLoaded) {
+                this.showTemporaryMessage("📥 Loaded from server", 1000);
+            }
+        } else if (!cacheLoaded) {
+            // No messages anywhere
+            this.messages = [];
+            this.chatText = "";
+            this.showTemporaryMessage("💬 Start a new conversation!", 2000);
+        }
+    })
+    .catch(err => {
+        console.log("History load error:", err);
+        if (!cacheLoaded) {
+            this.chatText = "";
+            this.showTemporaryMessage("⚠️ Could not load history", 2000);
+        }
+    });
+}
+
+// Add this method to show progress during bulk operations
+showProgressMessage(current, total, operation = "Processing") {
+    const percentage = Math.round((current / total) * 100);
+    this.chatText = `${operation}... ${percentage}% (${current}/${total})`;
+}
+
 
     // Load sub-suggestions dynamically
     loadSubSuggestions(category, container) {
@@ -586,36 +746,65 @@ class Chatbox {
 
     // Update context based on message and response
     updateContextFromMessage(userMessage, botResponse) {
-        const detectedOffice = this.detectOfficeFromMessage(userMessage);
-        
-        // Check if it's a context switch message
-        if (botResponse.includes("I think you might be asking about") || 
-            botResponse.includes("Would you like me to connect you")) {
-            // Don't update context for context switch warnings
-            return;
-        }
-        
-        // Check if user confirmed context switch
-        const msgLower = userMessage.toLowerCase();
-        if ((msgLower.includes('yes') || msgLower.includes('switch') || msgLower.includes('connect')) && 
-            botResponse.includes("I've switched to help you")) {
+    const detectedOffice = this.detectOfficeFromMessage(userMessage);
+    
+    // Check if it's a context switch message
+    if (botResponse.includes("I think you might be asking about") || 
+        botResponse.includes("Would you like me to connect you")) {
+        // Don't update context for context switch warnings
+        return;
+    }
+    
+    // Check if user confirmed context switch
+    const msgLower = userMessage.toLowerCase();
+    if ((msgLower.includes('yes') || msgLower.includes('switch') || msgLower.includes('connect')) && 
+        botResponse.includes("I've switched to help you")) {
+        this.currentContext = detectedOffice;
+        this.updateContextIndicator();
+        return;
+    }
+    
+    // ENHANCED: Automatic context switching based on topic detection
+    if (detectedOffice) {
+        // If no current context, set it automatically
+        if (!this.currentContext) {
             this.currentContext = detectedOffice;
             this.updateContextIndicator();
-            return;
+            
+            // Add a subtle notification about context switch
+            const contextMsg = { 
+                name: "System", 
+                message: `Switched to ${this.officeNames[detectedOffice]} topic.` 
+            };
+            this.messages.push(contextMsg);
         }
-        
-        // Set context for office-specific responses
-        if (detectedOffice && !this.currentContext) {
+        // If different office detected, switch context automatically
+        else if (detectedOffice !== this.currentContext) {
+            const previousOffice = this.officeNames[this.currentContext];
             this.currentContext = detectedOffice;
             this.updateContextIndicator();
-        }
-        
-        // Reset context for general messages
-        if (botResponse.includes("Hello!") || botResponse.includes("You're welcome") || 
-            botResponse.includes("Goodbye")) {
-            // Don't change context for greetings/thanks/goodbye
+            
+            // Add notification about automatic context switch
+            const switchMsg = { 
+                name: "System", 
+                message: `Switched from ${previousOffice} to ${this.officeNames[detectedOffice]} topic.` 
+            };
+            this.messages.push(switchMsg);
         }
     }
+    
+    // Reset context for general messages that don't belong to any office
+    if (!detectedOffice && (
+        botResponse.includes("Hello!") || 
+        botResponse.includes("You're welcome") || 
+        botResponse.includes("Goodbye") ||
+        msgLower.includes('thank') ||
+        msgLower.includes('bye')
+    )) {
+        // Keep current context for greetings/thanks/goodbye
+        // Don't reset unless explicitly requested
+    }
+}
 
     handleLocalResponse(message) {
         const botResponse = this.generateLocalResponse(message);
@@ -636,81 +825,64 @@ class Chatbox {
     }
 
     generateLocalResponse(message) {
-        const lowerMessage = message.toLowerCase();
-        const detectedOffice = this.detectOfficeFromMessage(message);
-        
-        // Check for announcements requests
-        if (detectedOffice === 'announcements') {
-            return this.generateAnnouncementsResponse();
-        }
-        
-        // Check for context conflicts
-        if (this.currentContext && detectedOffice && detectedOffice !== this.currentContext) {
-            const officeName = this.officeNames[detectedOffice] || "that office";
-            const currentOfficeName = this.officeNames[this.currentContext] || "the current topic";
-            return `I think you might be asking about the ${officeName}. Right now, I can only assist you with ${currentOfficeName} concerns. Would you like me to connect you to the ${officeName} information instead?`;
-        }
-        
-        // Check for context switch confirmation
-        if ((lowerMessage.includes('yes') || lowerMessage.includes('switch') || lowerMessage.includes('connect')) && 
-            this.currentContext) {
-            if (detectedOffice) {
-                this.currentContext = detectedOffice;
-                this.updateContextIndicator();
-                return `Great! I've switched to help you with ${this.officeNames[detectedOffice]} information. How can I assist you?`;
-            }
-        }
-        
-        // Check for greetings
-        const greetings = ['hi', 'hello', 'hey', 'good morning', 'good afternoon', 'good evening'];
-        if (greetings.some(greeting => lowerMessage.includes(greeting))) {
-            const greetingResponses = [
-                "Hello! How can I assist you today?",
-                "Hi there, how can I help you?",
-                "Good day! What can I do for you?"
-            ];
-            return greetingResponses[Math.floor(Math.random() * greetingResponses.length)];
-        }
-        
-        // Check for thanks
-        if (lowerMessage.includes('thank') || lowerMessage.includes('thanks')) {
-            const thankResponses = [
-                "You're welcome! Happy to help.",
-                "Anytime! Glad I could assist."
-            ];
-            return thankResponses[Math.floor(Math.random() * thankResponses.length)];
-        }
-        
-        // Check for goodbye
-        if (lowerMessage.includes('bye') || lowerMessage.includes('goodbye')) {
-            const goodbyeResponses = [
-                "Goodbye — have a great day!",
-                "See you later!",
-                "Take care!"
-            ];
-            return goodbyeResponses[Math.floor(Math.random() * goodbyeResponses.length)];
-        }
-        
-        // Check for office-specific queries
-        if (detectedOffice && this.responses[detectedOffice]) {
-            this.currentContext = detectedOffice;
-            this.updateContextIndicator();
-            return this.responses[detectedOffice][Math.floor(Math.random() * this.responses[detectedOffice].length)];
-        }
-        
-        // Context-specific fallback
-        if (this.currentContext) {
-            const officeName = this.officeNames[this.currentContext];
-            return `I'm currently helping you with ${officeName} information. Could you rephrase your question about this office, or would you like to switch to a different topic?`;
-        }
-        
-        // Default fallback response
-        const fallbackResponses = [
-            "I'm not sure I understand. Could you rephrase your question or try one of the suggested topics?",
-            "Sorry, I don't have that information yet. Please try selecting from the suggested topics."
-        ];
-        return fallbackResponses[Math.floor(Math.random() * fallbackResponses.length)];
+    const lowerMessage = message.toLowerCase();
+    const detectedOffice = this.detectOfficeFromMessage(message);
+    
+    // Check for announcements requests
+    if (detectedOffice === 'announcements') {
+        return this.generateAnnouncementsResponse();
     }
+    
+    // No more context conflict warnings - automatic switching handles this
+    
+    // Check for greetings
+    const greetings = ['hi', 'hello', 'hey', 'good morning', 'good afternoon', 'good evening'];
+    if (greetings.some(greeting => lowerMessage.includes(greeting))) {
+        const greetingResponses = [
+            "Hello! How can I assist you today?",
+            "Hi there, how can I help you?",
+            "Good day! What can I do for you?"
+        ];
+        return greetingResponses[Math.floor(Math.random() * greetingResponses.length)];
+    }
+    
+    // Check for thanks
+    if (lowerMessage.includes('thank') || lowerMessage.includes('thanks')) {
+        const thankResponses = [
+            "You're welcome! Happy to help.",
+            "Anytime! Glad I could assist."
+        ];
+        return thankResponses[Math.floor(Math.random() * thankResponses.length)];
+    }
+    
+    // Check for goodbye
+    if (lowerMessage.includes('bye') || lowerMessage.includes('goodbye')) {
+        const goodbyeResponses = [
+            "Goodbye — have a great day!",
+            "See you later!",
+            "Take care!"
+        ];
+        return goodbyeResponses[Math.floor(Math.random() * goodbyeResponses.length)];
+    }
+    
+    // Check for office-specific queries (automatic context will be set)
+    if (detectedOffice && this.responses[detectedOffice]) {
+        return this.responses[detectedOffice][Math.floor(Math.random() * this.responses[detectedOffice].length)];
+    }
+    
+    // Context-specific fallback
+    if (this.currentContext && this.responses[this.currentContext]) {
+        const responses = this.responses[this.currentContext];
+        return responses[Math.floor(Math.random() * responses.length)];
+    }
+    
+    // Default fallback response
+    const fallbackResponses = [
+        "I'm not sure I understand. Could you rephrase your question or try one of the suggested topics?",
+        "Sorry, I don't have that information yet. Please try selecting from the suggested topics."
+    ];
+    return fallbackResponses[Math.floor(Math.random() * fallbackResponses.length)];
+}
 
     // Generate announcements response
     generateAnnouncementsResponse() {

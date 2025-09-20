@@ -1,233 +1,144 @@
 /**
- * UserManager - Manages sub-admin user accounts
+ * UserManager.js
+ * Handles frontend user management requests and communicates with Flask backend.
  */
-class UserManager extends BaseManager {
+class UserManager {
     constructor() {
-        super('educhat_users');
-        this.initializeDefaultUsers();
+        this.baseUrl = "/api/users";
     }
 
-    /**
-     * Initialize with default users
-     */
-    initializeDefaultUsers() {
-        if (this.data.length === 0) {
-            const defaultUsers = [
-                {
-                    name: 'Jelson Umpacan',
-                    email: 'jelson.umpacan@example.com',
-                    office: 'Registrar Office',
-                    role: 'Sub Admin',
-                    status: 'Active',
-                    lastLogin: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString() // 2 hours ago
-                },
-                {
-                    name: 'Lawrence Ignacio',
-                    email: 'lawrence.ignacio@example.com',
-                    office: 'Accounting Office',
-                    role: 'Sub Admin',
-                    status: 'Active',
-                    lastLogin: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString() // 4 hours ago
-                },
-                {
-                    name: 'Dexter Zapico',
-                    email: 'dexter.zapico@example.com',
-                    office: 'Guidance Office',
-                    role: 'Sub Admin',
-                    status: 'Inactive',
-                    lastLogin: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString() // 1 day ago
-                },
-                {
-                    name: 'Gerald Diasanta',
-                    email: 'gerald.diasanta@example.com',
-                    office: 'Admissions Office',
-                    role: 'Sub Admin',
-                    status: 'Active',
-                    lastLogin: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString() // 1 hour ago
-                }
-            ];
-
-            defaultUsers.forEach(user => this.addUser(user));
+    async getAll() {
+        try {
+            const res = await fetch(this.baseUrl);
+            return await res.json();
+        } catch (err) {
+            console.error("Error fetching users:", err);
+            return [];
         }
     }
 
-    /**
-     * Add new user with validation
-     */
-    addUser(userData) {
-        // Validation
-        if (!userData.name || !userData.email || !userData.office || !userData.role) {
-            return {
-                success: false,
-                message: 'All fields are required'
-            };
+    async addUser(userData) {
+        try {
+            const res = await fetch(this.baseUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(userData)
+            });
+            return await res.json();
+        } catch (err) {
+            console.error("Error adding user:", err);
+            return { success: false, message: "Error adding user" };
         }
-
-        // Check if email already exists
-        const existingUser = this.data.find(user => user.email === userData.email);
-        if (existingUser) {
-            return {
-                success: false,
-                message: 'Email already exists'
-            };
-        }
-
-        // Create user object
-        const user = {
-            name: userData.name.trim(),
-            email: userData.email.trim().toLowerCase(),
-            office: userData.office,
-            role: userData.role,
-            status: userData.status || 'Active',
-            password: userData.password || 'default123', // In real app, hash the password
-            lastLogin: null
-        };
-
-        const newUser = this.add(user);
-        return {
-            success: true,
-            user: newUser
-        };
     }
 
-    /**
-     * Update user with validation
-     */
-    updateUser(id, updates) {
-        const user = this.getById(id);
-        if (!user) {
-            return {
-                success: false,
-                message: 'User not found'
-            };
+    async getById(userId) {
+        try {
+            const res = await fetch(`${this.baseUrl}/${userId}`);
+            return await res.json();
+        } catch (err) {
+            console.error("Error fetching user:", err);
+            return null;
         }
-
-        // Check if email is being changed and if it already exists
-        if (updates.email && updates.email !== user.email) {
-            const existingUser = this.data.find(u => u.email === updates.email && u.id !== id);
-            if (existingUser) {
-                return {
-                    success: false,
-                    message: 'Email already exists'
-                };
-            }
-        }
-
-        // Update password if provided
-        if (updates.password) {
-            updates.password = updates.password; // In real app, hash the password
-        }
-
-        const updatedUser = this.update(id, updates);
-        return {
-            success: true,
-            user: updatedUser
-        };
     }
 
-    /**
-     * Toggle user status
-     */
-    toggleStatus(id) {
-        const user = this.getById(id);
-        if (!user) {
-            return {
-                success: false,
-                message: 'User not found'
-            };
+    async updateUser(userId, updates) {
+        try {
+            const res = await fetch(`${this.baseUrl}/${userId}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(updates)
+            });
+            return await res.json();
+        } catch (err) {
+            console.error("Error updating user:", err);
+            return { success: false, message: "Error updating user" };
         }
-
-        const newStatus = user.status === 'Active' ? 'Inactive' : 'Active';
-        const updatedUser = this.update(id, { status: newStatus });
-        
-        return {
-            success: true,
-            newStatus: newStatus,
-            user: updatedUser
-        };
     }
 
-    /**
-     * Get users by office
-     */
-    getUsersByOffice(office) {
-        return this.data.filter(user => user.office === office);
+    async toggleStatus(userId) {
+        try {
+            const res = await fetch(`${this.baseUrl}/${userId}/toggle`, {
+                method: "PATCH"
+            });
+            return await res.json();
+        } catch (err) {
+            console.error("Error toggling user status:", err);
+            return { success: false, message: "Error toggling user status" };
+        }
     }
 
-    /**
-     * Get users by status
-     */
-    getUsersByStatus(status) {
-        return this.data.filter(user => user.status === status);
+    async delete(userId) {
+        try {
+            const res = await fetch(`${this.baseUrl}/${userId}`, {
+                method: "DELETE"
+            });
+            return await res.json();
+        } catch (err) {
+            console.error("Error deleting user:", err);
+            return { success: false, message: "Error deleting user" };
+        }
     }
+    
 
-    /**
-     * Search users by name or email
-     */
     searchUsers(query) {
-        const searchTerm = query.toLowerCase();
-        return this.data.filter(user => 
-            user.name.toLowerCase().includes(searchTerm) ||
-            user.email.toLowerCase().includes(searchTerm) ||
-            user.office.toLowerCase().includes(searchTerm)
+        query = query.toLowerCase();
+        return currentUsers.filter(user =>
+            user.name.toLowerCase().includes(query) ||
+            user.email.toLowerCase().includes(query) ||
+            (user.role && user.role.toLowerCase().includes(query)) ||
+            (user.office && user.office.toLowerCase().includes(query))
         );
     }
+}
 
-    /**
-     * Get active users count
-     */
-    getActiveUsersCount() {
-        return this.data.filter(user => user.status === 'Active').length;
-    }
+async function loadUsers() {
+    try {
+        const response = await fetch("/api/users");  // Flask endpoint
+        const users = await response.json();
 
-    /**
-     * Get user statistics
-     */
-    getStats() {
-        const totalUsers = this.data.length;
-        const activeUsers = this.data.filter(user => user.status === 'Active').length;
-        const inactiveUsers = totalUsers - activeUsers;
+        const tableBody = document.getElementById("users-table-body");
+        tableBody.innerHTML = ""; // Clear existing rows
 
-        const usersByOffice = {};
-        const offices = ['Registrar Office', 'Accounting Office', 'Guidance Office', 'Admissions Office', 'ICT Office'];
-        
-        offices.forEach(office => {
-            usersByOffice[office] = this.data.filter(user => user.office === office).length;
+        users.forEach(user => {
+            const row = document.createElement("tr");
+
+            row.innerHTML = `
+    <td>
+        <div><strong>${user.name || "N/A"}</strong></div>
+        <div style="font-size: 0.85em; color: gray;">${user.email || "N/A"}</div>
+    </td>
+    <td>${user.role || "User"} / ${user.office || "-"}</td>
+    <td>${user.status || "Active"}</td>
+    <td>${user.last_login || "Never"}</td>
+    <td>
+        <button onclick="editUser('${user.id}')">Edit</button>
+        <button onclick="deleteUser('${user.id}')">Delete</button>
+    </td>
+`;
+
+
+            tableBody.appendChild(row);
         });
 
-        const usersByRole = {};
-        const roles = ['Sub Admin', 'Manager', 'Staff'];
-        
-        roles.forEach(role => {
-            usersByRole[role] = this.data.filter(user => user.role === role).length;
-        });
-
-        return {
-            totalUsers,
-            activeUsers,
-            inactiveUsers,
-            usersByOffice,
-            usersByRole
-        };
-    }
-
-    /**
-     * Update last login time
-     */
-    updateLastLogin(id) {
-        const user = this.getById(id);
-        if (user) {
-            this.update(id, { lastLogin: new Date().toISOString() });
-        }
-    }
-
-    /**
-     * Get recent users
-     */
-    getRecentUsers(limit = 5) {
-        return this.data
-            .filter(user => user.lastLogin)
-            .sort((a, b) => new Date(b.lastLogin) - new Date(a.lastLogin))
-            .slice(0, limit);
+    } catch (err) {
+        console.error("Error loading users:", err);
     }
 }
+function editUser(userId) {
+    console.log("Edit user:", userId);
+    // TODO: open modal or form for editing
+}
+
+async function deleteUser(userId) {
+    if (!confirm("Are you sure you want to delete this user?")) return;
+    const result = await userManager.delete(userId);
+    if (result.success) {
+        alert("User deleted successfully!");
+        loadUsersTable();
+    } else {
+        alert("Error deleting user");
+    }
+}
+
+// Call this when page loads
+document.addEventListener("DOMContentLoaded", loadUsers);

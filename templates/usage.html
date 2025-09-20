@@ -85,7 +85,7 @@
                             <div class="user-role">Super Administrator</div>
                         </div>
                     </div>
-                    <div class="logout-icon" onclick="logout()">
+                    <div class="logout-icon" onclick="new AuthManager().logout().then(() => window.location.href='/admin/index')">
                         <i class="fas fa-sign-out-alt"></i>
                     </div>
                 </div>
