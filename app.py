@@ -1,3 +1,7 @@
+<<<<<<< HEAD
+=======
+# ():
+>>>>>>> 6a5df9f (Initial commit)
 from flask import Flask, render_template, request, jsonify, session
 from flask_cors import CORS
 from chat import (get_response, reset_user_context, clear_chat_history, 
@@ -9,6 +13,11 @@ from datetime import datetime, timedelta, date
 from conversations import conversations_bp
 from dashboard import init_app
 from users import users_bp
+<<<<<<< HEAD
+=======
+from roles import roles_bp
+from faqs import faq_bp
+>>>>>>> 6a5df9f (Initial commit)
 import jwt
 import os
 import time
@@ -20,6 +29,11 @@ import re
 app = Flask(__name__)
 app.register_blueprint(conversations_bp)
 app.register_blueprint(users_bp)
+<<<<<<< HEAD
+=======
+app.register_blueprint(roles_bp)
+app.register_blueprint(faq_bp)
+>>>>>>> 6a5df9f (Initial commit)
 CORS(app)
 app.config['SECRET_KEY'] = 'your-secret-key-change-this-in-production'  # Change this in production
 
@@ -1510,6 +1524,7 @@ def revoke_all_sessions(current_user):
             'success': False,
             'message': 'Internal server error'
         }), 500
+<<<<<<< HEAD
 # Get KPI Data
 @app.route("/api/dashboard/kpi")
 def get_kpi():
@@ -1556,6 +1571,8 @@ def get_departments():
     data = [r["count"] for r in results]
 
     return jsonify({"labels": labels, "data": data})
+=======
+>>>>>>> 6a5df9f (Initial commit)
 
 # Sub-admin specific API endpoints
 @app.get("/api/sub-admin/stats")

@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 /**
  * RoleManager - Manages user roles and permissions
  */
@@ -292,5 +293,57 @@ class RoleManager extends BaseManager {
     getUserPermissions(userOffice) {
         const role = this.getRoleByOffice(userOffice);
         return role ? role.permissions : [];
+=======
+class RoleManager {
+    constructor() {
+        this.baseUrl = "/api/roles"; // Flask routes
+    }
+
+    async getAll() {
+        const res = await fetch(`${this.baseUrl}/all`);
+        return await res.json();
+    }
+
+    async getUsers() {
+        const res = await fetch(`${this.baseUrl}/users`);
+        return await res.json();
+    }
+
+    async addRole(roleData) {
+        const res = await fetch(`${this.baseUrl}/add`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(roleData)
+        });
+        return await res.json();
+    }
+
+    async updateRole(roleId, updates) {
+        const res = await fetch(`${this.baseUrl}/update/${roleId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(updates)
+        });
+        return await res.json();
+    }
+
+    async getById(roleId) {
+        const res = await fetch(`${this.baseUrl}/get/${roleId}`);
+        return await res.json();
+    }
+
+    async detectOffice(userId) {
+        const res = await fetch(`${this.baseUrl}/detect-office/${userId}`);
+        return await res.json();
+    }
+
+    // Local search (in-memory, not DB)
+    searchRoles(query, roles) {
+        if (!roles) return [];
+        return roles.filter(r =>
+            r.office.toLowerCase().includes(query.toLowerCase()) ||
+            (r.permissions || []).some(p => p.toLowerCase().includes(query.toLowerCase()))
+        );
+>>>>>>> 6a5df9f (Initial commit)
     }
 }

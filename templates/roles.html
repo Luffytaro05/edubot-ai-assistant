@@ -1,3 +1,7 @@
+<<<<<<< HEAD
+=======
+<!--(roles.html):-->
+>>>>>>> 6a5df9f (Initial commit)
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -248,10 +252,17 @@
             });
         }
 
+<<<<<<< HEAD
         function loadRoles() {
             const roles = roleManager.getAll();
             renderRoleCards(roles);
         }
+=======
+        async function loadRoles() {
+        const roles = await roleManager.getAll();
+        renderRoleCards(roles || []);
+    }
+>>>>>>> 6a5df9f (Initial commit)
 
         function renderRoleCards(roles) {
             const container = document.getElementById('role-cards');
@@ -366,6 +377,7 @@
             });
         }
 
+<<<<<<< HEAD
         function addRole() {
             const form = document.getElementById('add-role-form');
             const formData = new FormData(form);
@@ -446,6 +458,114 @@
                 toast.error(result.message);
             }
         }
+=======
+        async function addRole() {
+        const form = document.getElementById('add-role-form');
+        const formData = new FormData(form);
+        
+        const office = formData.get('office');
+        
+        if (!office) {
+            toast.error('Please select an office');
+            return;
+        }
+
+        if (currentPermissions.length === 0) {
+            toast.error('Please add at least one permission');
+            return;
+        }
+
+        const roleData = {
+            office: office,
+            permissions: currentPermissions
+        };
+
+        // ✅ Await result
+        const result = await roleManager.addRole(roleData);
+        
+        if (result && result.success) {
+            toast.success('Role added successfully');
+            closeModal('add-role-modal');
+            loadRoles(); // refresh UI
+        } else {
+            toast.error(result?.message || 'Failed to add role');
+        }
+    }
+
+        async function editRole(roleId) {
+        const role = await roleManager.getById(roleId);
+        if (!role) {
+            toast.error('Role not found');
+            return;
+        }
+
+        // Populate form
+        document.getElementById('edit-role-id').value = role.id;
+        document.getElementById('edit-office').value = role.office;
+        editPermissions = [...role.permissions];
+        updateEditPermissionsList();
+
+        document.getElementById('edit-role-modal').style.display = 'flex';
+    }
+
+        async function updateRole() {
+        const form = document.getElementById('edit-role-form');
+        const formData = new FormData(form);
+        
+        const roleId = formData.get('id');
+        const office = formData.get('office');
+        
+        if (!office) {
+            toast.error('Please select an office');
+            return;
+        }
+
+        if (editPermissions.length === 0) {
+            toast.error('Please add at least one permission');
+            return;
+        }
+
+        const updates = {
+            office: office,
+            permissions: editPermissions
+        };
+
+        // ✅ Await result
+        const result = await roleManager.updateRole(roleId, updates);
+        
+        if (result && result.success) {
+            toast.success('Role updated successfully');
+            closeModal('edit-role-modal');
+            loadRoles(); // refresh UI
+        } else {
+            toast.error(result?.message || 'Failed to update role');
+        }
+    }
+async function saveRole() {
+    const roleId = document.getElementById("roleId").value; // hidden input for editing
+    const office = document.getElementById("officeInput").value;
+    const permissions = document.getElementById("permissionsInput").value.split(",");
+
+    const roleData = { office, permissions };
+
+    let result;
+    if (roleId) {
+        // Editing
+        result = await roleManager.updateRole(roleId, roleData);
+    } else {
+        // Adding
+        result = await roleManager.addRole(roleData);
+    }
+
+    if (result.success) {
+        alert("Role saved successfully!");
+        loadRoles(); // refresh UI
+        closeModal();
+    } else {
+        alert("Error saving role: " + result.message);
+    }
+}
+>>>>>>> 6a5df9f (Initial commit)
 
         function logout() {
             const authManager = new AuthManager();

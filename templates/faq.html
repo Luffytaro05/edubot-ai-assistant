@@ -1,3 +1,7 @@
+<<<<<<< HEAD
+=======
+<!--(faq.html):-->
+>>>>>>> 6a5df9f (Initial commit)
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -330,6 +334,7 @@
     <script src="{{ url_for('static', filename='assets/js/app.js') }}"></script>
 
     <script>
+<<<<<<< HEAD
         let faqManager;
         let currentOffice = 'all';
 
@@ -591,6 +596,329 @@
         window.addCategory = addCategory;
         window.logout = logout;
     </script>
+=======
+let currentOffice = 'all';
+let offices = [];
+
+document.addEventListener('DOMContentLoaded', async function() {
+    const authManager = new AuthManager();
+    if (!authManager.checkAuth()) {
+        window.location.href = '../index.html';
+        return;
+    }
+
+    await loadOffices();
+    await loadFAQs();
+    setupEventListeners();
+});
+
+function setupEventListeners() {
+    // Office selection
+    document.querySelectorAll('.category-card').forEach(card => {
+        card.addEventListener('click', function() {
+            const office = this.dataset.office;
+            selectOffice(office);
+        });
+    });
+
+    // Search functionality
+    const searchInput = document.querySelector('.search-input');
+    searchInput.addEventListener('input', async function() {
+        const query = this.value.trim();
+        if (query) {
+            await searchFAQs(query);
+        } else {
+            await loadFAQs();
+        }
+    });
+}
+
+async function loadOffices() {
+    try {
+        const res = await fetch('/api/offices');
+        const data = await res.json();
+        if (data.success) {
+            offices = data.offices;
+            renderOfficeCards();
+            populateOfficeDropdowns();
+        }
+    } catch (err) {
+        console.error('Failed to load offices', err);
+    }
+}
+
+function renderOfficeCards() {
+    const container = document.querySelector('.faq-categories');
+    container.innerHTML = '';
+
+    // Add "All FAQs"
+    const allCard = document.createElement('div');
+    allCard.className = 'category-card active';
+    allCard.dataset.office = 'all';
+    allCard.innerHTML = `
+        <div class="category-icon"><i class="fas fa-list"></i></div>
+        <div class="category-info">
+            <h4>All FAQs</h4>
+            <p>View all questions</p>
+        </div>
+        <div class="category-count">0</div>
+    `;
+    container.appendChild(allCard);
+
+    // Add office cards with icon
+    offices.forEach(office => {
+        const card = document.createElement('div');
+        card.className = 'category-card';
+        card.dataset.office = office.name;
+        card.innerHTML = `
+            <div class="category-icon">
+                <i class="${office.icon || 'fas fa-building'}"></i>
+            </div>
+            <div class="category-info">
+                <h4>${office.name}</h4>
+                <p>${office.description || ''}</p>
+            </div>
+            <div class="category-count">0</div>
+        `;
+        container.appendChild(card);
+    });
+
+    // Re-setup office click events
+    document.querySelectorAll('.category-card').forEach(card => {
+        card.addEventListener('click', function() {
+            selectOffice(this.dataset.office);
+        });
+    });
+}
+
+
+function populateOfficeDropdowns() {
+    const addSelect = document.getElementById('add-faq-office');
+    const editSelect = document.getElementById('edit-faq-office');
+    addSelect.innerHTML = '<option value="">Select Office</option>';
+    editSelect.innerHTML = '<option value="">Select Office</option>';
+    offices.forEach(office => {
+        const option = `<option value="${office.name}">${office.name}</option>`;
+        addSelect.innerHTML += option;
+        editSelect.innerHTML += option;
+    });
+}
+
+async function loadFAQs() {
+    try {
+        const res = await fetch('/api/faqs');
+        const data = await res.json();
+        if (data.success) {
+            let faqs = data.faqs;
+            if (currentOffice !== 'all') {
+                faqs = faqs.filter(f => f.office === currentOffice);
+            }
+            renderFAQs(faqs);
+            updateOfficeCounts(faqs);
+        }
+    } catch (err) {
+        console.error('Failed to load FAQs', err);
+    }
+}
+
+async function searchFAQs(query) {
+    try {
+        const res = await fetch('/api/faqs');
+        const data = await res.json();
+        if (data.success) {
+            let faqs = data.faqs.filter(f => 
+                f.question.toLowerCase().includes(query.toLowerCase()) ||
+                f.answer.toLowerCase().includes(query.toLowerCase())
+            );
+            if (currentOffice !== 'all') {
+                faqs = faqs.filter(f => f.office === currentOffice);
+            }
+            renderFAQs(faqs);
+        }
+    } catch (err) {
+        console.error('Search failed', err);
+    }
+}
+
+function selectOffice(office) {
+    document.querySelectorAll('.category-card').forEach(card => card.classList.remove('active'));
+    const selectedCard = document.querySelector(`[data-office="${office}"]`);
+    if (selectedCard) selectedCard.classList.add('active');
+    currentOffice = office;
+    loadFAQs();
+}
+
+function renderFAQs(faqs) {
+    const tbody = document.getElementById('faqs-table-body');
+    tbody.innerHTML = '';
+    faqs.forEach(faq => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td><strong>${faq.question}</strong></td>
+            <td>${faq.answer.substring(0, 100)}${faq.answer.length > 100 ? '...' : ''}</td>
+            <td><span class="office-badge">${faq.office || 'Not Assigned'}</span></td>
+            <td><span class="status-badge ${faq.status.toLowerCase()}">${faq.status}</span></td>
+            <td>
+                <div class="action-buttons">
+                    <button class="btn btn-sm btn-outline-primary" onclick="editFAQ('${faq._id}')"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteFAQ('${faq._id}')"><i class="fas fa-trash"></i></button>
+                </div>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+function updateOfficeCounts(faqs) {
+    const stats = { total: faqs.length, byOffice: {} };
+    offices.forEach(o => stats.byOffice[o.name] = 0);
+    faqs.forEach(f => {
+        if (f.office && stats.byOffice[f.office] !== undefined) stats.byOffice[f.office]++;
+    });
+
+    document.querySelector('[data-office="all"] .category-count').textContent = stats.total;
+    Object.keys(stats.byOffice).forEach(office => {
+        const elem = document.querySelector(`[data-office="${office}"] .category-count`);
+        if (elem) elem.textContent = stats.byOffice[office];
+    });
+}
+
+// ---------------------
+// FAQ CRUD
+// ---------------------
+async function addFAQ() {
+    const form = document.getElementById('add-faq-form');
+    const faqData = {
+        office: form.office.value,
+        question: form.question.value,
+        answer: form.answer.value,
+        status: form.status.value
+    };
+    if (!faqData.office || !faqData.question || !faqData.answer) {
+        toast.error('All fields are required');
+        return;
+    }
+    try {
+        const res = await fetch('/api/faqs', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(faqData)
+        });
+        const data = await res.json();
+        if (data.success) {
+            toast.success('FAQ added successfully');
+            closeModal('add-faq-modal');
+            loadFAQs();
+        } else toast.error(data.message);
+    } catch (err) { console.error(err); toast.error('Failed to add FAQ'); }
+}
+
+async function editFAQ(id) {
+    try {
+        const res = await fetch('/api/faqs');
+        const data = await res.json();
+        const faq = data.faqs.find(f => f._id === id);
+        if (!faq) return toast.error('FAQ not found');
+        document.getElementById('edit-faq-id').value = faq._id;
+        document.getElementById('edit-faq-office').value = faq.office;
+        document.getElementById('edit-faq-question').value = faq.question;
+        document.getElementById('edit-faq-answer').value = faq.answer;
+        document.getElementById('edit-faq-status').value = faq.status;
+        document.getElementById('edit-faq-modal').style.display = 'flex';
+    } catch (err) { console.error(err); }
+}
+
+async function updateFAQ() {
+    const form = document.getElementById('edit-faq-form');
+    const faqId = form.id.value;
+    const updates = {
+        office: form.office.value,
+        question: form.question.value,
+        answer: form.answer.value,
+        status: form.status.value
+    };
+    if (!updates.office || !updates.question || !updates.answer) {
+        toast.error('All fields are required');
+        return;
+    }
+    try {
+        const res = await fetch(`/api/faqs/${faqId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updates)
+        });
+        const data = await res.json();
+        if (data.success) {
+            toast.success('FAQ updated successfully');
+            closeModal('edit-faq-modal');
+            loadFAQs();
+        } else toast.error(data.message);
+    } catch (err) { console.error(err); toast.error('Failed to update FAQ'); }
+}
+
+async function deleteFAQ(id) {
+    if (!confirm('Are you sure you want to delete this FAQ?')) return;
+    try {
+        const res = await fetch(`/api/faqs/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success) {
+            toast.success('FAQ deleted successfully');
+            loadFAQs();
+        } else toast.error(data.message);
+    } catch (err) { console.error(err); toast.error('Failed to delete FAQ'); }
+}
+
+// ---------------------
+// Categories
+// ---------------------
+async function addCategory() {
+    const form = document.getElementById('add-category-form');
+    const categoryData = {
+        name: form.name.value,
+        description: form.description.value,
+        icon: form.icon.value // get the selected icon from dropdown
+    };
+
+    if (!categoryData.name || !categoryData.description || !categoryData.icon) {
+        return toast.error('Name, description, and icon are required');
+    }
+
+    try {
+        const res = await fetch('/api/offices', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(categoryData)
+        });
+        const data = await res.json();
+        if (data.success) {
+            toast.success('Category added successfully');
+            closeModal('add-category-modal');
+            await loadOffices(); // reload offices to display new category with icon
+        } else toast.error(data.message);
+    } catch (err) {
+        console.error(err);
+        toast.error('Failed to add category');
+    }
+}
+
+
+function showAddFAQModal() { document.getElementById('add-faq-modal').style.display = 'flex'; document.getElementById('add-faq-form').reset(); }
+function showAddCategoryModal() { document.getElementById('add-category-modal').style.display = 'flex'; document.getElementById('add-category-form').reset(); }
+function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+function logout() { new AuthManager().logout(); window.location.href = '../index.html'; }
+
+window.showAddFAQModal = showAddFAQModal;
+window.showAddCategoryModal = showAddCategoryModal;
+window.closeModal = closeModal;
+window.addFAQ = addFAQ;
+window.editFAQ = editFAQ;
+window.updateFAQ = updateFAQ;
+window.deleteFAQ = deleteFAQ;
+window.addCategory = addCategory;
+window.logout = logout;
+</script>
+
+>>>>>>> 6a5df9f (Initial commit)
 
     <style>
         .sidebar-user-profile {

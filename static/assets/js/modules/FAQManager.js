@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 /**
  * FAQManager - Manages frequently asked questions with categories, offices, and status management
  * Extends BaseManager for common CRUD operations and localStorage persistence
@@ -288,10 +289,79 @@ class FAQManager extends BaseManager {
             return { success: true, message: 'FAQ added successfully' };
         } catch (error) {
             console.error('Error adding FAQ:', error);
+=======
+class FAQManager {
+    constructor() {
+        this.faqs = [];
+        this.offices = [];
+        this.fetchFAQs();
+        this.fetchOffices();
+    }
+
+    async fetchFAQs() {
+        try {
+            const res = await fetch('/api/faqs');
+            const data = await res.json();
+            if (data.success) {
+                this.faqs = data.faqs;
+            }
+        } catch (error) {
+            console.error('Error fetching FAQs:', error);
+        }
+    }
+
+    async fetchOffices() {
+        try {
+            const res = await fetch('/api/offices');
+            const data = await res.json();
+            if (data.success) {
+                this.offices = data.offices;
+            }
+        } catch (error) {
+            console.error('Error fetching offices:', error);
+        }
+    }
+
+    getAll() {
+        return this.faqs;
+    }
+
+    getByOffice(office) {
+        return this.faqs.filter(faq => faq.office === office);
+    }
+
+    getById(id) {
+        return this.faqs.find(faq => faq._id === id);
+    }
+
+    searchFAQs(query) {
+        const lowerQuery = query.toLowerCase();
+        return this.faqs.filter(faq =>
+            faq.question.toLowerCase().includes(lowerQuery) ||
+            faq.answer.toLowerCase().includes(lowerQuery)
+        );
+    }
+
+    async addFAQ(faqData) {
+        try {
+            const res = await fetch('/api/faqs', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(faqData)
+            });
+            const result = await res.json();
+            if (result.success) {
+                this.faqs.push(result.faq);
+            }
+            return result;
+        } catch (error) {
+            console.error(error);
+>>>>>>> 6a5df9f (Initial commit)
             return { success: false, message: 'Failed to add FAQ' };
         }
     }
 
+<<<<<<< HEAD
     /**
      * Update an existing FAQ
      * @param {string} id - The FAQ ID
@@ -341,10 +411,28 @@ class FAQManager extends BaseManager {
             return { success: true, message: 'FAQ updated successfully' };
         } catch (error) {
             console.error('Error updating FAQ:', error);
+=======
+    async updateFAQ(id, updates) {
+        try {
+            const res = await fetch(`/api/faqs/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updates)
+            });
+            const result = await res.json();
+            if (result.success) {
+                const index = this.faqs.findIndex(f => f._id === id);
+                if (index > -1) this.faqs[index] = result.faq;
+            }
+            return result;
+        } catch (error) {
+            console.error(error);
+>>>>>>> 6a5df9f (Initial commit)
             return { success: false, message: 'Failed to update FAQ' };
         }
     }
 
+<<<<<<< HEAD
     /**
      * Delete a FAQ
      * @param {string} id - The FAQ ID
@@ -365,10 +453,23 @@ class FAQManager extends BaseManager {
             return { success: true, message: 'FAQ deleted successfully' };
         } catch (error) {
             console.error('Error deleting FAQ:', error);
+=======
+    async deleteFAQ(id) {
+        try {
+            const res = await fetch(`/api/faqs/${id}`, { method: 'DELETE' });
+            const result = await res.json();
+            if (result.success) {
+                this.faqs = this.faqs.filter(f => f._id !== id);
+            }
+            return result;
+        } catch (error) {
+            console.error(error);
+>>>>>>> 6a5df9f (Initial commit)
             return { success: false, message: 'Failed to delete FAQ' };
         }
     }
 
+<<<<<<< HEAD
 
 
     /**
@@ -476,10 +577,27 @@ class FAQManager extends BaseManager {
             return { success: true, message: 'Category added successfully' };
         } catch (error) {
             console.error('Error adding category:', error);
+=======
+    async addCategory(categoryData) {
+        try {
+            const res = await fetch('/api/offices', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(categoryData)
+            });
+            const result = await res.json();
+            if (result.success) {
+                this.offices.push(result.office);
+            }
+            return result;
+        } catch (error) {
+            console.error(error);
+>>>>>>> 6a5df9f (Initial commit)
             return { success: false, message: 'Failed to add category' };
         }
     }
 
+<<<<<<< HEAD
     /**
      * Get recent FAQs
      * @param {number} limit - Maximum number of FAQs to return
@@ -624,5 +742,14 @@ class FAQManager extends BaseManager {
                 const { relevanceScore, ...faqWithoutScore } = faq;
                 return faqWithoutScore;
             });
+=======
+    getStats() {
+        const stats = { total: this.faqs.length, byOffice: {} };
+        this.offices.forEach(o => stats.byOffice[o.name] = 0);
+        this.faqs.forEach(f => {
+            if (f.office) stats.byOffice[f.office] = (stats.byOffice[f.office] || 0) + 1;
+        });
+        return stats;
+>>>>>>> 6a5df9f (Initial commit)
     }
 }
