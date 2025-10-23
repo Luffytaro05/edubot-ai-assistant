@@ -9,6 +9,91 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="{{ url_for('static', filename='assets/css/style.css') }}" rel="stylesheet">
+    <style>
+        /* Enhanced Search Styles */
+        .search-bar {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        
+        .search-bar i {
+            position: absolute;
+            left: 1rem;
+            color: #64748b;
+            z-index: 1;
+            pointer-events: none;
+        }
+        
+        .search-input {
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 0.75rem 1rem 0.75rem 2.5rem;
+            background: white;
+            font-size: 0.875rem;
+            min-width: 400px;
+            transition: all 0.3s ease;
+        }
+        
+        .search-input:focus {
+            outline: none;
+            min-width: 450px;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        .search-results-info {
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 0;
+            background: white;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            font-size: 0.875rem;
+            font-weight: 500;
+            z-index: 100;
+            animation: slideDown 0.2s ease;
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-5px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .results-count {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .results-count::before {
+            content: '\f002';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            opacity: 0.5;
+        }
+        
+        /* Table row highlight on search */
+        tbody tr {
+            transition: background-color 0.2s ease;
+        }
+        
+        tbody tr:hover {
+            background-color: #f8fafc;
+        }
+        
+        /* Empty state styling */
+        .table-container {
+            min-height: 300px;
+        }
+    </style>
 </head>
 <body>
     <div class="app-container">
@@ -55,9 +140,9 @@
             
             <!-- User Profile at Bottom -->
             <div class="sidebar-user-profile">
-                <div class="user-avatar">A</div>
+                <div class="user-avatar">S</div>
                 <div class="user-details">
-                    <div class="user-name">Admin User</div>
+                    <div class="user-name">Super Admin</div>
                     <div class="user-role">Super Administrator</div>
                 </div>
             </div>
@@ -68,25 +153,61 @@
             <!-- Header -->
             <header class="header">
                 <div class="header-left">
+                    <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">
+                        <i class="fas fa-bars"></i>
+                    </button>
                     <div class="search-bar">
                         <i class="fas fa-search"></i>
-                        <input type="text" placeholder="Search" class="search-input" data-search-type="users">
+                        <input type="text" placeholder="Search users by name, role, or office..." class="search-input" data-search-type="users" id="userSearchInput">
+                        <div class="search-results-info" id="searchResultsInfo" style="display: none;">
+                            <span class="results-count"></span>
+                        </div>
                     </div>
                 </div>
                 <div class="header-right">
                     <div class="notification-icon">
                         <i class="fas fa-bell"></i>
-                        <span class="notification-badge">3</span>
+                        <span class="notification-badge" style="display: none;">0</span>
                     </div>
-                    <div class="user-info">
-                        <div class="user-avatar">A</div>
-                        <div class="user-details">
-                            <div class="user-name">Admin User</div>
-                            <div class="user-role">Super Administrator</div>
+                    
+                    <!-- Notification Dropdown Panel -->
+                    <div class="notification-dropdown" id="notificationDropdown">
+                        <div class="notification-header">
+                            <h3><i class="fas fa-bell"></i> Notifications</h3>
+                            <div class="notification-header-actions">
+                                <button id="notificationRefreshBtn" title="Refresh notifications">
+                                    <i class="fas fa-sync-alt"></i>
+                                </button>
+                                <button id="notificationMarkAllReadBtn" title="Mark all as read">
+                                    <i class="fas fa-check-double"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="notification-list" id="notificationList">
+                            <div class="notification-empty">
+                                <i class="fas fa-bell-slash"></i>
+                                <p>Loading notifications...</p>
+                            </div>
                         </div>
                     </div>
-                    <div class="logout-icon" onclick="new AuthManager().logout().then(() => window.location.href='/admin/index')">
-                        <i class="fas fa-sign-out-alt"></i>
+                    
+                    <div class="user-info-dropdown">
+                        <div class="user-info" onclick="toggleUserDropdown()">
+                            <div class="user-avatar">S</div>
+                            <div class="user-details">
+                                <div class="user-name">Super Admin</div>
+                                <div class="user-role">Super Administrator</div>
+                            </div>
+                            <i class="fas fa-chevron-down dropdown-arrow"></i>
+                        </div>
+                        <div class="user-dropdown-menu" id="userDropdownMenu">
+                            <a href="javascript:void(0);" onclick="openChangePasswordModal()" class="dropdown-item">
+                                <i class="fas fa-key"></i> Change Password
+                            </a>
+                            <a href="javascript:void(0);" onclick="logout()" class="dropdown-item">
+                                <i class="fas fa-sign-out-alt"></i> Logout
+                            </a>
+                        </div>
                     </div>
                 </div>
             </header>
@@ -96,6 +217,7 @@
                 <div class="page-header">
                     <div>
                         <h1 class="page-title">User Management</h1>
+                        <p class="page-subtitle">Manage user accounts and permissions. View recent user activity from the <a href="/dashboard" style="color: #3b82f6; text-decoration: none;">Dashboard</a>.</p>
                     </div>
                     <button class="btn btn-primary" onclick="showAddUserModal()">
                         <i class="fas fa-plus"></i>
@@ -121,6 +243,55 @@
                     </table>
                 </div>
             </div>
+
+            <!-- Change Password Modal -->
+            <div id="changePasswordModal" class="modal-overlay">
+                <div class="modal-container">
+                    <div class="modal-header">
+                        <h3><i class="fas fa-key"></i> Change Password</h3>
+                        <button class="close-modal-btn" onclick="closeChangePasswordModal()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="changePasswordForm">
+                            <div class="form-group">
+                                <label for="currentPassword">Current Password</label>
+                                <div class="password-input-group">
+                                    <input type="password" id="currentPassword" class="form-control" placeholder="Enter current password" required>
+                                    <button type="button" class="toggle-password" onclick="togglePasswordVisibility('currentPassword')">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="newPassword">New Password</label>
+                                <div class="password-input-group">
+                                    <input type="password" id="newPassword" class="form-control" placeholder="Enter new password" required>
+                                    <button type="button" class="toggle-password" onclick="togglePasswordVisibility('newPassword')">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                                <small class="form-text">Password must be at least 8 characters long</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="confirmPassword">Confirm New Password</label>
+                                <div class="password-input-group">
+                                    <input type="password" id="confirmPassword" class="form-control" placeholder="Confirm new password" required>
+                                    <button type="button" class="toggle-password" onclick="togglePasswordVisibility('confirmPassword')">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" onclick="closeChangePasswordModal()">Cancel</button>
+                                <button type="submit" class="btn btn-primary">Change Password</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
         </main>
     </div>
 
@@ -144,18 +315,15 @@
                     <div class="form-group">
                         <label for="add-role">Role</label>
                         <select id="add-role" name="role" class="form-control" required>
-                            <option value="">Select Role</option>
-                            <option value="Sub Admin">Sub Admin</option>
-                            <option value="Manager">Manager</option>
-                            <option value="Staff">Staff</option>
+                            <option value="Sub Admin" selected>Sub Admin</option>
                         </select>
                     </div>
                     <div class="form-group">
                         <label for="add-office">Office</label>
                         <select id="add-office" name="office" class="form-control" required>
                             <option value="">Select Office</option>
-                            <option value="Registrar Office">Registrar Office</option>
-                            <option value="Office of Student Affairs (OSA)">Office of Student Affairs (OSA)</option>
+                            <option value="Registrar's Office">Registrar's Office</option>
+                            <option value="Office of the Student Affairs (OSA)">Office of the Student Affairs (OSA)</option>
                             <option value="Guidance Office">Guidance Office</option>
                             <option value="Admissions Office">Admissions Office</option>
                             <option value="ICT Office">ICT Office</option>
@@ -170,11 +338,21 @@
                     </div>
                     <div class="form-group">
                         <label for="add-password">Password</label>
-                        <input type="password" id="add-password" name="password" class="form-control" required>
+                        <div class="password-input-group">
+                            <input type="password" id="add-password" name="password" class="form-control" required>
+                            <button type="button" class="toggle-password" onclick="togglePasswordVisibility('add-password')">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label for="add-confirm-password">Confirm Password</label>
-                        <input type="password" id="add-confirm-password" name="confirmPassword" class="form-control" required>
+                        <div class="password-input-group">
+                            <input type="password" id="add-confirm-password" name="confirmPassword" class="form-control" required>
+                            <button type="button" class="toggle-password" onclick="togglePasswordVisibility('add-confirm-password')">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
                     </div>
                 </form>
             </div>
@@ -206,18 +384,15 @@
                     <div class="form-group">
                         <label for="edit-role">Role</label>
                         <select id="edit-role" name="role" class="form-control" required>
-                            <option value="">Select Role</option>
-                            <option value="Sub Admin">Sub Admin</option>
-                            <option value="Manager">Manager</option>
-                            <option value="Staff">Staff</option>
+                            <option value="Sub Admin" selected>Sub Admin</option>
                         </select>
                     </div>
                     <div class="form-group">
                         <label for="edit-office">Office</label>
                         <select id="edit-office" name="office" class="form-control" required>
                             <option value="">Select Office</option>
-                            <option value="Registrar Office">Registrar Office</option>
-                            <option value="Office of Student Affairs (OSA)">Office of Student Affairs (OSA)</option>
+                            <option value="Registrar's Office">Registrar's Office</option>
+                            <option value="Office of the Student Affairs (OSA)">Office of the Student Affairs (OSA)</option>
                             <option value="Guidance Office">Guidance Office</option>
                             <option value="Admissions Office">Admissions Office</option>
                             <option value="ICT Office">ICT Office</option>
@@ -232,11 +407,21 @@
                     </div>
                     <div class="form-group">
                         <label for="edit-password">Password</label>
-                        <input type="password" id="edit-password" name="password" class="form-control" placeholder="Leave blank to keep current password">
+                        <div class="password-input-group">
+                            <input type="password" id="edit-password" name="password" class="form-control" placeholder="Leave blank to keep current password">
+                            <button type="button" class="toggle-password" onclick="togglePasswordVisibility('edit-password')">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label for="edit-confirm-password">Confirm Password</label>
-                        <input type="password" id="edit-confirm-password" name="confirmPassword" class="form-control" placeholder="Leave blank to keep current password">
+                        <div class="password-input-group">
+                            <input type="password" id="edit-confirm-password" name="confirmPassword" class="form-control" placeholder="Leave blank to keep current password">
+                            <button type="button" class="toggle-password" onclick="togglePasswordVisibility('edit-confirm-password')">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
                     </div>
                 </form>
             </div>
@@ -251,19 +436,24 @@
     <script src="{{ url_for('static', filename='assets/js/core/BaseManager.js') }}"></script>
     <script src="{{ url_for('static', filename='assets/js/modules/AuthManager.js') }}"></script>
     <script src="{{ url_for('static', filename='assets/js/modules/UserManager.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/js/modules/NotificationManager.js') }}"></script>
     <script src="{{ url_for('static', filename='assets/js/utils/toast.js') }}"></script>
     <script src="{{ url_for('static', filename='assets/js/app.js') }}"></script>
-
     <script>
         let userManager;
+        let notificationManager;
         let currentUsers = [];
 
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
             const authManager = new AuthManager();
             if (!authManager.checkAuth()) {
                 window.location.href = 'admin/index';
                 return;
             }
+
+            // Initialize notification manager
+            notificationManager = new NotificationManager();
+            await notificationManager.initialize();
 
             userManager = new UserManager();
             loadUsers();
@@ -271,16 +461,77 @@
         });
 
         function setupEventListeners() {
-            // Search functionality
-            const searchInput = document.querySelector('.search-input');
-            searchInput.addEventListener('input', function() {
-                const query = this.value.trim();
-                if (query) {
-                    const filteredUsers = userManager.searchUsers(query);
-                    renderUsersTable(filteredUsers);
+            // Enhanced search functionality
+            const searchInput = document.getElementById('userSearchInput');
+            const searchResultsInfo = document.getElementById('searchResultsInfo');
+            const resultsCount = searchResultsInfo?.querySelector('.results-count');
+            
+            if (searchInput) {
+                // Search input event
+                searchInput.addEventListener('input', function(e) {
+                    const query = e.target.value.trim();
+                    performUserSearch(query);
+                });
+                
+                // Clear search on Escape key
+                searchInput.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape') {
+                        searchInput.value = '';
+                        performUserSearch('');
+                        searchInput.blur();
+                    }
+                });
+            }
+        }
+        
+        function performUserSearch(query) {
+            const searchResultsInfo = document.getElementById('searchResultsInfo');
+            const resultsCount = searchResultsInfo?.querySelector('.results-count');
+            
+            if (!query) {
+                // Show all users
+                if (searchResultsInfo) searchResultsInfo.style.display = 'none';
+                loadUsers();
+                return;
+            }
+            
+            // Filter users using enhanced search
+            const filteredUsers = searchUsers(currentUsers, query);
+            
+            // Update result count
+            if (searchResultsInfo && resultsCount) {
+                const total = currentUsers.length;
+                const found = filteredUsers.length;
+                
+                if (found === 0) {
+                    resultsCount.textContent = `No users found for "${query}"`;
+                    resultsCount.style.color = '#ef4444';
+                } else if (found === total) {
+                    searchResultsInfo.style.display = 'none';
                 } else {
-                    loadUsers();
+                    resultsCount.textContent = `${found} of ${total} users`;
+                    resultsCount.style.color = '#3b82f6';
+                    searchResultsInfo.style.display = 'block';
                 }
+            }
+            
+            // Render filtered users
+            renderUsersTable(filteredUsers, query);
+        }
+        
+        function searchUsers(users, query) {
+            const lowerQuery = query.toLowerCase();
+            
+            return users.filter(user => {
+                const name = (user.name || '').toLowerCase();
+                const role = (user.role || '').toLowerCase();
+                const office = (user.office || '').toLowerCase();
+                const email = (user.email || '').toLowerCase();
+                
+                return name.includes(lowerQuery) || 
+                       role.includes(lowerQuery) || 
+                       office.includes(lowerQuery) ||
+                       email.includes(lowerQuery);
             });
         }
 
@@ -291,6 +542,9 @@
 
         // Ensure we always have an array
         const users = Array.isArray(data) ? data : [];
+        
+        // Store in currentUsers for search functionality
+        currentUsers = users;
 
         renderUsersTable(users);
 
@@ -299,12 +553,22 @@
     }
 }
 
-function renderUsersTable(users) {
+function renderUsersTable(users, searchQuery = '') {
     const tableBody = document.getElementById("users-table-body");
     tableBody.innerHTML = ""; // Clear existing rows
 
     if (!users.length) {
-        tableBody.innerHTML = `<tr><td colspan="5" style="text-align:center;">No users found</td></tr>`;
+        const message = searchQuery ? 
+            `No users found matching "${searchQuery}"` : 
+            'No users found';
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="5" style="text-align:center; padding: 3rem; color: #64748b;">
+                    <i class="fas fa-users" style="font-size: 3rem; opacity: 0.3; margin-bottom: 1rem; display: block;"></i>
+                    ${message}
+                </td>
+            </tr>
+        `;
         return;
     }
 
@@ -546,14 +810,234 @@ function renderUsersTable(users) {
     }
 }
 
+// Toggle user dropdown menu
+function toggleUserDropdown() {
+    const dropdown = document.getElementById('userDropdownMenu');
+    const dropdownContainer = document.querySelector('.user-info-dropdown');
+    
+    dropdown.classList.toggle('show');
+    dropdownContainer.classList.toggle('active');
+}
 
-        function logout() {
-            const authManager = new AuthManager();
-            authManager.logout();
-            window.location.href = 'admin/index';
+// Close dropdown when clicking outside
+document.addEventListener('click', function(event) {
+    const dropdown = document.querySelector('.user-info-dropdown');
+    const dropdownMenu = document.getElementById('userDropdownMenu');
+    
+    if (dropdown && !dropdown.contains(event.target)) {
+        dropdownMenu.classList.remove('show');
+        dropdown.classList.remove('active');
+    }
+});
+
+// Change Password Modal Functions
+function openChangePasswordModal() {
+    document.getElementById('changePasswordModal').style.display = 'flex';
+    document.getElementById('changePasswordForm').reset();
+    document.getElementById('userDropdownMenu').classList.remove('show');
+    document.querySelector('.user-info-dropdown').classList.remove('active');
+}
+
+function closeChangePasswordModal() {
+    document.getElementById('changePasswordModal').style.display = 'none';
+    document.getElementById('changePasswordForm').reset();
+}
+
+function togglePasswordVisibility(inputId) {
+    const input = document.getElementById(inputId);
+    const button = input.nextElementSibling;
+    const icon = button.querySelector('i');
+    
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+    } else {
+        input.type = 'password';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const changePasswordForm = document.getElementById('changePasswordForm');
+    if (changePasswordForm) {
+        changePasswordForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            
+            if (newPassword.length < 8) {
+                showToast('Password must be at least 8 characters long', 'error');
+                return;
+            }
+            
+            if (newPassword !== confirmPassword) {
+                showToast('New passwords do not match', 'error');
+                return;
+            }
+            
+            if (currentPassword === newPassword) {
+                showToast('New password must be different from current password', 'error');
+                return;
+            }
+            
+            try {
+                // Get the auth token
+                const token = authManager.getToken();
+                if (!token) {
+                    showToast('Please login again', 'error');
+                    return;
+                }
+
+                const response = await fetch('/api/auth/change-password', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        currentPassword: currentPassword,
+                        newPassword: newPassword
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showToast('Password changed successfully!', 'success');
+                    closeChangePasswordModal();
+                } else {
+                    showToast(data.message || 'Failed to change password', 'error');
+                }
+            } catch (error) {
+                console.error('Error changing password:', error);
+                showToast('An error occurred while changing password', 'error');
+            }
+        });
+    }
+});
+
+window.addEventListener('click', function(event) {
+    const modal = document.getElementById('changePasswordModal');
+    if (event.target === modal) {
+        closeChangePasswordModal();
+    }
+});
+
+// Show toast notification
+function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `alert alert-${type === 'error' ? 'danger' : type === 'success' ? 'success' : 'info'} alert-dismissible fade show`;
+    toast.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    toast.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+        }
+    }, 5000);
+}
+
+    async function logout() {
+    // Show confirmation dialog
+    const confirmLogout = confirm('Are you sure you want to logout?');
+    
+    if (confirmLogout) {
+        try {
+            showToast('Logging out...', 'info');
+            await authManager.logout();
+            window.location.href = '/admin/index';
+        } catch (error) {
+            console.error('Logout error:', error);
+            showToast('Error during logout', 'error');
+            // Still redirect to login page even if logout fails
+            window.location.href = '/admin/index';
+        }
+    }
+    // If user clicks "Cancel", do nothing and stay on the page
+}
+
+// Alternative logout function with custom modal (more styled)
+async function logoutWithModal() {
+    // Create custom modal
+    const modal = document.createElement('div');
+    modal.className = 'modal fade';
+    modal.id = 'logoutModal';
+    modal.innerHTML = `
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirm Logout</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to logout?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">No</button>
+                    <button type="button" class="btn btn-danger" id="confirmLogoutBtn">Yes, Logout</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Show modal
+    const bootstrapModal = new bootstrap.Modal(modal);
+    bootstrapModal.show();
+    
+    // Handle logout confirmation
+    document.getElementById('confirmLogoutBtn').addEventListener('click', async function() {
+        bootstrapModal.hide();
+        try {
+            showToast('Logging out...', 'info');
+            await authManager.logout();
+            window.location.href = '/admin/index';
+        } catch (error) {
+            console.error('Logout error:', error);
+            showToast('Error during logout', 'error');
+            window.location.href = '/admin/index';
+        }
+    });
+    
+    // Clean up modal after it's hidden
+    modal.addEventListener('hidden.bs.modal', function() {
+        document.body.removeChild(modal);
+    });
+}
+
+        // Mobile menu toggle
+        function toggleMobileMenu() {
+            const sidebar = document.querySelector('.sidebar');
+            const overlay = document.querySelector('.sidebar-overlay');
+            
+            sidebar.classList.toggle('active');
+            
+            if (!overlay) {
+                const newOverlay = document.createElement('div');
+                newOverlay.className = 'sidebar-overlay';
+                newOverlay.onclick = toggleMobileMenu;
+                document.body.appendChild(newOverlay);
+                setTimeout(() => newOverlay.classList.add('active'), 10);
+            } else {
+                overlay.classList.toggle('active');
+                if (!overlay.classList.contains('active')) {
+                    setTimeout(() => overlay.remove(), 300);
+                }
+            }
         }
 
         // Global functions
+        window.toggleMobileMenu = toggleMobileMenu;
         window.showAddUserModal = showAddUserModal;
         window.closeModal = closeModal;
         window.addUser = addUser;
@@ -612,6 +1096,14 @@ function renderUsersTable(users) {
             display: flex;
             align-items: center;
             gap: 0.75rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 8px;
+            transition: background-color 0.2s;
+        }
+
+        .header .user-info:hover {
+            background-color: #f1f5f9;
         }
 
         .header .user-details {
@@ -630,6 +1122,254 @@ function renderUsersTable(users) {
             font-size: 0.75rem;
             color: #64748b;
             margin: 0;
+        }
+
+        .user-info-dropdown {
+            position: relative;
+        }
+
+        .dropdown-arrow {
+            font-size: 0.75rem;
+            color: #64748b;
+            transition: transform 0.3s;
+        }
+
+        .user-info-dropdown.active .dropdown-arrow {
+            transform: rotate(180deg);
+        }
+
+        .user-dropdown-menu {
+            position: absolute;
+            top: calc(100% + 0.5rem);
+            right: 0;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            min-width: 200px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+            z-index: 1000;
+            overflow: hidden;
+        }
+
+        .user-dropdown-menu.show {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .user-dropdown-menu .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            color: #1e293b;
+            text-decoration: none;
+            transition: background-color 0.2s;
+            font-size: 0.875rem;
+        }
+
+        .user-dropdown-menu .dropdown-item:hover {
+            background-color: #f1f5f9;
+        }
+
+        .user-dropdown-menu .dropdown-item i {
+            font-size: 0.875rem;
+            width: 16px;
+            text-align: center;
+            color: #64748b;
+        }
+
+        /* Change Password Modal Styles */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-container {
+            background: white;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .modal-header h3 i {
+            color: #3b82f6;
+        }
+
+        .close-modal-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: #64748b;
+            cursor: pointer;
+            padding: 0.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .close-modal-btn:hover {
+            background-color: #f1f5f9;
+            color: #1e293b;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #1e293b;
+            font-size: 0.875rem;
+        }
+
+        .password-input-group {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .password-input-group .form-control {
+            flex: 1;
+            padding-right: 3rem;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.625rem 0.875rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .toggle-password {
+            position: absolute;
+            right: 0.75rem;
+            background: none;
+            border: none;
+            color: #64748b;
+            cursor: pointer;
+            padding: 0.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.2s;
+        }
+
+        .toggle-password:hover {
+            color: #1e293b;
+        }
+
+        .form-text {
+            display: block;
+            margin-top: 0.375rem;
+            font-size: 0.75rem;
+            color: #64748b;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75rem;
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .btn {
+            padding: 0.625rem 1.25rem;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-secondary {
+            background-color: #f1f5f9;
+            color: #475569;
+        }
+
+        .btn-secondary:hover {
+            background-color: #e2e8f0;
+        }
+
+        .btn-primary {
+            background-color: #3b82f6;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #2563eb;
         }
 
         .user-info-cell {
@@ -683,6 +1423,89 @@ function renderUsersTable(users) {
             font-size: 0.75rem;
         }
 
+        .page-subtitle {
+            color: #64748b;
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+            margin-bottom: 0;
+        }
+
+        .page-subtitle a:hover {
+            text-decoration: underline !important;
+        }
+
+        /* Mobile Menu Toggle Button */
+        .mobile-menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: #1e293b;
+            cursor: pointer;
+            padding: 0.5rem;
+            margin-right: 1rem;
+            border-radius: 8px;
+            transition: background-color 0.2s;
+        }
+        
+        .mobile-menu-toggle:hover {
+            background-color: #f1f5f9;
+        }
+        
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .sidebar-overlay.active {
+            opacity: 1;
+        }
+        
+        /* Mobile Responsive Styles */
+        @media (max-width: 1024px) {
+            .mobile-menu-toggle {
+                display: block;
+            }
+            
+            .sidebar-overlay {
+                display: block;
+            }
+            
+            .sidebar {
+                transform: translateX(-100%);
+                position: fixed;
+                z-index: 1000;
+                transition: transform 0.3s ease;
+                height: 100vh;
+                overflow-y: auto;
+            }
+            
+            .sidebar.active {
+                transform: translateX(0);
+            }
+            
+            .main-content {
+                margin-left: 0;
+                width: 100%;
+            }
+            
+            .search-input {
+                min-width: 250px;
+            }
+            
+            .search-input:focus {
+                min-width: 300px;
+            }
+        }
+        
         @media (max-width: 768px) {
             .user-info-cell {
                 flex-direction: column;
@@ -691,8 +1514,91 @@ function renderUsersTable(users) {
             }
 
             .action-buttons {
-                flex-direction: column;
+                flex-wrap: wrap;
                 gap: 0.25rem;
+            }
+            
+            .table-container {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            
+            .table {
+                min-width: 700px;
+            }
+            
+            .header .user-info .user-details {
+                display: none;
+            }
+            
+            .search-bar {
+                width: 100%;
+            }
+            
+            .search-input {
+                width: 100%;
+                min-width: 100% !important;
+            }
+            
+            .search-input:focus {
+                min-width: 100% !important;
+            }
+            
+            .page-header {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .page-header .btn {
+                width: 100%;
+            }
+            
+            .page-content {
+                padding: 1rem;
+            }
+            
+            .page-title {
+                font-size: 1.5rem;
+            }
+            
+            .page-subtitle {
+                font-size: 0.875rem;
+            }
+            
+            .search-results-info {
+                position: static;
+                margin-top: 0.5rem;
+                width: 100%;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .modal-container {
+                width: 95%;
+            }
+            
+            .modal {
+                padding: 1rem;
+            }
+            
+            .modal-content {
+                width: 100%;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+            
+            .action-buttons .btn {
+                width: 100%;
+            }
+            
+            .user-info-cell .user-name {
+                font-size: 0.8rem;
+            }
+            
+            .user-info-cell .user-email {
+                font-size: 0.7rem;
             }
         }
         

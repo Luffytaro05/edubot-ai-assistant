@@ -1,382 +1,347 @@
+/**
+ * FeedbackManager.js
+ * Manages feedback analytics display for Sub-Admin dashboard
+ * Fetches and renders feedback statistics and recent reviews
+ */
+
 class FeedbackManager {
     constructor() {
-        this.storageManager = window.storageManager;
-        this.uiManager = window.uiManager;
-        this.feedback = [];
+        this.allFeedback = [];
         this.filteredFeedback = [];
         this.currentFilter = null;
+        this.timeFilter = { type: null, value: null };
     }
 
-    initialize() {
-        this.loadFeedback();
-        this.updateKPICards();
-        this.renderFeedback();
+    /**
+     * Initialize the feedback manager
+     */
+    async initialize() {
+        console.log('Initializing FeedbackManager...');
+        await this.loadFeedbackStats();
+        await this.loadRecentFeedback();
+        this.setupEventListeners();
     }
 
-    // Load feedback from storage
-    loadFeedback() {
-        this.feedback = this.storageManager.getFeedback();
-        this.filteredFeedback = [...this.feedback];
+    /**
+     * Load feedback statistics from API
+     */
+    async loadFeedbackStats() {
+        try {
+            // Build query string with time filter if set
+            let url = '/api/sub-admin/feedback/stats';
+            if (this.timeFilter.type && this.timeFilter.value) {
+                url += `?time_filter=${this.timeFilter.type}&time_value=${this.timeFilter.value}`;
+            }
+
+            const response = await fetch(url, {
+                method: 'GET',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+
+            if (result.success) {
+                this.renderStats(result.data);
+            } else {
+                console.error('Failed to load feedback stats:', result.message);
+                this.showError('Failed to load feedback statistics');
+            }
+        } catch (error) {
+            console.error('Error loading feedback stats:', error);
+            this.showError('Error loading feedback statistics');
+        }
     }
 
-    // Update KPI cards with real data
-    updateKPICards() {
-        const stats = this.getFeedbackStats();
-        
-        document.getElementById('averageRating').textContent = `${stats.averageRating}/5.0`;
-        document.getElementById('totalReviews').textContent = this.formatNumber(stats.totalReviews);
-        document.getElementById('positiveFeedback').textContent = `${stats.positivePercentage}%`;
-        document.getElementById('negativeFeedback').textContent = `${stats.negativePercentage}%`;
+    /**
+     * Load recent feedback from API
+     */
+    async loadRecentFeedback(limit = 20) {
+        try {
+            // Build query string
+            let url = `/api/sub-admin/feedback/recent?limit=${limit}`;
+            
+            if (this.currentFilter) {
+                url += `&rating=${this.currentFilter}`;
+            }
+            
+            if (this.timeFilter.type && this.timeFilter.value) {
+                url += `&time_filter=${this.timeFilter.type}&time_value=${this.timeFilter.value}`;
+            }
+
+            const response = await fetch(url, {
+                method: 'GET',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+
+            if (result.success) {
+                this.allFeedback = result.data;
+                this.filteredFeedback = result.data;
+                this.renderFeedbackList(this.filteredFeedback);
+            } else {
+                console.error('Failed to load recent feedback:', result.message);
+                this.showError('Failed to load recent feedback');
+            }
+        } catch (error) {
+            console.error('Error loading recent feedback:', error);
+            this.showError('Error loading recent feedback');
+        }
     }
 
-    // Render feedback items
-    renderFeedback() {
+    /**
+     * Render statistics to the UI
+     */
+    renderStats(data) {
+        // Average Rating
+        const avgRatingEl = document.getElementById('averageRating');
+        if (avgRatingEl) {
+            avgRatingEl.textContent = `${data.average_rating}/5.0`;
+        }
+
+        // Total Reviews
+        const totalReviewsEl = document.getElementById('totalReviews');
+        if (totalReviewsEl) {
+            totalReviewsEl.textContent = this.formatNumber(data.total_reviews);
+        }
+
+        // Positive Feedback %
+        const positiveFeedbackEl = document.getElementById('positiveFeedback');
+        if (positiveFeedbackEl) {
+            positiveFeedbackEl.textContent = `${data.positive_percentage}%`;
+        }
+
+        // Negative Feedback %
+        const negativeFeedbackEl = document.getElementById('negativeFeedback');
+        if (negativeFeedbackEl) {
+            negativeFeedbackEl.textContent = `${data.negative_percentage}%`;
+        }
+
+        console.log('Stats rendered successfully');
+    }
+
+    /**
+     * Render feedback list to the UI
+     */
+    renderFeedbackList(feedbackArray) {
         const container = document.getElementById('feedbackContainer');
-        if (!container) return;
+        if (!container) {
+            console.error('Feedback container not found');
+            return;
+        }
 
-        if (this.filteredFeedback.length === 0) {
+        if (feedbackArray.length === 0) {
             container.innerHTML = `
-                <div class="text-center text-muted py-5">
-                    <i class="fas fa-heart fa-3x mb-3"></i>
-                    <h4>No feedback found</h4>
-                    <p>No feedback matches your current filter.</p>
+                <div class="text-center py-5 text-muted">
+                    <i class="fas fa-inbox fa-3x mb-3"></i>
+                    <p>No feedback found</p>
                 </div>
             `;
             return;
         }
 
-        container.innerHTML = this.filteredFeedback.map(feedback => `
-            <div class="card mb-3">
-                <div class="card-body">
-                    <div class="d-flex align-items-start">
-                        <div class="flex-shrink-0 me-3">
-                            <i class="fas fa-${feedback.sentiment === 'positive' ? 'thumbs-up text-success' : 'thumbs-down text-danger'} fa-2x"></i>
-                        </div>
-                        <div class="flex-grow-1">
-                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                <div>
-                                    <h6 class="mb-1">${feedback.user}</h6>
-                                    <div class="mb-2">
-                                        ${this.generateStarRating(feedback.rating)}
-                                    </div>
-                                </div>
-                                <small class="text-muted">${this.uiManager.formatDateTime(feedback.timestamp)}</small>
-                            </div>
-                            <p class="mb-2">${feedback.comment}</p>
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span class="badge badge-info">${feedback.category}</span>
-                                <small class="text-muted">${this.uiManager.formatRelativeTime(feedback.timestamp)}</small>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `).join('');
+        const feedbackHTML = feedbackArray.map(feedback => this.createFeedbackCard(feedback)).join('');
+        container.innerHTML = feedbackHTML;
     }
 
-    // Generate star rating HTML
-    generateStarRating(rating) {
-        const fullStars = Math.floor(rating);
-        const hasHalfStar = rating % 1 !== 0;
-        const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
+    /**
+     * Create a single feedback card HTML
+     */
+    createFeedbackCard(feedback) {
+        const stars = this.generateStars(feedback.rating);
+        const timestamp = this.formatTimestamp(feedback.timestamp);
+        const sentiment = this.getSentimentBadge(feedback.sentiment || this.determineSentiment(feedback.rating));
+        const comment = feedback.comment ? this.escapeHtml(feedback.comment) : '<em class="text-muted">No comment provided</em>';
 
+        return `
+            <div class="feedback-item mb-3 p-3 border rounded" data-rating="${feedback.rating}">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        <div class="feedback-rating mb-1">
+                            ${stars}
+                        </div>
+                        <small class="text-muted">
+                            <i class="fas fa-clock"></i> ${timestamp}
+                        </small>
+                    </div>
+                    ${sentiment}
+                </div>
+                <div class="feedback-comment">
+                    ${comment}
+                </div>
+                ${feedback.user_id ? `<div class="mt-2"><small class="text-muted">User ID: ${feedback.user_id}</small></div>` : ''}
+            </div>
+        `;
+    }
+
+    /**
+     * Generate star rating HTML
+     */
+    generateStars(rating) {
         let starsHTML = '';
-        
-        // Full stars
-        for (let i = 0; i < fullStars; i++) {
-            starsHTML += '<i class="fas fa-star text-warning"></i>';
+        for (let i = 1; i <= 5; i++) {
+            if (i <= rating) {
+                starsHTML += '<i class="fas fa-star text-warning"></i>';
+            } else {
+                starsHTML += '<i class="far fa-star text-muted"></i>';
+            }
         }
-        
-        // Half star
-        if (hasHalfStar) {
-            starsHTML += '<i class="fas fa-star-half-alt text-warning"></i>';
-        }
-        
-        // Empty stars
-        for (let i = 0; i < emptyStars; i++) {
-            starsHTML += '<i class="far fa-star text-warning"></i>';
-        }
-
         return starsHTML;
     }
 
-    // Filter feedback by rating
-    filterByRating(rating) {
-        this.currentFilter = rating;
-        
-        if (rating === null) {
-            this.filteredFeedback = [...this.feedback];
-        } else {
-            this.filteredFeedback = this.feedback.filter(feedback => feedback.rating === rating);
-        }
-        
-        this.renderFeedback();
-        this.updateFilterButtons();
-    }
-
-    // Update filter buttons
-    updateFilterButtons() {
-        const buttons = document.querySelectorAll('.btn-outline-secondary');
-        buttons.forEach(button => {
-            button.classList.remove('btn-primary');
-            button.classList.add('btn-outline-secondary');
-        });
-
-        if (this.currentFilter) {
-            const activeButton = document.querySelector(`[onclick="filterFeedback(${this.currentFilter})"]`);
-            if (activeButton) {
-                activeButton.classList.remove('btn-outline-secondary');
-                activeButton.classList.add('btn-primary');
-            }
-        }
-    }
-
-    // Get feedback statistics
-    getFeedbackStats() {
-        const totalReviews = this.feedback.length;
-        
-        if (totalReviews === 0) {
-            return {
-                totalReviews: 0,
-                averageRating: 0,
-                positivePercentage: 0,
-                negativePercentage: 0,
-                neutralPercentage: 0
-            };
-        }
-
-        // Calculate average rating
-        const totalRating = this.feedback.reduce((sum, feedback) => sum + feedback.rating, 0);
-        const averageRating = (totalRating / totalReviews).toFixed(1);
-
-        // Calculate sentiment percentages
-        const positiveCount = this.feedback.filter(f => f.sentiment === 'positive').length;
-        const negativeCount = this.feedback.filter(f => f.sentiment === 'negative').length;
-        const neutralCount = this.feedback.filter(f => f.sentiment === 'neutral').length;
-
-        return {
-            totalReviews,
-            averageRating,
-            positivePercentage: Math.round((positiveCount / totalReviews) * 100),
-            negativePercentage: Math.round((negativeCount / totalReviews) * 100),
-            neutralPercentage: Math.round((neutralCount / totalReviews) * 100),
-            positiveCount,
-            negativeCount,
-            neutralCount
+    /**
+     * Get sentiment badge HTML
+     */
+    getSentimentBadge(sentiment) {
+        const badges = {
+            positive: '<span class="badge bg-success">Positive</span>',
+            neutral: '<span class="badge bg-warning">Neutral</span>',
+            negative: '<span class="badge bg-danger">Negative</span>'
         };
+        return badges[sentiment] || badges.neutral;
     }
 
-    // Get feedback by sentiment
-    getFeedbackBySentiment(sentiment) {
-        return this.feedback.filter(f => f.sentiment === sentiment);
+    /**
+     * Determine sentiment from rating
+     */
+    determineSentiment(rating) {
+        if (rating >= 4) return 'positive';
+        if (rating === 3) return 'neutral';
+        return 'negative';
     }
 
-    // Get feedback by category
-    getFeedbackByCategory(category) {
-        return this.feedback.filter(f => f.category === category);
-    }
-
-    // Get feedback by date range
-    getFeedbackByDateRange(startDate, endDate) {
-        return this.feedback.filter(feedback => {
-            const feedbackDate = new Date(feedback.timestamp);
-            return feedbackDate >= new Date(startDate) && feedbackDate <= new Date(endDate);
-        });
-    }
-
-    // Get recent feedback (last N days)
-    getRecentFeedback(days = 7) {
-        const cutoffDate = new Date();
-        cutoffDate.setDate(cutoffDate.getDate() - days);
+    /**
+     * Format timestamp to readable format
+     */
+    formatTimestamp(timestamp) {
+        if (!timestamp) return 'Unknown';
         
-        return this.feedback.filter(feedback => 
-            new Date(feedback.timestamp) >= cutoffDate
-        );
+        const date = new Date(timestamp);
+        const now = new Date();
+        const diffMs = now - date;
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
+        const diffDays = Math.floor(diffMs / 86400000);
+
+        if (diffMins < 1) return 'Just now';
+        if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
+        if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+        if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+        
+        return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
     }
 
-    // Get feedback trends
-    getFeedbackTrends() {
-        const trends = [];
-        const today = new Date();
-        
-        for (let i = 6; i >= 0; i--) {
-            const date = new Date(today);
-            date.setDate(date.getDate() - i);
-            const dateString = date.toISOString().split('T')[0];
-            
-            const dayFeedback = this.feedback.filter(feedback => 
-                feedback.timestamp.startsWith(dateString)
-            );
-            
-            trends.push({
-                date: this.uiManager.formatDate(dateString),
-                total: dayFeedback.length,
-                positive: dayFeedback.filter(f => f.sentiment === 'positive').length,
-                negative: dayFeedback.filter(f => f.sentiment === 'negative').length,
-                neutral: dayFeedback.filter(f => f.sentiment === 'neutral').length,
-                averageRating: dayFeedback.length > 0 ? 
-                    (dayFeedback.reduce((sum, f) => sum + f.rating, 0) / dayFeedback.length).toFixed(1) : 0
+    /**
+     * Format numbers with commas
+     */
+    formatNumber(num) {
+        return num.toLocaleString('en-US');
+    }
+
+    /**
+     * Escape HTML to prevent XSS
+     */
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    /**
+     * Filter feedback by rating
+     */
+    async filterByRating(rating) {
+        this.currentFilter = rating;
+        await this.loadRecentFeedback();
+    }
+
+    /**
+     * Clear all filters
+     */
+    async clearFilters() {
+        this.currentFilter = null;
+        await this.loadRecentFeedback();
+    }
+
+    /**
+     * Search feedback by comment text
+     */
+    searchFeedback(searchTerm) {
+        if (!searchTerm || searchTerm.trim() === '') {
+            this.filteredFeedback = this.allFeedback;
+        } else {
+            const term = searchTerm.toLowerCase();
+            this.filteredFeedback = this.allFeedback.filter(feedback => {
+                const comment = feedback.comment || '';
+                return comment.toLowerCase().includes(term);
             });
         }
-        
-        return trends;
+        this.renderFeedbackList(this.filteredFeedback);
     }
 
-    // Get top categories
-    getTopCategories() {
-        const categories = {};
-        this.feedback.forEach(feedback => {
-            categories[feedback.category] = (categories[feedback.category] || 0) + 1;
-        });
-
-        return Object.entries(categories)
-            .sort(([,a], [,b]) => b - a)
-            .slice(0, 5)
-            .map(([category, count]) => ({ category, count }));
+    /**
+     * Set time filter
+     */
+    async setTimeFilter(type, value) {
+        this.timeFilter = { type, value };
+        await this.loadFeedbackStats();
+        await this.loadRecentFeedback();
     }
 
-    // Get rating distribution
-    getRatingDistribution() {
-        const distribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-        
-        this.feedback.forEach(feedback => {
-            const rating = Math.floor(feedback.rating);
-            if (distribution[rating] !== undefined) {
-                distribution[rating]++;
-            }
-        });
-
-        return distribution;
+    /**
+     * Clear time filter
+     */
+    async clearTimeFilter() {
+        this.timeFilter = { type: null, value: null };
+        await this.loadFeedbackStats();
+        await this.loadRecentFeedback();
     }
 
-    // Export feedback to CSV
-    exportFeedback() {
-        const exportData = this.feedback.map(feedback => ({
-            User: feedback.user,
-            Rating: feedback.rating,
-            Comment: feedback.comment,
-            Category: feedback.category,
-            Sentiment: feedback.sentiment,
-            'Submitted Date': this.uiManager.formatDateTime(feedback.timestamp)
-        }));
+    /**
+     * Setup event listeners
+     */
+    setupEventListeners() {
+        // Add any additional event listeners here if needed
+        console.log('Event listeners setup complete');
+    }
 
-        const success = this.uiManager.exportToCSV(exportData, 'feedback_export.csv');
-        
-        if (success) {
-            this.uiManager.showSuccess('Feedback exported successfully!');
-        } else {
-            this.uiManager.showError('Failed to export feedback');
+    /**
+     * Show error message
+     */
+    showError(message) {
+        console.error(message);
+        // You can integrate with your toast notification system here
+        if (window.uiManager && typeof window.uiManager.showToast === 'function') {
+            window.uiManager.showToast('Error', message, 'error');
         }
     }
 
-    // Get feedback insights
-    getFeedbackInsights() {
-        const stats = this.getFeedbackStats();
-        const trends = this.getFeedbackTrends();
-        const categories = this.getTopCategories();
-        const ratingDistribution = this.getRatingDistribution();
-
-        // Calculate satisfaction score
-        const satisfactionScore = (stats.averageRating / 5) * 100;
-
-        // Get most common category
-        const mostCommonCategory = categories[0]?.category || 'N/A';
-
-        // Calculate response rate (simulated)
-        const responseRate = 95.8;
-
-        return {
-            stats,
-            trends,
-            categories,
-            ratingDistribution,
-            insights: {
-                satisfactionScore: Math.round(satisfactionScore),
-                mostCommonCategory,
-                responseRate,
-                averageRating: stats.averageRating,
-                totalReviews: stats.totalReviews
-            }
-        };
-    }
-
-    // Search feedback
-    searchFeedback(searchTerm) {
-        if (!searchTerm.trim()) {
-            this.filteredFeedback = this.currentFilter ? 
-                this.feedback.filter(f => f.rating === this.currentFilter) : 
-                [...this.feedback];
-        } else {
-            this.filteredFeedback = this.feedback.filter(feedback => 
-                feedback.comment.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                feedback.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                feedback.user.toLowerCase().includes(searchTerm.toLowerCase())
-            );
+    /**
+     * Show success message
+     */
+    showSuccess(message) {
+        console.log(message);
+        if (window.uiManager && typeof window.uiManager.showToast === 'function') {
+            window.uiManager.showToast('Success', message, 'success');
         }
-        
-        this.renderFeedback();
-    }
-
-    // Get feedback by rating range
-    getFeedbackByRatingRange(minRating, maxRating) {
-        return this.feedback.filter(feedback => 
-            feedback.rating >= minRating && feedback.rating <= maxRating
-        );
-    }
-
-    // Get high priority feedback (low ratings)
-    getHighPriorityFeedback() {
-        return this.getFeedbackByRatingRange(1, 2);
-    }
-
-    // Get positive feedback (high ratings)
-    getPositiveFeedback() {
-        return this.getFeedbackByRatingRange(4, 5);
-    }
-
-    // Format number with commas
-    formatNumber(num) {
-        return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-    }
-
-    // Get feedback summary by month
-    getFeedbackSummaryByMonth() {
-        const monthlyData = {};
-        
-        this.feedback.forEach(feedback => {
-            const date = new Date(feedback.timestamp);
-            const monthKey = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
-            
-            if (!monthlyData[monthKey]) {
-                monthlyData[monthKey] = {
-                    total: 0,
-                    positive: 0,
-                    negative: 0,
-                    neutral: 0,
-                    totalRating: 0
-                };
-            }
-            
-            monthlyData[monthKey].total++;
-            monthlyData[monthKey][feedback.sentiment]++;
-            monthlyData[monthKey].totalRating += feedback.rating;
-        });
-
-        return Object.entries(monthlyData).map(([month, data]) => ({
-            month,
-            ...data,
-            averageRating: data.total > 0 ? (data.totalRating / data.total).toFixed(1) : 0
-        }));
-    }
-
-    // Clear all filters
-    clearFilters() {
-        this.currentFilter = null;
-        this.filteredFeedback = [...this.feedback];
-        this.renderFeedback();
-        this.updateFilterButtons();
     }
 }
 
-// Initialize global feedback manager
-window.FeedbackManager = FeedbackManager;
+// Export for use in other modules if needed
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = FeedbackManager;
+}

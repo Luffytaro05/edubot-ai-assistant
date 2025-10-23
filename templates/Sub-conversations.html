@@ -1,21 +1,739 @@
+<!--(Sub-conversations.html)-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Conversation Logs - {{ office|capitalize }} Office</title>
+    <title>Conversation Logs - {{ office|capitalize }}</title>
+    <!-- ✅ MOBILE RESPONSIVE: This page is fully optimized for mobile, tablet, and desktop devices -->
+    <!-- Features: Mobile sidebar toggle, responsive layouts, touch-friendly controls, and adaptive content -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="{{ url_for('static', filename='Sub-assets/css/style.css') }}" rel="stylesheet">
+    <style>
+        /* Enhanced Mobile Responsive Styles */
+        @media (max-width: 768px) {
+            .mobile-menu-toggle {
+                display: flex !important;
+                align-items: center;
+                justify-content: center;
+                position: fixed !important;
+                top: 1rem !important;
+                left: 1rem !important;
+                z-index: 1003 !important; /* Above everything */
+            }
+            
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                z-index: 1002 !important; /* Above header */
+                position: fixed !important;
+            }
+            
+            .sidebar.show {
+                transform: translateX(0);
+            }
+            
+            .sidebar-overlay {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.5);
+                z-index: 1001 !important; /* Above header, below sidebar */
+                opacity: 0;
+                transition: opacity 0.3s ease;
+            }
+            
+            .sidebar-overlay.show {
+                display: block;
+                opacity: 1;
+            }
+            
+            .main-content {
+                margin-left: 0 !important;
+            }
+            
+            .header {
+                padding-left: 70px !important;
+            }
+            
+            .page-title {
+                font-size: 1.5rem !important;
+            }
+            
+            .user-profile .user-info {
+                display: none !important;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .header {
+                padding-left: 65px !important;
+            }
+            
+            .page-title {
+                font-size: 1.375rem !important;
+            }
+        }
+        
+        /* ========================================
+           COMPREHENSIVE MOBILE RESPONSIVE STYLES
+           ======================================== */
+        @media (max-width: 992px) {
+            /* Content padding for tablets */
+            .content {
+                padding: 1.5rem !important;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            /* Force proper mobile layout */
+            * {
+                box-sizing: border-box;
+            }
+            
+            html, body {
+                overflow-x: hidden !important;
+                width: 100% !important;
+                max-width: 100vw !important;
+            }
+            
+            .dashboard-container {
+                width: 100% !important;
+                overflow-x: hidden !important;
+            }
+            
+            .main-content {
+                width: 100% !important;
+                max-width: 100vw !important;
+                overflow-x: hidden !important;
+            }
+            
+            /* Fixed Header on Mobile */
+            .header {
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                right: 0 !important;
+                width: 100% !important;
+                z-index: 1000 !important;
+                background: white !important;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+                flex-wrap: wrap;
+                gap: 0.5rem;
+                padding: 0.75rem 1rem 0.75rem 4.5rem !important; /* Extra padding on LEFT for menu button */
+            }
+            
+            /* Adjust main-content to account for fixed header */
+            .main-content {
+                padding-top: 4.5rem !important; /* Space for fixed header */
+            }
+            
+            /* Adjust content padding */
+            .content {
+                padding: 1rem !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                overflow-x: hidden !important;
+            }
+            
+            .header-search {
+                max-width: 180px !important;
+                flex-shrink: 1;
+            }
+            
+            .header-search input {
+                font-size: 0.875rem !important;
+                padding: 0.5rem 0.5rem 0.5rem 2.25rem !important;
+            }
+            
+            /* Page header section - Force vertical stacking */
+            .content > .d-flex.justify-content-between.align-items-center.mb-4,
+            .content > .d-flex {
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 1rem !important;
+                width: 100% !important;
+                max-width: 100% !important;
+            }
+            
+            .content > .d-flex.justify-content-between.align-items-center.mb-4 > div,
+            .content > .d-flex > div {
+                width: 100% !important;
+                max-width: 100% !important;
+            }
+            
+            /* Override inline styles on titles */
+            .page-title,
+            h1.page-title {
+                font-size: 1.5rem !important;
+                margin-bottom: 0.5rem !important;
+                color: #2d3748 !important;
+                word-wrap: break-word !important;
+                max-width: 100% !important;
+            }
+            
+            .page-subtitle {
+                font-size: 0.875rem !important;
+                max-width: 100% !important;
+                word-wrap: break-word !important;
+            }
+            
+            /* Search bar on page - Force full width */
+            .search-bar {
+                position: relative;
+                width: 100% !important;
+                max-width: 100% !important;
+                display: block !important;
+            }
+            
+            .search-bar input {
+                width: 100% !important;
+                max-width: 100% !important;
+            }
+            
+            .search-bar i {
+                position: absolute;
+                left: 12px;
+                top: 50%;
+                transform: translateY(-50%);
+            }
+            
+            /* Table Container - Horizontal Scroll */
+            .table-container {
+                width: 100% !important;
+                max-width: 100% !important;
+                overflow-x: auto !important;
+                -webkit-overflow-scrolling: touch !important;
+                border-radius: 8px;
+                margin: 0 !important;
+            }
+            
+            .table-responsive {
+                width: 100% !important;
+                max-width: 100% !important;
+                overflow-x: auto !important;
+                -webkit-overflow-scrolling: touch !important;
+            }
+            
+            .table {
+                min-width: 900px !important; /* Force horizontal scroll on mobile */
+                margin: 0 !important;
+            }
+            
+            .table thead th {
+                padding: 12px 10px;
+                font-size: 0.75rem;
+                white-space: nowrap;
+            }
+            
+            .table tbody td {
+                padding: 12px 10px;
+                font-size: 0.8125rem;
+            }
+            
+            /* User avatar and message adjustments */
+            .user-avatar-circle {
+                width: 35px;
+                height: 35px;
+                font-size: 0.875rem;
+            }
+            
+            .user-name-display {
+                font-size: 0.875rem;
+            }
+            
+            .user-role, .user-email {
+                font-size: 0.75rem;
+            }
+            
+            .message-wrapper {
+                padding: 10px;
+                max-width: 100%;
+            }
+            
+            .message-content {
+                font-size: 0.875rem;
+            }
+            
+            .sender-badge-user,
+            .sender-badge-bot,
+            .sender-badge-unknown {
+                padding: 5px 10px;
+                font-size: 0.75rem;
+            }
+            
+            .date-display {
+                font-size: 0.8125rem;
+            }
+            
+            .time-display {
+                font-size: 0.75rem;
+            }
+            
+            /* Button groups */
+            .btn-group-sm .btn {
+                padding: 0.25rem 0.5rem;
+                font-size: 0.75rem;
+            }
+            
+            /* Pagination */
+            .pagination-container {
+                flex-direction: column !important;
+                gap: 1rem;
+                padding: 15px;
+            }
+            
+            .pagination-info {
+                font-size: 0.8125rem;
+                text-align: center;
+            }
+            
+            .pagination-controls {
+                justify-content: center !important;
+                flex-wrap: wrap;
+            }
+            
+            .page-numbers {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 0.25rem;
+                justify-content: center;
+            }
+            
+            .page-numbers .btn {
+                min-width: 36px;
+                padding: 0.4rem 0.5rem;
+                font-size: 0.875rem;
+            }
+            
+            .pagination-controls > .btn {
+                font-size: 0.875rem;
+                padding: 0.5rem 0.75rem;
+            }
+            
+            /* Modals */
+            .modal-dialog {
+                margin: 0.5rem;
+                max-width: calc(100% - 1rem);
+            }
+            
+            .modal-body {
+                padding: 1rem;
+            }
+            
+            .modal-body .row {
+                margin: 0;
+            }
+            
+            .modal-body .col-md-6 {
+                padding: 0;
+                margin-bottom: 0.75rem;
+            }
+            
+            .modal-footer {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+            
+            .modal-footer .btn {
+                width: 100%;
+            }
+            
+            /* Search results dropdown */
+            .search-results-dropdown {
+                width: calc(100vw - 30px) !important;
+                max-width: 100%;
+                left: 15px !important;
+                right: 15px !important;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            /* Extra Small Screens */
+            .content {
+                padding: 0.75rem !important;
+            }
+            
+            .page-title {
+                font-size: 1.25rem !important;
+            }
+            
+            .page-subtitle {
+                font-size: 0.8125rem;
+            }
+            
+            /* Header */
+            .header-search {
+                max-width: 140px;
+            }
+            
+            .header-actions {
+                gap: 0.5rem;
+            }
+            
+            .notification-bell {
+                font-size: 1.125rem;
+            }
+            
+            .user-avatar {
+                width: 35px;
+                height: 35px;
+            }
+            
+            .logout-btn {
+                padding: 0.5rem;
+                font-size: 0.875rem;
+            }
+            
+            /* Table adjustments */
+            .table {
+                min-width: 800px;
+            }
+            
+            .table thead th {
+                padding: 10px 8px;
+                font-size: 0.7rem;
+            }
+            
+            .table tbody td {
+                padding: 10px 8px;
+                font-size: 0.75rem;
+            }
+            
+            .user-avatar-circle {
+                width: 32px;
+                height: 32px;
+                font-size: 0.8rem;
+            }
+            
+            .message-wrapper {
+                padding: 8px;
+            }
+            
+            .sender-badge-user,
+            .sender-badge-bot,
+            .sender-badge-unknown {
+                padding: 4px 8px;
+                font-size: 0.7rem;
+            }
+            
+            .btn-group-sm .btn {
+                padding: 0.2rem 0.4rem;
+                font-size: 0.7rem;
+            }
+            
+            /* Pagination for small screens */
+            .pagination-container {
+                padding: 10px;
+            }
+            
+            .pagination-controls > .btn {
+                font-size: 0.8125rem;
+                padding: 0.4rem 0.6rem;
+            }
+            
+            .page-numbers .btn {
+                min-width: 32px;
+                padding: 0.35rem 0.4rem;
+                font-size: 0.8125rem;
+            }
+        }
+        
+        /* Enhanced Table Styling */
+        .table-container {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+
+        .table {
+            margin-bottom: 0;
+        }
+
+        .table thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .table thead th {
+            border: none;
+            padding: 16px;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 0.5px;
+        }
+
+        .table tbody tr {
+            transition: all 0.2s ease;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .table tbody tr:hover {
+            background: #f8f9ff;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(102, 126, 234, 0.1);
+        }
+
+        .table tbody td {
+            padding: 16px;
+            vertical-align: middle;
+        }
+
+        /* User Avatar Styling */
+        .user-avatar-circle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            font-weight: 600;
+            font-size: 1rem;
+            color: white;
+        }
+
+        .user-avatar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .bot-avatar {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .user-name-display {
+            color: #2d3748;
+            font-size: 0.95rem;
+        }
+
+        .user-role, .user-email {
+            font-size: 0.8rem;
+            color: #718096;
+        }
+
+        /* Message Styling */
+        .message-wrapper {
+            padding: 12px;
+            border-radius: 8px;
+            max-width: 500px;
+        }
+
+        .user-message-wrapper {
+            background: #f7fafc;
+            border-left: 3px solid #667eea;
+        }
+
+        .bot-message-wrapper {
+            background: #fff5f7;
+            border-left: 3px solid #f5576c;
+        }
+
+        .message-content {
+            color: #2d3748;
+            line-height: 1.6;
+            word-wrap: break-word;
+        }
+
+        .toggle-message-btn {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 0.85rem;
+        }
+
+        .toggle-message-btn:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        /* Sender Badge Styling */
+        .sender-badge-user {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .sender-badge-bot {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .sender-badge-unknown {
+            background: #a0aec0;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        /* Date Time Styling */
+        .date-time-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .date-display {
+            color: #2d3748;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .time-display {
+            color: #718096;
+            font-size: 0.8rem;
+        }
+
+        /* Action Buttons */
+        .btn-group-sm .btn {
+            padding: 6px 10px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-outline-primary:hover {
+            background: #667eea;
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .btn-outline-warning:hover {
+            background: #f6ad55;
+            border-color: #f6ad55;
+            transform: translateY(-2px);
+        }
+
+        .btn-outline-danger:hover {
+            background: #fc8181;
+            border-color: #fc8181;
+            transform: translateY(-2px);
+        }
+
+        /* Pagination */
+        .pagination-container {
+            background: #fff;
+            padding: 20px;
+            border-radius: 0 0 12px 12px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .pagination-info {
+            color: #4a5568;
+            font-size: 0.9rem;
+        }
+
+        .pagination-info span {
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .page-numbers .btn {
+            margin: 0 2px;
+            min-width: 40px;
+        }
+
+        .page-numbers .btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+        }
+
+        /* Search Bar Enhancement */
+        .search-bar {
+            position: relative;
+            width: 350px;
+        }
+
+        .search-bar i {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #a0aec0;
+        }
+
+        .search-bar input {
+            padding-left: 40px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .search-bar input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        /* Empty State */
+        .table tbody td .fa-comments-slash {
+            color: #cbd5e0;
+        }
+
+        /* Loading Spinner */
+        #conversationLoader {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 9999;
+        }
+
+        /* Modal Enhancements */
+        .modal-content {
+            border-radius: 12px;
+            border: none;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 12px 12px 0 0;
+        }
+
+        .modal-header .btn-close {
+            filter: brightness(0) invert(1);
+        }
+
+        /* Toast Styling */
+        .toast {
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+    </style>
 </head>
 <body>
+    <!-- Mobile Responsive Notification (Shows on first mobile visit) -->
+    <div id="mobileNotification" style="display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 24px; border-radius: 50px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 10000; font-size: 14px; animation: slideUp 0.5s ease;">
+        <i class="fas fa-mobile-alt" style="margin-right: 8px;"></i>
+        <span>📱 Mobile-optimized! Tap menu to navigate</span>
+    </div>
+    
+    <!-- Mobile Menu Toggle Button -->
+    <button class="mobile-menu-toggle" onclick="toggleMobileSidebar()" aria-label="Toggle Menu">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <!-- Sidebar Overlay for Mobile -->
+    <div class="sidebar-overlay" onclick="closeMobileSidebar()"></div>
+
     <div class="dashboard-container">
         <!-- Sidebar -->
-        <div class="sidebar">
+        <div class="sidebar" id="subConversationsSidebar">
             <div class="sidebar-header">
                 <h5 class="sidebar-title">
                    <i class="fas fa-comments me-2"></i>
-                   {{ office|capitalize }} Office
+                   {{ office|capitalize }}
                 </h5>
             </div>
             
@@ -62,8 +780,8 @@
                         <i class="fas fa-user"></i>
                     </div>
                     <div class="user-details">
-                        <div class="user-name">{{ office|capitalize }} Office</div>
-                        <div class="user-role">Sub Admin</div>
+                        <div class="user-name">{{ name }}</div>
+                        <div class="user-role">{{ office|capitalize }} - Sub Admin</div>
                     </div>
                 </div>
              </div>
@@ -75,18 +793,52 @@
             <div class="header">
                 <div class="header-search">
                     <i class="fas fa-search"></i>
-                    <input type="text" placeholder="Search" class="form-control">
+                    <input type="text" placeholder="Search conversations, actions..." class="form-control" id="subConversationsSearchInput">
+                    <!-- Search Results Dropdown -->
+                    <div class="search-results-dropdown" id="searchResultsDropdown" style="display: none;">
+                        <div class="search-results-header">
+                            <span class="search-results-count"></span>
+                            <button class="search-close-btn" onclick="closeSearch()">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="search-results-list" id="searchResultsList">
+                            <!-- Results will be populated here -->
+                        </div>
+                    </div>
                 </div>
                 
                 <div class="header-actions">
                     <div class="notification-bell">
                         <i class="fas fa-bell"></i>
-                        <div class="notification-dot"></div>
+                        <div class="notification-dot" style="display: none;"></div>
                     </div>
+                    
+                    <!-- Notification Dropdown Panel -->
+                    <div class="notification-dropdown" id="subAdminNotificationDropdown">
+                        <div class="notification-header">
+                            <h3><i class="fas fa-bell"></i> Notifications</h3>
+                            <div class="notification-header-actions">
+                                <button id="subAdminNotificationRefreshBtn" title="Refresh notifications">
+                                    <i class="fas fa-sync-alt"></i>
+                                </button>
+                                <button id="subAdminNotificationMarkAllReadBtn" title="Mark all as read">
+                                    <i class="fas fa-check-double"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="notification-list" id="subAdminNotificationList">
+                            <div class="notification-empty">
+                                <i class="fas fa-bell-slash"></i>
+                                <p>Loading notifications...</p>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <div class="user-profile">
                         <div class="user-info">
-                            <div class="user-name">{{ office|capitalize }} Office</div>
-                            <div class="user-role">Sub Admin</div>
+                            <div class="user-name">{{ name }}</div>
+                            <div class="user-role">{{ office|capitalize }} - Sub Admin</div>
                         </div>
                         <div class="user-avatar">
                             <i class="fas fa-user"></i>
@@ -100,10 +852,13 @@
 
             <!-- Content -->
             <div class="content">
-                <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-4">
                     <div>
-                        <h1 class="page-title mb-0">Conversation Logs</h1>
-                        <p class="page-subtitle">View and analyze chatbot conversations</p>
+                        <h1 class="page-title mb-1" style="color: #2d3748; font-weight: 700;">
+                            <i class="fas fa-comments me-2" style="color: #667eea;"></i>
+                            Conversation Logs
+                        </h1>
+                        <p class="page-subtitle text-muted">View and analyze {{ office|capitalize }} chatbot conversations</p>
                     </div>
                     <div class="search-bar">
                         <i class="fas fa-search"></i>
@@ -111,9 +866,58 @@
                     </div>
                 </div>
 
-                <!-- Conversations List -->
-                <div id="conversationsContainer">
-                    <!-- Conversation cards will be populated here -->
+                <!-- Conversations Table -->
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th style="width: 20%;">
+                                    <i class="fas fa-user me-2"></i>User
+                                </th>
+                                <th style="width: 35%;">
+                                    <i class="fas fa-message me-2"></i>Message
+                                </th>
+                                <th style="width: 15%;" class="text-center">
+                                    <i class="fas fa-user-tag me-2"></i>Sender
+                                </th>
+                                <th style="width: 15%;">
+                                    <i class="far fa-calendar me-2"></i>Date & Time
+                                </th>
+                                <th style="width: 15%;" class="text-center">
+                                    <i class="fas fa-cog me-2"></i>Actions
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="conversations-table-body">
+                            <!-- Conversations will be populated here -->
+                            <tr>
+                                <td colspan="5" class="text-center py-5">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                    <div class="mt-2 text-muted">Loading conversations...</div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <!-- Pagination -->
+                    <div class="pagination-container d-flex justify-content-between align-items-center">
+                        <div class="pagination-info">
+                            Showing <span id="start-item">0</span> to <span id="end-item">0</span> of <span id="total-items">0</span> conversations
+                        </div>
+                        <div class="pagination-controls d-flex align-items-center gap-2">
+                            <button class="btn btn-outline-secondary" onclick="conversationManager.previousPage()" id="prev-btn" disabled>
+                                <i class="fas fa-chevron-left me-1"></i> Previous
+                            </button>
+                            <div class="page-numbers">
+                                <button class="btn btn-outline-primary active">1</button>
+                            </div>
+                            <button class="btn btn-outline-secondary" onclick="conversationManager.nextPage()" id="next-btn" disabled>
+                                Next <i class="fas fa-chevron-right ms-1"></i>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -124,47 +928,73 @@
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="viewConversationModalLabel">Conversation Details</h5>
+                    <h5 class="modal-title" id="viewConversationModalLabel">
+                        <i class="fas fa-info-circle me-2"></i>Conversation Details
+                    </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">User:</label>
-                            <p id="viewConversationUser"></p>
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-user me-2 text-primary"></i>User:
+                            </label>
+                            <p id="viewConversationUser" class="ms-4"></p>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">Started:</label>
-                            <p id="viewConversationStartTime"></p>
-                        </div>
-                    </div>
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">Messages:</label>
-                            <p id="viewConversationMessages"></p>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">Duration:</label>
-                            <p id="viewConversationDuration"></p>
+                            <label class="form-label fw-bold">
+                                <i class="far fa-clock me-2 text-primary"></i>Started:
+                            </label>
+                            <p id="viewConversationStartTime" class="ms-4"></p>
                         </div>
                     </div>
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">Category:</label>
-                            <p id="viewConversationCategory"></p>
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-comments me-2 text-primary"></i>Messages:
+                            </label>
+                            <p id="viewConversationMessages" class="ms-4"></p>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">Sentiment:</label>
-                            <span id="viewConversationSentiment"></span>
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-hourglass-half me-2 text-primary"></i>Duration:
+                            </label>
+                            <p id="viewConversationDuration" class="ms-4"></p>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-tag me-2 text-primary"></i>Category:
+                            </label>
+                            <p id="viewConversationCategory" class="ms-4"></p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-smile me-2 text-primary"></i>Sentiment:
+                            </label>
+                            <span id="viewConversationSentiment" class="ms-4"></span>
                         </div>
                     </div>
                     <div class="mb-3" id="viewConversationEscalatedContainer" style="display: none;">
-                        <label class="form-label fw-bold">Escalated:</label>
-                        <span class="badge badge-danger">Yes</span>
+                        <label class="form-label fw-bold">
+                            <i class="fas fa-flag me-2 text-danger"></i>Escalated:
+                        </label>
+                        <span class="badge bg-danger ms-2">Yes</span>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">
+                            <i class="fas fa-list me-2 text-primary"></i>Message History:
+                        </label>
+                        <ul id="viewConversationMessageList" class="list-group mt-2">
+                            <!-- Messages will be populated here -->
+                        </ul>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i>Close
+                    </button>
                 </div>
             </div>
         </div>
@@ -183,29 +1013,806 @@
         </div>
     </div>
 
+    <!-- Loading Spinner -->
+    <div id="conversationLoader" style="display: none;">
+        <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="../assets/js/core/StorageManager.js"></script>
-    <script src="../assets/js/modules/AuthManager.js"></script>
-    <script src="../assets/js/UIManager.js"></script>
-    <script src="../assets/js/modules/ConversationManager.js"></script>
+    <script src="{{ url_for('static', filename='Sub-assets/js/core/StorageManager.js') }}"></script>
+    <script src="{{ url_for('static', filename='Sub-assets/js/modules/AuthManager.js') }}"></script>
+    <script src="{{ url_for('static', filename='Sub-assets/js/UIManager.js') }}"></script>
+    <script src="{{ url_for('static', filename='Sub-assets/js/modules/ConversationManager.js') }}"></script>
+    <script src="{{ url_for('static', filename='Sub-assets/js/SubAdminNotificationManager.js') }}"></script>
     <script>
-        // Initialize Conversations page
-        document.addEventListener('DOMContentLoaded', function() {
+    let subAdminNotificationManager;
+    
+    document.addEventListener('DOMContentLoaded', async function() {
+        try {
             // Check authentication
-            if (!window.authManager.requireAuth()) {
-                return;
-            }
+            const isAuth = await window.authManager.requireSubAdminAuth();
+            if (!isAuth) return;
 
-            // Initialize Conversation manager
+            // Initialize notification manager
+            subAdminNotificationManager = new SubAdminNotificationManager();
+            await subAdminNotificationManager.initialize();
+
+            // Initialize conversation manager
             window.conversationManager = new ConversationManager();
-            window.conversationManager.initialize();
-        });
+            await window.conversationManager.initialize();
+            
+            // Load sub admin data into UI
+            await loadSubAdminData();
 
-        // Logout function
-        function logout() {
-            window.authManager.logout();
-            window.location.href = '../index.html';
+            // Setup pagination buttons
+            setupPaginationButtons();
+
+        } catch (error) {
+            console.error("Error initializing Conversations page:", error);
+            showErrorToast("Failed to initialize page. Please refresh.");
         }
-    </script>
+    });
+
+    // Load sub admin info into UI
+    async function loadSubAdminData() {
+        try {
+            const user = await window.authManager.getCurrentUser();
+            if (user && user.office && user.name) {
+                document.title = `Conversation Logs - ${user.office}`;
+                
+                const pageSubtitle = document.querySelector(".page-subtitle");
+                if (pageSubtitle) {
+                    pageSubtitle.textContent = `View and analyze ${user.office} chatbot conversations`;
+                }
+
+                const userNameEls = document.querySelectorAll(".user-name");
+                const userRoleEls = document.querySelectorAll(".user-role");
+                userNameEls.forEach(el => (el.textContent = user.name));
+                userRoleEls.forEach(el => (el.textContent = `${user.office} - Sub Admin`));
+            }
+        } catch (error) {
+            console.error("Error loading sub admin data:", error);
+        }
+    }
+
+    // Setup pagination button event listeners
+    function setupPaginationButtons() {
+        const prevBtn = document.getElementById("prev-btn");
+        const nextBtn = document.getElementById("next-btn");
+
+        if (prevBtn) {
+            prevBtn.addEventListener("click", () => {
+                if (window.conversationManager) {
+                    window.conversationManager.previousPage();
+                }
+            });
+        }
+
+        if (nextBtn) {
+            nextBtn.addEventListener("click", () => {
+                if (window.conversationManager) {
+                    window.conversationManager.nextPage();
+                }
+            });
+        }
+    }
+
+    // View conversation details
+    function viewConversation(id) {
+        if (window.conversationManager) {
+            window.conversationManager.viewConversation(id);
+        }
+    }
+
+    // Escalate conversation
+    function escalateConversation(id) {
+        if (window.conversationManager) {
+            window.conversationManager.escalateConversation(id);
+        }
+    }
+
+    // Delete conversation
+    function deleteConversation(id) {
+        if (window.conversationManager) {
+            window.conversationManager.deleteConversation(id);
+        }
+    }
+
+    // Logout function
+    async function logout() {
+        if (window.authManager) {
+            await window.authManager.logoutSubAdmin();
+        } else {
+            const confirmed = confirm("Are you sure you want to logout?");
+            if (confirmed) {
+                try {
+                    await fetch("/subadmin/logout", {
+                        method: "POST",
+                        credentials: "include",
+                    });
+                } catch (err) {
+                    console.error("Logout error:", err);
+                } finally {
+                    window.location.href = "/sub-index";
+                }
+            }
+        }
+    }
+
+    // Helper function to show error toast
+    function showErrorToast(message) {
+        const toastEl = document.getElementById("toast");
+        const toastTitle = document.getElementById("toastTitle");
+        const toastMessage = document.getElementById("toastMessage");
+        
+        if (toastEl && toastTitle && toastMessage) {
+            toastTitle.textContent = "Error";
+            toastMessage.textContent = message;
+            toastEl.className = "toast bg-danger text-white";
+            const toast = new bootstrap.Toast(toastEl);
+            toast.show();
+        }
+    }
+
+    // Make functions globally accessible
+    window.viewConversation = viewConversation;
+    window.escalateConversation = escalateConversation;
+    window.deleteConversation = deleteConversation;
+    window.logout = logout;
+
+// ========================================
+// SUB-CONVERSATIONS SEARCH FUNCTIONALITY
+// ========================================
+
+const searchableContent = [
+    // Navigation Pages
+    { type: 'page', icon: 'fa-th-large', title: 'Dashboard', desc: 'Overview and statistics', action: () => window.location.href = `/sub-admin/dashboard?office=${window.authManager.getOfficeFromURL()}` },
+    { type: 'page', icon: 'fa-comments', title: 'Conversation Logs', desc: 'View chat history', action: () => window.location.reload() },
+    { type: 'page', icon: 'fa-question-circle', title: 'FAQ Management', desc: 'Manage frequently asked questions', action: () => window.location.href = `/sub-admin/faq?office=${window.authManager.getOfficeFromURL()}` },
+    { type: 'page', icon: 'fa-bullhorn', title: 'Announcements', desc: 'Manage office announcements', action: () => window.location.href = `/sub-admin/announcements?office=${window.authManager.getOfficeFromURL()}` },
+    { type: 'page', icon: 'fa-chart-bar', title: 'Usage Statistics', desc: 'Analyze usage patterns', action: () => window.location.href = `/sub-admin/usage?office=${window.authManager.getOfficeFromURL()}` },
+    { type: 'page', icon: 'fa-heart', title: 'User Feedback', desc: 'View user ratings and comments', action: () => window.location.href = `/sub-admin/feedback?office=${window.authManager.getOfficeFromURL()}` },
+    
+    // Conversation Actions
+    { type: 'action', icon: 'fa-eye', title: 'View Conversation', desc: 'View conversation details', action: () => alert('Select a conversation from the table to view') },
+    { type: 'action', icon: 'fa-exclamation-triangle', title: 'Escalate Conversation', desc: 'Escalate conversation to admin', action: () => alert('Select a conversation from the table to escalate') },
+    { type: 'action', icon: 'fa-download', title: 'Export Conversations', desc: 'Export conversations to CSV', action: () => typeof exportConversations === 'function' && exportConversations() },
+    { type: 'info', icon: 'fa-search', title: 'Search Conversations', desc: 'Search by user, message, or office', action: () => document.getElementById('conversationSearchInput')?.focus() },
+];
+
+function initializeSearch() {
+    const searchInput = document.getElementById('subConversationsSearchInput');
+    if (!searchInput) return;
+    
+    searchInput.addEventListener('input', function(e) {
+        const query = e.target.value.trim().toLowerCase();
+        
+        if (query.length === 0) {
+            closeSearch();
+            return;
+        }
+        
+        if (query.length < 2) return;
+        
+        performSearch(query);
+    });
+    
+    searchInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeSearch();
+            searchInput.blur();
+        }
+    });
+    
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.header-search')) {
+            closeSearch();
+        }
+    });
+}
+
+function performSearch(query) {
+    const searchDropdown = document.getElementById('searchResultsDropdown');
+    const searchResultsList = document.getElementById('searchResultsList');
+    const searchCount = document.querySelector('.search-results-count');
+    
+    if (!searchDropdown || !searchResultsList) return;
+    
+    const results = searchableContent.filter(item => {
+        return item.title.toLowerCase().includes(query) || 
+               item.desc.toLowerCase().includes(query);
+    });
+    
+    if (searchCount) {
+        searchCount.textContent = results.length === 0 ? 'No results' : 
+            `${results.length} result${results.length !== 1 ? 's' : ''} found`;
+    }
+    
+    searchDropdown.style.display = 'block';
+    
+    if (results.length === 0) {
+        searchResultsList.innerHTML = `
+            <div class="search-no-results">
+                <i class="fas fa-search"></i>
+                <p>No results found for "${query}"</p>
+            </div>
+        `;
+    } else {
+        searchResultsList.innerHTML = results.map((item, index) => {
+            const highlightedTitle = highlightText(item.title, query);
+            const highlightedDesc = highlightText(item.desc, query);
+            
+            return `
+                <div class="search-result-item" onclick="handleSearchResultClick(event, ${index})">
+                    <div class="search-result-icon ${item.type}">
+                        <i class="fas ${item.icon}"></i>
+                    </div>
+                    <div class="search-result-content">
+                        <div class="search-result-title">${highlightedTitle}</div>
+                        <div class="search-result-desc">${highlightedDesc}</div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+}
+
+function handleSearchResultClick(event, index) {
+    event.stopPropagation();
+    const item = searchableContent[index];
+    
+    if (item && item.action) {
+        closeSearch();
+        document.getElementById('subConversationsSearchInput').value = '';
+        item.action();
+    }
+}
+
+function highlightText(text, query) {
+    const regex = new RegExp(`(${escapeRegex(query)})`, 'gi');
+    return text.replace(regex, '<span class="search-highlight">$1</span>');
+}
+
+function escapeRegex(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function closeSearch() {
+    const searchDropdown = document.getElementById('searchResultsDropdown');
+    if (searchDropdown) {
+        searchDropdown.style.display = 'none';
+    }
+}
+
+// Initialize search when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeSearch);
+} else {
+    initializeSearch();
+}
+</script>
+
+<style>
+/* =============================================
+   SEARCH RESULTS DROPDOWN STYLES
+   ============================================= */
+
+.header-search {
+    position: relative;
+}
+
+.search-results-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    width: 500px;
+    max-height: 600px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    overflow: hidden;
+    z-index: 9999;
+    animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.search-results-header {
+    padding: 1rem 1.25rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.search-results-count {
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.search-close-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.search-close-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.search-results-list {
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.search-results-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.search-results-list::-webkit-scrollbar-track {
+    background: #f1f5f9;
+}
+
+.search-results-list::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+}
+
+.search-result-item {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #f1f5f9;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.search-result-item:hover {
+    background: #f8fafc;
+}
+
+.search-result-item:last-child {
+    border-bottom: none;
+}
+
+.search-result-icon {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    color: white;
+}
+
+.search-result-icon.page {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.search-result-icon.stat {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.search-result-icon.chart {
+    background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.search-result-icon.info {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+
+.search-result-icon.action {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+
+.search-result-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.search-result-title {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 0.25rem;
+}
+
+.search-result-desc {
+    font-size: 0.8125rem;
+    color: #64748b;
+    line-height: 1.4;
+}
+
+.search-no-results {
+    padding: 3rem 2rem;
+    text-align: center;
+    color: #94a3b8;
+}
+
+.search-no-results i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.search-no-results p {
+    margin: 0;
+    font-size: 0.9375rem;
+    font-weight: 500;
+}
+
+.search-highlight {
+    background: #fef3c7;
+    color: #92400e;
+    padding: 0.1rem 0.2rem;
+    border-radius: 3px;
+    font-weight: 600;
+}
+
+/* =============================================
+   SUB-ADMIN NOTIFICATION SYSTEM STYLES
+   ============================================= */
+
+/* Notification Bell Enhanced */
+.notification-bell {
+    position: relative;
+    cursor: pointer;
+}
+
+.notification-dot {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    width: 18px;
+    height: 18px;
+    background: #ef4444;
+    border-radius: 50%;
+    border: 2px solid white;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: white;
+}
+
+.notification-dot::after {
+    content: attr(data-count);
+}
+
+/* Notification Dropdown */
+.notification-dropdown {
+    position: absolute;
+    top: calc(100% + 12px);
+    right: 0;
+    width: 380px;
+    max-height: 500px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.3s ease;
+    z-index: 9999;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.notification-dropdown.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+/* Notification Header */
+.notification-header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #e2e8f0;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.notification-header h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0;
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.notification-header-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.notification-header-actions button {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    font-size: 0.875rem;
+}
+
+.notification-header-actions button:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* Notification List */
+.notification-list {
+    max-height: 400px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.notification-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.notification-list::-webkit-scrollbar-track {
+    background: #f1f5f9;
+}
+
+.notification-list::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+}
+
+.notification-list::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Notification Item */
+.notification-item {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #f1f5f9;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.notification-item:hover {
+    background: #f8fafc;
+}
+
+.notification-item:last-child {
+    border-bottom: none;
+}
+
+.notification-item::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: transparent;
+    transition: background 0.2s ease;
+}
+
+/* Notification Item Types */
+.notification-item.notification-success::before {
+    background: #10b981;
+}
+
+.notification-item.notification-warning::before {
+    background: #f59e0b;
+}
+
+.notification-item.notification-danger::before {
+    background: #ef4444;
+}
+
+.notification-item.notification-info::before {
+    background: #3b82f6;
+}
+
+.notification-item.notification-primary::before {
+    background: #8b5cf6;
+}
+
+/* Notification Icon */
+.notification-item .notification-icon {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    color: white;
+}
+
+.notification-success .notification-icon {
+    background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.notification-warning .notification-icon {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.notification-danger .notification-icon {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+
+.notification-info .notification-icon {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+
+.notification-primary .notification-icon {
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+}
+
+/* Notification Content */
+.notification-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.notification-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 0.25rem;
+    line-height: 1.4;
+}
+
+.notification-message {
+    font-size: 0.8125rem;
+    color: #64748b;
+    margin-bottom: 0.5rem;
+    line-height: 1.4;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.notification-time {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.notification-time i {
+    font-size: 0.7rem;
+}
+
+/* Empty State */
+.notification-empty {
+    padding: 3rem 2rem;
+    text-align: center;
+    color: #94a3b8;
+}
+
+.notification-empty i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.notification-empty p {
+    margin: 0;
+    font-size: 0.9375rem;
+    font-weight: 500;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .notification-dropdown {
+        position: fixed;
+        top: 60px;
+        right: 10px;
+        left: 10px;
+        width: auto;
+        max-height: 70vh;
+    }
+}
+</style>
+
+<script>
+// Mobile Sidebar Functions
+function toggleMobileSidebar() {
+    const sidebar = document.getElementById('subConversationsSidebar');
+    const overlay = document.querySelector('.sidebar-overlay');
+    
+    sidebar.classList.toggle('show');
+    overlay.classList.toggle('show');
+    
+    // Prevent body scroll when sidebar is open
+    if (sidebar.classList.contains('show')) {
+        document.body.style.overflow = 'hidden';
+    } else {
+        document.body.style.overflow = '';
+    }
+}
+
+function closeMobileSidebar() {
+    const sidebar = document.getElementById('subConversationsSidebar');
+    const overlay = document.querySelector('.sidebar-overlay');
+    
+    sidebar.classList.remove('show');
+    overlay.classList.remove('show');
+    document.body.style.overflow = '';
+}
+
+// Close sidebar when clicking on a navigation link on mobile
+document.addEventListener('DOMContentLoaded', function() {
+    const navLinks = document.querySelectorAll('.sidebar-nav a');
+    navLinks.forEach(link => {
+        link.addEventListener('click', function() {
+            if (window.innerWidth <= 768) {
+                closeMobileSidebar();
+            }
+        });
+    });
+
+    // Close sidebar on window resize if it becomes desktop size
+    window.addEventListener('resize', function() {
+        if (window.innerWidth > 768) {
+            closeMobileSidebar();
+        }
+    });
+});
+
+// Make functions globally accessible
+window.toggleMobileSidebar = toggleMobileSidebar;
+window.closeMobileSidebar = closeMobileSidebar;
+
+// Show mobile notification on mobile devices
+if (window.innerWidth <= 768 && !localStorage.getItem('mobileNotificationShown')) {
+    setTimeout(function() {
+        const notification = document.getElementById('mobileNotification');
+        if (notification) {
+            notification.style.display = 'block';
+            setTimeout(function() {
+                notification.style.display = 'none';
+                localStorage.setItem('mobileNotificationShown', 'true');
+            }, 4000);
+        }
+    }, 1000);
+}
+</script>
 </body>
 </html>

@@ -1,21 +1,382 @@
+<!--(Sub-announcements.html)-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Announcements - {{ office|capitalize }} Office</title>
+    <title>Announcements - {{ office|capitalize }}</title>
+    <!-- ✅ MOBILE RESPONSIVE: This page is fully optimized for mobile, tablet, and desktop devices -->
+    <!-- Features: Mobile sidebar toggle, responsive layouts, touch-friendly controls, and adaptive content -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="{{ url_for('static', filename='Sub-assets/css/style.css') }}" rel="stylesheet">
+    <style>
+        /* Enhanced Mobile Responsive Styles */
+        @media (max-width: 768px) {
+            .mobile-menu-toggle {
+                display: flex !important;
+                align-items: center;
+                justify-content: center;
+                position: fixed !important;
+                top: 1rem !important;
+                left: 1rem !important;
+                z-index: 1003 !important; /* Above everything */
+            }
+            
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                z-index: 1002 !important; /* Above header */
+                position: fixed !important;
+            }
+            
+            .sidebar.show {
+                transform: translateX(0);
+            }
+            
+            .sidebar-overlay {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.5);
+                z-index: 1001 !important; /* Above header, below sidebar */
+                opacity: 0;
+                transition: opacity 0.3s ease;
+            }
+            
+            .sidebar-overlay.show {
+                display: block;
+                opacity: 1;
+            }
+            
+            .main-content {
+                margin-left: 0 !important;
+            }
+            
+            .header {
+                padding-left: 70px !important;
+            }
+            
+            .page-title {
+                font-size: 1.5rem !important;
+            }
+            
+            .user-profile .user-info {
+                display: none !important;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .header {
+                padding-left: 65px !important;
+            }
+            
+            .page-title {
+                font-size: 1.375rem !important;
+            }
+        }
+        
+        /* ========================================
+           COMPREHENSIVE MOBILE RESPONSIVE STYLES
+           ======================================== */
+        @media (max-width: 992px) {
+            /* Content padding for tablets */
+            .content {
+                padding: 1.5rem !important;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            /* Force proper mobile layout */
+            * {
+                box-sizing: border-box;
+            }
+            
+            html, body {
+                overflow-x: hidden !important;
+                width: 100% !important;
+                max-width: 100vw !important;
+            }
+            
+            .dashboard-container {
+                width: 100% !important;
+                overflow-x: hidden !important;
+            }
+            
+            .main-content {
+                width: 100% !important;
+                max-width: 100vw !important;
+                overflow-x: hidden !important;
+            }
+            
+            /* Fixed Header on Mobile */
+            .header {
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                right: 0 !important;
+                width: 100% !important;
+                z-index: 1000 !important;
+                background: white !important;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+                flex-wrap: wrap;
+                gap: 0.5rem;
+                padding: 0.75rem 1rem 0.75rem 4.5rem !important; /* Extra padding on LEFT for menu button */
+            }
+            
+            /* Adjust main-content to account for fixed header */
+            .main-content {
+                padding-top: 4.5rem !important; /* Space for fixed header */
+            }
+            
+            /* Adjust content padding */
+            .content {
+                padding: 1rem !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                overflow-x: hidden !important;
+            }
+            
+            .header-search {
+                max-width: 180px !important;
+                flex-shrink: 1;
+            }
+            
+            .header-search input {
+                font-size: 0.875rem !important;
+                padding: 0.5rem 0.5rem 0.5rem 2.25rem !important;
+            }
+            
+            /* Override inline styles on titles */
+            .page-title,
+            h1.page-title {
+                font-size: 1.5rem !important;
+                margin-bottom: 0.5rem !important;
+                color: #2d3748 !important;
+                word-wrap: break-word !important;
+                max-width: 100% !important;
+            }
+            
+            .page-subtitle {
+                font-size: 0.875rem !important;
+                margin-bottom: 1rem !important;
+                max-width: 100% !important;
+                word-wrap: break-word !important;
+            }
+            
+            /* Search and Add Button Row */
+            .row.mb-4 {
+                margin-bottom: 1rem !important;
+            }
+            
+            .row.mb-4 .col-md-6 {
+                margin-bottom: 0.75rem;
+                width: 100% !important;
+                flex: 0 0 100% !important;
+                max-width: 100% !important;
+            }
+            
+            .row.mb-4 .col-md-6.text-end {
+                text-align: left !important;
+            }
+            
+            .search-bar {
+                position: relative;
+                width: 100% !important;
+                max-width: 100% !important;
+                display: block !important;
+            }
+            
+            .search-bar input {
+                width: 100% !important;
+                max-width: 100% !important;
+            }
+            
+            .search-bar i {
+                position: absolute;
+                left: 12px;
+                top: 50%;
+                transform: translateY(-50%);
+            }
+            
+            .btn-primary {
+                width: 100% !important;
+                justify-content: center;
+                display: flex !important;
+                align-items: center;
+            }
+            
+            /* Table Responsiveness */
+            .table-container {
+                width: 100% !important;
+                max-width: 100% !important;
+                overflow-x: auto !important;
+                -webkit-overflow-scrolling: touch !important;
+                margin: 0 !important;
+            }
+            
+            .table-responsive {
+                width: 100% !important;
+                max-width: 100% !important;
+                overflow-x: auto !important;
+                -webkit-overflow-scrolling: touch !important;
+            }
+            
+            .table {
+                min-width: 750px !important;
+                font-size: 0.875rem !important;
+                margin: 0 !important;
+            }
+            
+            .table thead th {
+                font-size: 0.75rem !important;
+                padding: 10px 8px !important;
+                white-space: nowrap;
+            }
+            
+            .table tbody td {
+                font-size: 0.8rem !important;
+                padding: 10px 8px !important;
+            }
+            
+            /* Badges and Status */
+            .badge {
+                font-size: 0.75rem !important;
+                padding: 0.35em 0.6em !important;
+            }
+            
+            /* Modals */
+            .modal-dialog {
+                margin: 0.5rem !important;
+                max-width: calc(100% - 1rem) !important;
+            }
+            
+            .modal-body {
+                padding: 1rem !important;
+            }
+            
+            .modal-body .row .col-md-6 {
+                margin-bottom: 0.5rem;
+            }
+            
+            .modal-footer {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+            
+            .modal-footer .btn {
+                width: 100%;
+            }
+            
+            /* Form Controls */
+            .form-control,
+            .form-select,
+            select.form-control {
+                font-size: 0.875rem !important;
+            }
+            
+            .form-label {
+                font-size: 0.875rem;
+                margin-bottom: 0.375rem;
+            }
+            
+            textarea.form-control {
+                min-height: 100px;
+            }
+            
+            /* Buttons */
+            .btn-sm {
+                padding: 0.25rem 0.5rem !important;
+                font-size: 0.75rem !important;
+            }
+            
+            /* Search results dropdown */
+            .search-results-dropdown {
+                width: calc(100vw - 30px) !important;
+                max-width: 100%;
+                left: 15px !important;
+                right: 15px !important;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            /* Extra small screens */
+            .content {
+                padding: 0.75rem !important;
+            }
+            
+            .page-title {
+                font-size: 1.25rem !important;
+            }
+            
+            .page-subtitle {
+                font-size: 0.8rem !important;
+            }
+            
+            /* Header */
+            .header-search {
+                max-width: 140px;
+            }
+            
+            /* Table */
+            .table {
+                min-width: 650px;
+                font-size: 0.8rem !important;
+            }
+            
+            .table thead th,
+            .table tbody td {
+                padding: 8px 6px !important;
+                font-size: 0.75rem !important;
+            }
+            
+            /* Buttons */
+            .btn {
+                font-size: 0.875rem !important;
+            }
+            
+            .btn-sm {
+                font-size: 0.7rem !important;
+                padding: 0.2rem 0.4rem !important;
+            }
+            
+            /* Form controls */
+            textarea.form-control {
+                min-height: 80px;
+            }
+            
+            .form-control,
+            .form-select {
+                font-size: 0.8125rem !important;
+            }
+        }
+    </style>
 </head>
 <body>
+    <!-- Mobile Responsive Notification (Shows on first mobile visit) -->
+    <div id="mobileNotification" style="display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 24px; border-radius: 50px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 10000; font-size: 14px; animation: slideUp 0.5s ease;">
+        <i class="fas fa-mobile-alt" style="margin-right: 8px;"></i>
+        <span>📱 Mobile-optimized! Tap menu to navigate</span>
+    </div>
+    
+    <!-- Mobile Menu Toggle Button -->
+    <button class="mobile-menu-toggle" onclick="toggleMobileSidebar()" aria-label="Toggle Menu">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <!-- Sidebar Overlay for Mobile -->
+    <div class="sidebar-overlay" onclick="closeMobileSidebar()"></div>
+
     <div class="dashboard-container">
         <!-- Sidebar -->
-        <div class="sidebar">
+        <div class="sidebar" id="subAnnouncementsSidebar">
             <div class="sidebar-header">
                 <h5 class="sidebar-title">
                    <i class="fas fa-comments me-2"></i>
-                   {{ office|capitalize }} Office
+                   {{ office|capitalize }}
                 </h5>
             </div>
             
@@ -62,8 +423,8 @@
                         <i class="fas fa-user"></i>
                     </div>
                     <div class="user-details">
-                        <div class="user-name">{{ office|capitalize }} Office</div>
-                        <div class="user-role">Sub Admin</div>
+                        <div class="user-name">{{ name }}</div>
+                        <div class="user-role">{{ office|capitalize }} - Sub Admin</div>
                     </div>
                 </div>
              </div>
@@ -75,18 +436,52 @@
             <div class="header">
                 <div class="header-search">
                     <i class="fas fa-search"></i>
-                    <input type="text" placeholder="Search" class="form-control">
+                    <input type="text" placeholder="Search announcements, actions..." class="form-control" id="subAnnouncementsSearchInput">
+                    <!-- Search Results Dropdown -->
+                    <div class="search-results-dropdown" id="searchResultsDropdown" style="display: none;">
+                        <div class="search-results-header">
+                            <span class="search-results-count"></span>
+                            <button class="search-close-btn" onclick="closeSearch()">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="search-results-list" id="searchResultsList">
+                            <!-- Results will be populated here -->
+                        </div>
+                    </div>
                 </div>
                 
                 <div class="header-actions">
                     <div class="notification-bell">
                         <i class="fas fa-bell"></i>
-                        <div class="notification-dot"></div>
+                        <div class="notification-dot" style="display: none;"></div>
                     </div>
+                    
+                    <!-- Notification Dropdown Panel -->
+                    <div class="notification-dropdown" id="subAdminNotificationDropdown">
+                        <div class="notification-header">
+                            <h3><i class="fas fa-bell"></i> Notifications</h3>
+                            <div class="notification-header-actions">
+                                <button id="subAdminNotificationRefreshBtn" title="Refresh notifications">
+                                    <i class="fas fa-sync-alt"></i>
+                                </button>
+                                <button id="subAdminNotificationMarkAllReadBtn" title="Mark all as read">
+                                    <i class="fas fa-check-double"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="notification-list" id="subAdminNotificationList">
+                            <div class="notification-empty">
+                                <i class="fas fa-bell-slash"></i>
+                                <p>Loading notifications...</p>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <div class="user-profile">
                         <div class="user-info">
-                            <div class="user-name">{{ office|capitalize }} Office</div>
-                            <div class="user-role">Sub Admin</div>
+                            <div class="user-name">{{ name }}</div>
+                            <div class="user-role">{{ office|capitalize }} - Sub Admin</div>
                         </div>
                         <div class="user-avatar">
                             <i class="fas fa-user"></i>
@@ -100,8 +495,8 @@
 
             <!-- Content -->
             <div class="content">
-                <h1 class="page-title">Announcement</h1>
-                <p class="page-subtitle">Manage chatbot content, settings, and permissions</p>
+                <h1 class="page-title">Announcements</h1>
+                <p class="page-subtitle">Manage {{ office|capitalize }} announcements and notifications</p>
 
                 <!-- Search and Add Button -->
                 <div class="row mb-4">
@@ -282,28 +677,34 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="../assets/js/core/StorageManager.js"></script>
-    <script src="../assets/js/modules/AuthManager.js"></script>
-    <script src="../assets/js/UIManager.js"></script>
-    <script src="../assets/js/modules/AnnouncementManager.js"></script>
+    <script src="{{ url_for('static', filename='Sub-assets/js/core/StorageManager.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/js/modules/AuthManager.js') }}"></script>
+    <script src="{{ url_for('static', filename='Sub-assets/js/UIManager.js') }}"></script>
+    <script src="{{ url_for('static', filename='Sub-assets/js/modules/AnnouncementManager.js') }}"></script>
+    <script src="{{ url_for('static', filename='Sub-assets/js/SubAdminNotificationManager.js') }}"></script>
     <script>
         // Global variables
         let announcementManager;
         let uiManager;
         let storageManager;
+        let subAdminNotificationManager;
 
         // Initialize Announcements page
         document.addEventListener('DOMContentLoaded', function() {
             console.log('Announcements page loading...');
             
             // Wait for all scripts to load
-            setTimeout(() => {
+            setTimeout(async () => {
                 try {
                     console.log('Initializing managers...');
                     
                     // Initialize managers
                     storageManager = new StorageManager();
                     uiManager = new UIManager();
+                    
+                    // Initialize notification manager
+                    subAdminNotificationManager = new SubAdminNotificationManager();
+                    await subAdminNotificationManager.initialize();
                     announcementManager = new AnnouncementManager();
                     
                     console.log('Managers initialized:', {
@@ -311,24 +712,13 @@
                         uiManager: !!uiManager,
                         announcementManager: !!announcementManager
                     });
-                    
-                    // Check authentication - but don't block if auth manager is not available
-                    if (window.authManager) {
-                        if (!window.authManager.requireAuth()) {
-                            console.log('Authentication required, redirecting...');
-                            return;
-                        }
-                    } else {
-                        console.log('Auth manager not available, proceeding without authentication');
-                    }
 
                     // Initialize Announcement manager
                     announcementManager.initialize();
                     console.log('Announcements page initialized successfully');
                     
-                    // Test if announcements are loaded
-                    const announcements = storageManager.getAnnouncements();
-                    console.log('Loaded announcements from storage:', announcements);
+                    // Load sub admin specific data
+                    loadSubAdminData();
                     
                 } catch (error) {
                     console.error('Error initializing Announcements page:', error);
@@ -337,12 +727,44 @@
             }, 100);
         });
 
-        // Logout function
-        function logout() {
-            if (window.authManager) {
-                window.authManager.logout();
+        // Load sub admin specific data and update UI
+        async function loadSubAdminData() {
+            try {
+                const sessionCheck = await fetch('/subadmin/session', {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+                
+                const sessionData = await sessionCheck.json();
+                
+                if (sessionData.authenticated && sessionData.office && sessionData.name) {
+                    // Update page title and subtitle
+                    document.title = `Announcements - ${sessionData.office}`;
+                    const pageSubtitle = document.querySelector('.page-subtitle');
+                    if (pageSubtitle) {
+                        pageSubtitle.textContent = `Manage ${sessionData.office} announcements and notifications`;
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading sub admin data:', error);
             }
-            window.location.href = '../index.html';
+        }
+
+        // Logout function
+        async function logout() {
+            const confirmed = confirm('Are you sure you want to logout?');
+            if (confirmed) {
+                try {
+                    await fetch('/subadmin/logout', {
+                        method: 'POST',
+                        credentials: 'include'
+                    });
+                } catch (err) {
+                    console.error('Logout error:', err);
+                } finally {
+                    window.location.href = '/sub-index';
+                }
+            }
         }
 
         // Global functions for modal operations
@@ -398,6 +820,634 @@
                 console.error('Announcement Manager not initialized or deleteAnnouncement method not found');
             }
         }
+
+// ========================================
+// SUB-ANNOUNCEMENTS SEARCH FUNCTIONALITY
+// ========================================
+
+const searchableContent = [
+    // Navigation Pages
+    { type: 'page', icon: 'fa-th-large', title: 'Dashboard', desc: 'Overview and statistics', action: () => window.location.href = `/sub-admin/dashboard?office=${window.authManager.getOfficeFromURL()}` },
+    { type: 'page', icon: 'fa-comments', title: 'Conversation Logs', desc: 'View chat history', action: () => window.location.href = `/sub-admin/conversations?office=${window.authManager.getOfficeFromURL()}` },
+    { type: 'page', icon: 'fa-question-circle', title: 'FAQ Management', desc: 'Manage frequently asked questions', action: () => window.location.href = `/sub-admin/faq?office=${window.authManager.getOfficeFromURL()}` },
+    { type: 'page', icon: 'fa-bullhorn', title: 'Announcements', desc: 'Manage office announcements', action: () => window.location.reload() },
+    { type: 'page', icon: 'fa-chart-bar', title: 'Usage Statistics', desc: 'Analyze usage patterns', action: () => window.location.href = `/sub-admin/usage?office=${window.authManager.getOfficeFromURL()}` },
+    { type: 'page', icon: 'fa-heart', title: 'User Feedback', desc: 'View user ratings and comments', action: () => window.location.href = `/sub-admin/feedback?office=${window.authManager.getOfficeFromURL()}` },
+    
+    // Announcement Actions
+    { type: 'action', icon: 'fa-plus', title: 'Add Announcement', desc: 'Create a new announcement', action: () => document.getElementById('add-announcement-btn')?.click() },
+    { type: 'action', icon: 'fa-edit', title: 'Edit Announcement', desc: 'Edit an existing announcement', action: () => alert('Select an announcement from the table to edit') },
+    { type: 'action', icon: 'fa-trash', title: 'Delete Announcement', desc: 'Remove an announcement', action: () => alert('Select an announcement from the table to delete') },
+    { type: 'info', icon: 'fa-search', title: 'Search Announcements', desc: 'Search by title or content', action: () => document.getElementById('searchInput')?.focus() },
+];
+
+function initializeSearch() {
+    const searchInput = document.getElementById('subAnnouncementsSearchInput');
+    if (!searchInput) return;
+    
+    searchInput.addEventListener('input', function(e) {
+        const query = e.target.value.trim().toLowerCase();
+        
+        if (query.length === 0) {
+            closeSearch();
+            return;
+        }
+        
+        if (query.length < 2) return;
+        
+        performSearch(query);
+    });
+    
+    searchInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeSearch();
+            searchInput.blur();
+        }
+    });
+    
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.header-search')) {
+            closeSearch();
+        }
+    });
+}
+
+function performSearch(query) {
+    const searchDropdown = document.getElementById('searchResultsDropdown');
+    const searchResultsList = document.getElementById('searchResultsList');
+    const searchCount = document.querySelector('.search-results-count');
+    
+    if (!searchDropdown || !searchResultsList) return;
+    
+    const results = searchableContent.filter(item => {
+        return item.title.toLowerCase().includes(query) || 
+               item.desc.toLowerCase().includes(query);
+    });
+    
+    if (searchCount) {
+        searchCount.textContent = results.length === 0 ? 'No results' : 
+            `${results.length} result${results.length !== 1 ? 's' : ''} found`;
+    }
+    
+    searchDropdown.style.display = 'block';
+    
+    if (results.length === 0) {
+        searchResultsList.innerHTML = `
+            <div class="search-no-results">
+                <i class="fas fa-search"></i>
+                <p>No results found for "${query}"</p>
+            </div>
+        `;
+    } else {
+        searchResultsList.innerHTML = results.map((item, index) => {
+            const highlightedTitle = highlightText(item.title, query);
+            const highlightedDesc = highlightText(item.desc, query);
+            
+            return `
+                <div class="search-result-item" onclick="handleSearchResultClick(event, ${index})">
+                    <div class="search-result-icon ${item.type}">
+                        <i class="fas ${item.icon}"></i>
+                    </div>
+                    <div class="search-result-content">
+                        <div class="search-result-title">${highlightedTitle}</div>
+                        <div class="search-result-desc">${highlightedDesc}</div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+}
+
+function handleSearchResultClick(event, index) {
+    event.stopPropagation();
+    const item = searchableContent[index];
+    
+    if (item && item.action) {
+        closeSearch();
+        document.getElementById('subAnnouncementsSearchInput').value = '';
+        item.action();
+    }
+}
+
+function highlightText(text, query) {
+    const regex = new RegExp(`(${escapeRegex(query)})`, 'gi');
+    return text.replace(regex, '<span class="search-highlight">$1</span>');
+}
+
+function escapeRegex(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function closeSearch() {
+    const searchDropdown = document.getElementById('searchResultsDropdown');
+    if (searchDropdown) {
+        searchDropdown.style.display = 'none';
+    }
+}
+
+// Initialize search when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeSearch);
+} else {
+    initializeSearch();
+}
     </script>
+
+<style>
+/* =============================================
+   SEARCH RESULTS DROPDOWN STYLES
+   ============================================= */
+
+.header-search {
+    position: relative;
+}
+
+.search-results-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    width: 500px;
+    max-height: 600px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    overflow: hidden;
+    z-index: 9999;
+    animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.search-results-header {
+    padding: 1rem 1.25rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.search-results-count {
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.search-close-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.search-close-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.search-results-list {
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.search-results-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.search-results-list::-webkit-scrollbar-track {
+    background: #f1f5f9;
+}
+
+.search-results-list::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+}
+
+.search-result-item {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #f1f5f9;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.search-result-item:hover {
+    background: #f8fafc;
+}
+
+.search-result-item:last-child {
+    border-bottom: none;
+}
+
+.search-result-icon {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    color: white;
+}
+
+.search-result-icon.page {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.search-result-icon.stat {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.search-result-icon.chart {
+    background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.search-result-icon.info {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+
+.search-result-icon.action {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+
+.search-result-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.search-result-title {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 0.25rem;
+}
+
+.search-result-desc {
+    font-size: 0.8125rem;
+    color: #64748b;
+    line-height: 1.4;
+}
+
+.search-no-results {
+    padding: 3rem 2rem;
+    text-align: center;
+    color: #94a3b8;
+}
+
+.search-no-results i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.search-no-results p {
+    margin: 0;
+    font-size: 0.9375rem;
+    font-weight: 500;
+}
+
+.search-highlight {
+    background: #fef3c7;
+    color: #92400e;
+    padding: 0.1rem 0.2rem;
+    border-radius: 3px;
+    font-weight: 600;
+}
+
+/* =============================================
+   SUB-ADMIN NOTIFICATION SYSTEM STYLES
+   ============================================= */
+
+/* Notification Bell Enhanced */
+.notification-bell {
+    position: relative;
+    cursor: pointer;
+}
+
+.notification-dot {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    width: 18px;
+    height: 18px;
+    background: #ef4444;
+    border-radius: 50%;
+    border: 2px solid white;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: white;
+}
+
+.notification-dot::after {
+    content: attr(data-count);
+}
+
+.notification-dropdown {
+    position: absolute;
+    top: calc(100% + 12px);
+    right: 0;
+    width: 380px;
+    max-height: 500px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.3s ease;
+    z-index: 9999;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.notification-dropdown.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.notification-header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #e2e8f0;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.notification-header h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0;
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.notification-header-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.notification-header-actions button {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    font-size: 0.875rem;
+}
+
+.notification-header-actions button:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.notification-list {
+    max-height: 400px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.notification-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.notification-list::-webkit-scrollbar-track {
+    background: #f1f5f9;
+}
+
+.notification-list::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+}
+
+.notification-item {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #f1f5f9;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.notification-item:hover {
+    background: #f8fafc;
+}
+
+.notification-item::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: transparent;
+    transition: background 0.2s ease;
+}
+
+.notification-item.notification-success::before {
+    background: #10b981;
+}
+
+.notification-item.notification-warning::before {
+    background: #f59e0b;
+}
+
+.notification-item.notification-danger::before {
+    background: #ef4444;
+}
+
+.notification-item.notification-info::before {
+    background: #3b82f6;
+}
+
+.notification-item.notification-primary::before {
+    background: #8b5cf6;
+}
+
+.notification-item .notification-icon {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    color: white;
+}
+
+.notification-success .notification-icon {
+    background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.notification-warning .notification-icon {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.notification-danger .notification-icon {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+
+.notification-info .notification-icon {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+
+.notification-primary .notification-icon {
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+}
+
+.notification-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.notification-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 0.25rem;
+    line-height: 1.4;
+}
+
+.notification-message {
+    font-size: 0.8125rem;
+    color: #64748b;
+    margin-bottom: 0.5rem;
+    line-height: 1.4;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.notification-time {
+    font-size: 0.75rem;
+    color: #94a3b8;
+}
+
+.notification-empty {
+    padding: 3rem 2rem;
+    text-align: center;
+    color: #94a3b8;
+}
+
+.notification-empty i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.notification-empty p {
+    margin: 0;
+    font-size: 0.9375rem;
+    font-weight: 500;
+}
+
+@media (max-width: 768px) {
+    .notification-dropdown {
+        position: fixed;
+        top: 60px;
+        right: 10px;
+        left: 10px;
+        width: auto;
+        max-height: 70vh;
+    }
+}
+</style>
+
+<script>
+// Mobile Sidebar Functions
+function toggleMobileSidebar() {
+    const sidebar = document.getElementById('subAnnouncementsSidebar');
+    const overlay = document.querySelector('.sidebar-overlay');
+    
+    sidebar.classList.toggle('show');
+    overlay.classList.toggle('show');
+    
+    // Prevent body scroll when sidebar is open
+    if (sidebar.classList.contains('show')) {
+        document.body.style.overflow = 'hidden';
+    } else {
+        document.body.style.overflow = '';
+    }
+}
+
+function closeMobileSidebar() {
+    const sidebar = document.getElementById('subAnnouncementsSidebar');
+    const overlay = document.querySelector('.sidebar-overlay');
+    
+    sidebar.classList.remove('show');
+    overlay.classList.remove('show');
+    document.body.style.overflow = '';
+}
+
+// Close sidebar when clicking on a navigation link on mobile
+document.addEventListener('DOMContentLoaded', function() {
+    const navLinks = document.querySelectorAll('.sidebar-nav a');
+    navLinks.forEach(link => {
+        link.addEventListener('click', function() {
+            if (window.innerWidth <= 768) {
+                closeMobileSidebar();
+            }
+        });
+    });
+
+    // Close sidebar on window resize if it becomes desktop size
+    window.addEventListener('resize', function() {
+        if (window.innerWidth > 768) {
+            closeMobileSidebar();
+        }
+    });
+});
+
+// Make functions globally accessible
+window.toggleMobileSidebar = toggleMobileSidebar;
+window.closeMobileSidebar = closeMobileSidebar;
+
+// Show mobile notification on mobile devices
+if (window.innerWidth <= 768 && !localStorage.getItem('mobileNotificationShown')) {
+    setTimeout(function() {
+        const notification = document.getElementById('mobileNotification');
+        if (notification) {
+            notification.style.display = 'block';
+            setTimeout(function() {
+                notification.style.display = 'none';
+                localStorage.setItem('mobileNotificationShown', 'true');
+            }, 4000);
+        }
+    }, 1000);
+}
+</script>
 </body>
 </html>

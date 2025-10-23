@@ -57,6 +57,15 @@ class EduChatApp {
             // Initialize toast notifications
             this.initializeToast();
             
+            // Initialize Bot Settings manager on settings page
+            if (window.location.pathname.includes('settings')) {
+                try {
+                    this.botSettingsManager = new BotSettingsManager();
+                } catch (e) {
+                    console.error('BotSettingsManager init failed:', e);
+                }
+            }
+
             // Determine current page and initialize accordingly
             const currentPage = this.getCurrentPage();
             

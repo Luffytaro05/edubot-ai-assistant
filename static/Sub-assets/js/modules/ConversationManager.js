@@ -1,369 +1,385 @@
+/**
+ * ConversationManager.js
+ * Handles fetching, rendering, and managing conversation logs per Sub Admin office
+ */
+
 class ConversationManager {
     constructor() {
-        this.storageManager = window.storageManager;
-        this.uiManager = window.uiManager;
-        this.conversations = [];
-        this.filteredConversations = [];
+        this.baseUrl = "/subadmin/conversations"; // Flask route
+        this.tableBody = document.getElementById("conversations-table-body");
+        this.searchInput = document.getElementById("conversationSearch");
+        this.loader = document.getElementById("conversationLoader"); // optional spinner element
+        this.currentPage = 1;
+        this.pageSize = 10;
+        this.totalItems = 0;
+        this.searchTimeout = null; // for debounce
+        this.subAdminName = null; // Store sub admin name
     }
 
-    initialize() {
-        this.loadConversations();
-        this.renderConversations();
-        this.initializeEventListeners();
-    }
+    async initialize() {
+        // Get sub admin info first
+        const user = await window.authManager.getCurrentUser();
+        if (user && user.name) {
+            this.subAdminName = user.name;
+        }
 
-    // Load conversations from storage
-    loadConversations() {
-        this.conversations = this.storageManager.getConversations();
-        this.filteredConversations = [...this.conversations];
-    }
+        await this.loadConversations();
 
-    // Initialize event listeners
-    initializeEventListeners() {
-        // Search functionality
-        const searchInput = document.getElementById('conversationSearch');
-        if (searchInput) {
-            searchInput.addEventListener('input', this.uiManager.debounce((e) => {
-                this.searchConversations(e.target.value);
-            }, 300));
+        // Debounced search for performance
+        if (this.searchInput) {
+            this.searchInput.addEventListener("input", () => {
+                clearTimeout(this.searchTimeout);
+                this.searchTimeout = setTimeout(() => {
+                    this.currentPage = 1;
+                    this.loadConversations(this.searchInput.value);
+                }, 400);
+            });
         }
     }
 
-    // Search conversations
-    searchConversations(searchTerm) {
-        if (!searchTerm.trim()) {
-            this.filteredConversations = [...this.conversations];
-        } else {
-            this.filteredConversations = this.conversations.filter(conversation => 
-                conversation.user.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                conversation.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                conversation.sentiment.toLowerCase().includes(searchTerm.toLowerCase())
-            );
-        }
-        this.renderConversations();
-    }
-
-    // Render conversations as cards
-    renderConversations() {
-        const container = document.getElementById('conversationsContainer');
-        if (!container) return;
-
-        if (this.filteredConversations.length === 0) {
-            container.innerHTML = `
-                <div class="text-center text-muted py-5">
-                    <i class="fas fa-comments fa-3x mb-3"></i>
-                    <h4>No conversations found</h4>
-                    <p>No conversation logs match your search criteria.</p>
-                </div>
-            `;
-            return;
-        }
-
-        container.innerHTML = this.filteredConversations.map(conversation => `
-            <div class="conversation-card mb-3">
-                <div class="conversation-card-body">
-                    <div class="conversation-header">
-                        <div class="conversation-user">
-                            <i class="fas fa-user-circle me-2"></i>
-                            <span>${conversation.user}</span>
-                        </div>
-                        <div class="conversation-time">
-                            Started: ${this.uiManager.formatDateTime(conversation.startTime)}
-                        </div>
-                    </div>
-                    
-                    <div class="conversation-details">
-                        <div class="conversation-info">
-                            <i class="fas fa-comments me-2"></i>
-                            <span>${conversation.messages} messages</span>
-                        </div>
-                        <div class="conversation-info">
-                            <i class="fas fa-clock me-2"></i>
-                            <span>Duration: ${conversation.duration}</span>
-                        </div>
-                    </div>
-                    
-                    <div class="conversation-badges">
-                        ${this.getSentimentBadge(conversation.sentiment)}
-                        ${conversation.escalated ? this.getEscalatedBadge() : ''}
-                    </div>
-                </div>
-            </div>
-        `).join('');
-    }
-
-    // Get sentiment badge
-    getSentimentBadge(sentiment) {
-        const badgeClass = sentiment === 'positive' ? 'badge-success' : 
-                          sentiment === 'negative' ? 'badge-danger' : 'badge-warning';
-        const badgeText = sentiment.charAt(0).toUpperCase() + sentiment.slice(1);
-        return `<span class="badge ${badgeClass}">${badgeText}</span>`;
-    }
-
-    // Get escalated badge
-    getEscalatedBadge() {
-        return `<span class="badge badge-danger ms-1">Escalated</span>`;
-    }
-
-    // View conversation details
-    viewConversation(id) {
-        const conversation = this.conversations.find(c => c.id === id);
-        if (!conversation) {
-            this.uiManager.showError('Conversation not found');
-            return;
-        }
-
-        // Populate view modal
-        document.getElementById('viewConversationUser').textContent = conversation.user;
-        document.getElementById('viewConversationStartTime').textContent = this.uiManager.formatDateTime(conversation.startTime);
-        document.getElementById('viewConversationMessages').textContent = conversation.messages;
-        document.getElementById('viewConversationDuration').textContent = conversation.duration;
-        document.getElementById('viewConversationCategory').textContent = conversation.category;
-        document.getElementById('viewConversationSentiment').innerHTML = this.uiManager.getSentimentBadge(conversation.sentiment);
-
-        // Show/hide escalated badge
-        const escalatedContainer = document.getElementById('viewConversationEscalatedContainer');
-        if (conversation.escalated) {
-            escalatedContainer.style.display = 'block';
-        } else {
-            escalatedContainer.style.display = 'none';
-        }
-
-        // Show modal
-        this.uiManager.showModal('viewConversationModal');
-    }
-
-    // Get conversation by ID
-    getConversationById(id) {
-        return this.conversations.find(c => c.id === id);
-    }
-
-    // Get conversations by sentiment
-    getConversationsBySentiment(sentiment) {
-        return this.conversations.filter(c => c.sentiment === sentiment);
-    }
-
-    // Get conversations by category
-    getConversationsByCategory(category) {
-        return this.conversations.filter(c => c.category === category);
-    }
-
-    // Get escalated conversations
-    getEscalatedConversations() {
-        return this.conversations.filter(c => c.escalated);
-    }
-
-    // Get conversations by date range
-    getConversationsByDateRange(startDate, endDate) {
-        return this.conversations.filter(conversation => {
-            const conversationDate = new Date(conversation.startTime);
-            return conversationDate >= new Date(startDate) && conversationDate <= new Date(endDate);
-        });
-    }
-
-    // Get recent conversations (last 7 days)
-    getRecentConversations() {
-        const sevenDaysAgo = new Date();
-        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-        
-        return this.conversations.filter(conversation => 
-            new Date(conversation.startTime) >= sevenDaysAgo
-        );
-    }
-
-    // Get today's conversations
-    getTodayConversations() {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        
-        return this.conversations.filter(conversation => {
-            const conversationDate = new Date(conversation.startTime);
-            return conversationDate >= today && conversationDate < tomorrow;
-        });
-    }
-
-    // Export conversations to CSV
-    exportConversations() {
-        const exportData = this.conversations.map(conversation => ({
-            User: conversation.user,
-            'Start Time': this.uiManager.formatDateTime(conversation.startTime),
-            Messages: conversation.messages,
-            Duration: conversation.duration,
-            Category: conversation.category,
-            Sentiment: conversation.sentiment,
-            Escalated: conversation.escalated ? 'Yes' : 'No'
-        }));
-
-        const success = this.uiManager.exportToCSV(exportData, 'conversations_export.csv');
-        
-        if (success) {
-            this.uiManager.showSuccess('Conversations exported successfully!');
-        } else {
-            this.uiManager.showError('Failed to export conversations');
-        }
-    }
-
-    // Get conversation statistics
-    getConversationStats() {
-        const total = this.conversations.length;
-        const positive = this.getConversationsBySentiment('positive').length;
-        const negative = this.getConversationsBySentiment('negative').length;
-        const neutral = this.getConversationsBySentiment('neutral').length;
-        const escalated = this.getEscalatedConversations().length;
-
-        // Calculate average messages per conversation
-        const totalMessages = this.conversations.reduce((sum, conv) => sum + conv.messages, 0);
-        const avgMessages = total > 0 ? Math.round(totalMessages / total) : 0;
-
-        // Calculate average duration
-        const durations = this.conversations.map(conv => {
-            const duration = conv.duration;
-            const match = duration.match(/(\d+)m (\d+)s/);
-            if (match) {
-                return parseInt(match[1]) * 60 + parseInt(match[2]);
+    async loadConversations(search = "") {
+        try {
+            const user = await window.authManager.getCurrentUser();
+            if (!user || !user.office) {
+                console.error("No Sub Admin office detected.");
+                return;
             }
-            return 0;
-        });
-        const avgDurationSeconds = durations.length > 0 ? durations.reduce((a, b) => a + b, 0) / durations.length : 0;
-        const avgDuration = `${Math.floor(avgDurationSeconds / 60)}m ${Math.round(avgDurationSeconds % 60)}s`;
 
-        return {
-            total,
-            positive,
-            negative,
-            neutral,
-            escalated,
-            avgMessages,
-            avgDuration,
-            positivePercentage: total > 0 ? Math.round((positive / total) * 100) : 0,
-            negativePercentage: total > 0 ? Math.round((negative / total) * 100) : 0,
-            neutralPercentage: total > 0 ? Math.round((neutral / total) * 100) : 0,
-            escalatedPercentage: total > 0 ? Math.round((escalated / total) * 100) : 0
-        };
+            if (this.loader) this.loader.style.display = "block";
+
+            const response = await fetch(
+                `${this.baseUrl}?office=${encodeURIComponent(user.office)}&page=${this.currentPage}&limit=${this.pageSize}&search=${encodeURIComponent(search)}`,
+                { credentials: "include" }
+            );
+
+            if (!response.ok) throw new Error("Failed to load conversations");
+
+            const data = await response.json();
+            
+            // Transform MongoDB data to match our structure
+            const transformedConversations = (data.conversations || []).map(conv => {
+                return {
+                    _id: conv._id,
+                    id: conv._id,
+                    user: conv.user || "Guest",
+                    sender: conv.sender || "unknown",
+                    message: conv.message || "",
+                    office: conv.office || "General",
+                    status: conv.status || "active",
+                    // Check multiple possible date fields from MongoDB
+                    date: conv.date || conv.timestamp || conv.created_at || conv.createdAt || conv.createdDate,
+                    email: conv.email || null
+                };
+            });
+
+            this.renderConversations(transformedConversations);
+            this.updatePagination(data.total || transformedConversations.length);
+
+        } catch (error) {
+            console.error("Error loading conversations:", error);
+            this.tableBody.innerHTML = `<tr><td colspan="5" class="text-center text-danger py-5">
+                <i class="fas fa-exclamation-circle fa-2x mb-3 d-block"></i>
+                <div>Failed to load conversations</div>
+                <small class="text-muted mt-2">${error.message}</small>
+            </td></tr>`;
+        } finally {
+            if (this.loader) this.loader.style.display = "none";
+        }
     }
 
-    // Get conversations by time of day
-    getConversationsByTimeOfDay() {
-        const timeSlots = {
-            '00:00-05:59': 0,
-            '06:00-11:59': 0,
-            '12:00-17:59': 0,
-            '18:00-23:59': 0
-        };
+    renderConversations(conversations) {
+        this.tableBody.innerHTML = "";
+        if (!conversations || conversations.length === 0) {
+            this.tableBody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-5">
+                <i class="fas fa-comments-slash fa-3x mb-3 d-block"></i>
+                <div class="fs-5">No conversations found</div>
+                <small class="text-muted">Conversations will appear here once users interact with the chatbot</small>
+            </td></tr>`;
+            return;
+        }
 
-        this.conversations.forEach(conversation => {
-            const hour = new Date(conversation.startTime).getHours();
-            if (hour >= 0 && hour < 6) {
-                timeSlots['00:00-05:59']++;
-            } else if (hour >= 6 && hour < 12) {
-                timeSlots['06:00-11:59']++;
-            } else if (hour >= 12 && hour < 18) {
-                timeSlots['12:00-17:59']++;
+        conversations.forEach(conversation => {
+            const row = document.createElement("tr");
+            row.className = "conversation-row";
+
+            // --- Sender handling ---
+            const sender = conversation.sender || "unknown";
+            const message = conversation.message || "";
+
+            // Map sender → label
+            let senderDisplay = "Unknown";
+            let senderClass = "unknown";
+            let senderIcon = "fa-question";
+
+            if (sender.toLowerCase() === "user") {
+                senderDisplay = "User";
+                senderClass = "user";
+                senderIcon = "fa-user";
+            } else if (sender.toLowerCase() === "bot") {
+                senderDisplay = "Bot Response";
+                senderClass = "bot";
+                senderIcon = "fa-robot";
+            }
+
+            // --- User column ---
+            let userDisplay = conversation.user || "Guest";
+            let userAvatarLetter = userDisplay.charAt(0).toUpperCase();
+            let userRoleDisplay = "";
+
+            if (sender.toLowerCase() === "bot") {
+                // Display "Guest" for bot responses
+                userDisplay = "Guest";
+                userAvatarLetter = "G";
+                userRoleDisplay = `<div class="user-role text-muted small"><i class="fas fa-robot me-1"></i>Bot Response</div>`;
             } else {
-                timeSlots['18:00-23:59']++;
+                // For user messages, show email if available
+                if (conversation.email) {
+                    userRoleDisplay = `<div class="user-email text-muted small"><i class="far fa-envelope me-1"></i>${conversation.email}</div>`;
+                }
             }
+
+            // Message truncation
+            const truncatedMessage = message.length > 150 ? message.substring(0, 150) + "..." : message;
+            const fullMessage = message.replace(/'/g, "&apos;").replace(/"/g, "&quot;");
+
+            row.innerHTML = `
+                <!-- User Column -->
+                <td class="user-column">
+                    <div class="d-flex align-items-center">
+                        <div class="user-avatar-circle ${senderClass}-avatar" style="width:40px;height:40px;min-width:40px;">
+                            ${userAvatarLetter}
+                        </div>
+                        <div class="ms-3">
+                            <div class="user-name-display fw-semibold">${userDisplay}</div>
+                            ${userRoleDisplay}
+                        </div>
+                    </div>
+                </td>
+
+                <!-- Message Column -->
+                <td class="message-column">
+                    <div class="message-wrapper ${senderClass}-message-wrapper">
+                        <div class="message-content" data-full-message="${fullMessage}">
+                            ${truncatedMessage}
+                        </div>
+                        ${message.length > 150 ? `
+                            <button class="btn btn-link btn-sm p-0 mt-1 toggle-message-btn" onclick="conversationManager.toggleMessage(this)">
+                                <i class="fas fa-chevron-down me-1"></i>Show more
+                            </button>
+                        ` : ''}
+                    </div>
+                </td>
+
+                <!-- Sender Column -->
+                <td class="sender-column text-center">
+                    <span class="badge sender-badge-${senderClass}">
+                        <i class="fas ${senderIcon} me-1"></i>
+                        ${senderDisplay}
+                    </span>
+                </td>
+
+                <!-- Date Column -->
+                <td class="date-column">
+                    <div class="date-info">
+                        <div class="date">
+                            <i class="far fa-calendar me-1"></i>
+                            ${this.formatDate(conversation.date || conversation.timestamp || conversation.created_at)}
+                        </div>
+                        <div class="time text-muted small">
+                            <i class="far fa-clock me-1"></i>
+                            ${this.formatTime(conversation.date || conversation.timestamp || conversation.created_at)}
+                        </div>
+                    </div>
+                </td>
+
+                <!-- Actions Column -->
+                <td class="actions-column">
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button class="btn btn-outline-primary" onclick="conversationManager.viewConversation('${conversation._id || conversation.id}')" title="View Details">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-outline-warning" onclick="conversationManager.escalateConversation('${conversation._id || conversation.id}')" title="Escalate">
+                            <i class="fas fa-flag"></i>
+                        </button>
+                        <button class="btn btn-outline-danger" onclick="conversationManager.deleteConversation('${conversation._id || conversation.id}')" title="Delete">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            `;
+
+            this.tableBody.appendChild(row);
         });
-
-        return timeSlots;
     }
 
-    // Get top conversation categories
-    getTopCategories() {
-        const categories = {};
-        this.conversations.forEach(conversation => {
-            categories[conversation.category] = (categories[conversation.category] || 0) + 1;
-        });
+    toggleMessage(button) {
+        const messageContent = button.parentElement.querySelector('.message-content');
+        const fullMessage = messageContent.getAttribute('data-full-message');
+        const isExpanded = button.classList.contains('expanded');
 
-        return Object.entries(categories)
-            .sort(([,a], [,b]) => b - a)
-            .slice(0, 5)
-            .map(([category, count]) => ({ category, count }));
+        if (isExpanded) {
+            messageContent.textContent = fullMessage.substring(0, 150) + "...";
+            button.innerHTML = '<i class="fas fa-chevron-down me-1"></i>Show more';
+            button.classList.remove('expanded');
+        } else {
+            messageContent.textContent = fullMessage;
+            button.innerHTML = '<i class="fas fa-chevron-up me-1"></i>Show less';
+            button.classList.add('expanded');
+        }
     }
 
-    // Get conversation trends (daily for last 7 days)
-    getConversationTrends() {
-        const trends = [];
-        const today = new Date();
-        
-        for (let i = 6; i >= 0; i--) {
-            const date = new Date(today);
-            date.setDate(date.getDate() - i);
-            const dateString = date.toISOString().split('T')[0];
-            
-            const dayConversations = this.conversations.filter(conversation => 
-                conversation.startTime.startsWith(dateString)
-            );
-            
-            trends.push({
-                date: this.uiManager.formatDate(dateString),
-                count: dayConversations.length,
-                positive: dayConversations.filter(c => c.sentiment === 'positive').length,
-                negative: dayConversations.filter(c => c.sentiment === 'negative').length,
-                neutral: dayConversations.filter(c => c.sentiment === 'neutral').length
-            });
-        }
-        
-        return trends;
-    }
+    async viewConversation(conversationId) {
+        try {
+            const response = await fetch(`${this.baseUrl}/${conversationId}`, { credentials: "include" });
+            if (!response.ok) throw new Error("Failed to fetch conversation details");
+            const conv = await response.json();
 
-    // Filter conversations by multiple criteria
-    filterConversations(filters = {}) {
-        let filtered = [...this.conversations];
+            // Fill modal fields with enhanced date formatting
+            document.getElementById("viewConversationUser").textContent = conv.user || "Anonymous";
+            document.getElementById("viewConversationStartTime").textContent = conv.start_time ? this.formatDateTime(conv.start_time) : "N/A";
+            document.getElementById("viewConversationMessages").textContent = conv.messages ? conv.messages.length : "0";
+            document.getElementById("viewConversationDuration").textContent = conv.duration || "N/A";
+            document.getElementById("viewConversationCategory").textContent = conv.category || "General";
+            document.getElementById("viewConversationSentiment").textContent = conv.sentiment || "Neutral";
 
-        if (filters.sentiment) {
-            filtered = filtered.filter(c => c.sentiment === filters.sentiment);
-        }
-
-        if (filters.category) {
-            filtered = filtered.filter(c => c.category === filters.category);
-        }
-
-        if (filters.escalated !== undefined) {
-            filtered = filtered.filter(c => c.escalated === filters.escalated);
-        }
-
-        if (filters.dateRange) {
-            filtered = filtered.filter(conversation => {
-                const conversationDate = new Date(conversation.startTime);
-                return conversationDate >= new Date(filters.dateRange.start) && 
-                       conversationDate <= new Date(filters.dateRange.end);
-            });
-        }
-
-        if (filters.minMessages) {
-            filtered = filtered.filter(c => c.messages >= filters.minMessages);
-        }
-
-        if (filters.maxMessages) {
-            filtered = filtered.filter(c => c.messages <= filters.maxMessages);
-        }
-
-        return filtered;
-    }
-
-    // Get conversation insights
-    getConversationInsights() {
-        const stats = this.getConversationStats();
-        const trends = this.getConversationTrends();
-        const categories = this.getTopCategories();
-        const timeSlots = this.getConversationsByTimeOfDay();
-
-        return {
-            stats,
-            trends,
-            categories,
-            timeSlots,
-            insights: {
-                peakHour: Object.entries(timeSlots).reduce((a, b) => timeSlots[a] > timeSlots[b] ? a : b)[0],
-                mostCommonCategory: categories[0]?.category || 'N/A',
-                satisfactionRate: stats.total > 0 ? Math.round((stats.positive / stats.total) * 100) : 0,
-                escalationRate: stats.total > 0 ? Math.round((stats.escalated / stats.total) * 100) : 0
+            const msgList = document.getElementById("viewConversationMessageList");
+            if (msgList) {
+                msgList.innerHTML = "";
+                (conv.messages || []).forEach(m => {
+                    const li = document.createElement("li");
+                    li.className = `list-group-item ${m.sender === "bot" ? "list-group-item-light" : ""}`;
+                    li.innerHTML = `<strong>${m.sender === "bot" ? "Bot Response" : "User"}:</strong> ${m.text}`;
+                    msgList.appendChild(li);
+                });
             }
-        };
+
+            document.getElementById("viewConversationEscalatedContainer").style.display = conv.escalated ? "block" : "none";
+
+            const modal = new bootstrap.Modal(document.getElementById("viewConversationModal"));
+            modal.show();
+        } catch (error) {
+            console.error("Error viewing conversation:", error);
+            alert("Unable to load conversation details.");
+        }
+    }
+
+    async escalateConversation(conversationId) {
+        if (confirm("Escalate this conversation to a higher authority?")) {
+            try {
+                // Add your escalation API call here
+                console.log("Escalated:", conversationId);
+                this.showToast("Success", "Conversation escalated successfully", "success");
+            } catch (error) {
+                console.error("Error escalating conversation:", error);
+                this.showToast("Error", "Failed to escalate conversation", "danger");
+            }
+        }
+    }
+
+    async deleteConversation(conversationId) {
+        if (confirm("Are you sure you want to delete this conversation? This action cannot be undone.")) {
+            try {
+                // Add your delete API call here
+                console.log("Deleted:", conversationId);
+                await this.loadConversations(this.searchInput?.value || "");
+                this.showToast("Success", "Conversation deleted successfully", "success");
+            } catch (error) {
+                console.error("Error deleting conversation:", error);
+                this.showToast("Error", "Failed to delete conversation", "danger");
+            }
+        }
+    }
+
+    showToast(title, message, type = "info") {
+        const toastEl = document.getElementById("toast");
+        const toastTitle = document.getElementById("toastTitle");
+        const toastMessage = document.getElementById("toastMessage");
+        
+        if (toastEl && toastTitle && toastMessage) {
+            toastTitle.textContent = title;
+            toastMessage.textContent = message;
+            toastEl.className = `toast bg-${type} text-white`;
+            const toast = new bootstrap.Toast(toastEl);
+            toast.show();
+        }
+    }
+
+    updatePagination(total) {
+        this.totalItems = total;
+        const startItem = (this.currentPage - 1) * this.pageSize + 1;
+        const endItem = Math.min(this.currentPage * this.pageSize, total);
+
+        document.getElementById("start-item").textContent = total > 0 ? startItem : 0;
+        document.getElementById("end-item").textContent = total > 0 ? endItem : 0;
+        document.getElementById("total-items").textContent = total;
+
+        document.getElementById("prev-btn").disabled = this.currentPage <= 1;
+        document.getElementById("next-btn").disabled = this.currentPage * this.pageSize >= total;
+    }
+
+    async nextPage() {
+        if (this.currentPage * this.pageSize < this.totalItems) {
+            this.currentPage++;
+            await this.loadConversations(this.searchInput?.value || "");
+        }
+    }
+
+    async previousPage() {
+        if (this.currentPage > 1) {
+            this.currentPage--;
+            await this.loadConversations(this.searchInput?.value || "");
+        }
+    }
+
+    // Helper functions for date/time formatting
+    formatDate(dateString) {
+        if (!dateString) {
+            console.log('formatDate: No date provided');
+            return 'N/A';
+        }
+        try {
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) {
+                console.log('formatDate: Invalid date:', dateString);
+                return 'Invalid Date';
+            }
+            return date.toLocaleDateString();
+        } catch (e) {
+            console.error('formatDate error:', e, dateString);
+            return 'Error';
+        }
+    }
+
+    formatTime(dateString) {
+        if (!dateString) {
+            return '';
+        }
+        try {
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) {
+                return '';
+            }
+            return date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        } catch (e) {
+            console.error('formatTime error:', e);
+            return '';
+        }
+    }
+
+    // Combined format for modal/detail views
+    formatDateTime(timestamp) {
+        if (!timestamp) return 'N/A';
+        try {
+            const date = new Date(timestamp);
+            if (isNaN(date.getTime())) {
+                return 'Invalid Date';
+            }
+            return date.toLocaleString();
+        } catch (e) {
+            console.error('formatDateTime error:', e);
+            return 'Error';
+        }
     }
 }
 
-// Initialize global conversation manager
 window.ConversationManager = ConversationManager;

@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -54,9 +55,9 @@
             
             <!-- User Profile at Bottom -->
             <div class="sidebar-user-profile">
-                <div class="user-avatar">A</div>
+                <div class="user-avatar">S</div>
                 <div class="user-details">
-                    <div class="user-name">Admin User</div>
+                    <div class="user-name">Super Admin</div>
                     <div class="user-role">Super Administrator</div>
                 </div>
             </div>
@@ -67,6 +68,9 @@
             <!-- Header -->
             <header class="header">
                 <div class="header-left">
+                    <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">
+                        <i class="fas fa-bars"></i>
+                    </button>
                     <div class="search-bar">
                         <i class="fas fa-search"></i>
                         <input type="text" placeholder="Search FAQs" class="search-input" data-search-type="faqs">
@@ -75,17 +79,47 @@
                 <div class="header-right">
                     <div class="notification-icon">
                         <i class="fas fa-bell"></i>
-                        <span class="notification-badge">3</span>
+                        <span class="notification-badge" style="display: none;">0</span>
                     </div>
-                    <div class="user-info">
-                        <div class="user-avatar">A</div>
-                        <div class="user-details">
-                            <div class="user-name">Admin User</div>
-                            <div class="user-role">Super Administrator</div>
+                    
+                    <!-- Notification Dropdown Panel -->
+                    <div class="notification-dropdown" id="notificationDropdown">
+                        <div class="notification-header">
+                            <h3><i class="fas fa-bell"></i> Notifications</h3>
+                            <div class="notification-header-actions">
+                                <button id="notificationRefreshBtn" title="Refresh notifications">
+                                    <i class="fas fa-sync-alt"></i>
+                                </button>
+                                <button id="notificationMarkAllReadBtn" title="Mark all as read">
+                                    <i class="fas fa-check-double"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="notification-list" id="notificationList">
+                            <div class="notification-empty">
+                                <i class="fas fa-bell-slash"></i>
+                                <p>Loading notifications...</p>
+                            </div>
                         </div>
                     </div>
-                    <div class="logout-icon" onclick="new AuthManager().logout().then(() => window.location.href='/admin/index')">
-                        <i class="fas fa-sign-out-alt"></i>
+                    
+                    <div class="user-info-dropdown">
+                        <div class="user-info" onclick="toggleUserDropdown()">
+                            <div class="user-avatar">S</div>
+                            <div class="user-details">
+                                <div class="user-name">Super Admin</div>
+                                <div class="user-role">Super Administrator</div>
+                            </div>
+                            <i class="fas fa-chevron-down dropdown-arrow"></i>
+                        </div>
+                        <div class="user-dropdown-menu" id="userDropdownMenu">
+                            <a href="javascript:void(0);" onclick="openChangePasswordModal()" class="dropdown-item">
+                                <i class="fas fa-key"></i> Change Password
+                            </a>
+                            <a href="javascript:void(0);" onclick="logout()" class="dropdown-item">
+                                <i class="fas fa-sign-out-alt"></i> Logout
+                            </a>
+                        </div>
                     </div>
                 </div>
             </header>
@@ -98,10 +132,6 @@
                         <p class="page-subtitle">Manage frequently asked questions and categories</p>
                     </div>
                     <div class="header-actions">
-                        <button class="btn btn-outline-primary" onclick="showAddCategoryModal()">
-                            <i class="fas fa-folder-plus"></i>
-                            Add Category
-                        </button>
                         <button class="btn btn-primary" onclick="showAddFAQModal()">
                             <i class="fas fa-plus"></i>
                             Add FAQ
@@ -119,57 +149,57 @@
                             <h4>All FAQs</h4>
                             <p>View all questions</p>
                         </div>
-                        <div class="category-count">25</div>
+                        <div class="category-count">0</div>
                     </div>
-                    <div class="category-card" data-office="Registrar">
+                    <div class="category-card" data-office="Registrar's Office">
                         <div class="category-icon">
                             <i class="fas fa-edit"></i>
                         </div>
                         <div class="category-info">
-                            <h4>Registrar</h4>
+                            <h4>Registrar's Office</h4>
                             <p>Registration & records</p>
                         </div>
-                        <div class="category-count">8</div>
+                        <div class="category-count">0</div>
                     </div>
-                    <div class="category-card" data-office="Admissions">
+                    <div class="category-card" data-office="Admission Office">
                         <div class="category-icon">
                             <i class="fas fa-graduation-cap"></i>
                         </div>
                         <div class="category-info">
-                            <h4>Admissions</h4>
+                            <h4>Admission Office</h4>
                             <p>Application process</p>
                         </div>
-                        <div class="category-count">6</div>
+                        <div class="category-count">0</div>
                     </div>
-                    <div class="category-card" data-office="Guidance">
+                    <div class="category-card" data-office="Guidance Office">
                         <div class="category-icon">
                             <i class="fas fa-dollar-sign"></i>
                         </div>
                         <div class="category-info">
-                            <h4>Guidance</h4>
+                            <h4>Guidance Office</h4>
                             <p>Financial aid & counseling</p>
                         </div>
-                        <div class="category-count">5</div>
+                        <div class="category-count">0</div>
                     </div>
-                    <div class="category-card" data-office="ICT Services">
+                    <div class="category-card" data-office="ICT Office">
                         <div class="category-icon">
                             <i class="fas fa-laptop"></i>
                         </div>
                         <div class="category-info">
-                            <h4>ICT Services</h4>
+                            <h4>ICT Office</h4>
                             <p>Technical support</p>
                         </div>
-                        <div class="category-count">4</div>
+                        <div class="category-count">0</div>
                     </div>
-                    <div class="category-card" data-office="Office of Student Affairs (OSA)">
+                    <div class="category-card" data-office="Office of the Student Affairs (OSA)">
                         <div class="category-icon">
                             <i class="fas fa-building"></i>
                         </div>
                         <div class="category-info">
-                            <h4>OSA</h4>
+                            <h4>Office of the Student Affairs(OSA)</h4>
                             <p>Student services</p>
                         </div>
-                        <div class="category-count">2</div>
+                        <div class="category-count">0</div>
                     </div>
                 </div>
 
@@ -181,6 +211,7 @@
                                 <th>Question</th>
                                 <th>Answer</th>
                                 <th>Office</th>
+                                <th>Source</th>
                                 <th>Status</th>
                                 <th>Actions</th>
                             </tr>
@@ -191,6 +222,55 @@
                     </table>
                 </div>
             </div>
+
+            <!-- Change Password Modal -->
+            <div id="changePasswordModal" class="modal-overlay">
+                <div class="modal-container">
+                    <div class="modal-header">
+                        <h3><i class="fas fa-key"></i> Change Password</h3>
+                        <button class="close-modal-btn" onclick="closeChangePasswordModal()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="changePasswordForm">
+                            <div class="form-group">
+                                <label for="currentPassword">Current Password</label>
+                                <div class="password-input-group">
+                                    <input type="password" id="currentPassword" class="form-control" placeholder="Enter current password" required>
+                                    <button type="button" class="toggle-password" onclick="togglePasswordVisibility('currentPassword')">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="newPassword">New Password</label>
+                                <div class="password-input-group">
+                                    <input type="password" id="newPassword" class="form-control" placeholder="Enter new password" required>
+                                    <button type="button" class="toggle-password" onclick="togglePasswordVisibility('newPassword')">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                                <small class="form-text">Password must be at least 8 characters long</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="confirmPassword">Confirm New Password</label>
+                                <div class="password-input-group">
+                                    <input type="password" id="confirmPassword" class="form-control" placeholder="Confirm new password" required>
+                                    <button type="button" class="toggle-password" onclick="togglePasswordVisibility('confirmPassword')">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" onclick="closeChangePasswordModal()">Cancel</button>
+                                <button type="submit" class="btn btn-primary">Change Password</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
         </main>
     </div>
 
@@ -207,11 +287,11 @@
                         <label for="add-faq-office">Office *</label>
                         <select id="add-faq-office" name="office" class="form-control" required>
                             <option value="">Select Office</option>
-                            <option value="Registrar">Registrar</option>
-                            <option value="Admissions">Admissions</option>
-                            <option value="Guidance">Guidance</option>
-                            <option value="ICT Services">ICT Services</option>
-                            <option value="Office of Student Affairs (OSA)">Office of Student Affairs (OSA)</option>
+                            <option value="Registrar's Office">Registrar's Office</option>
+                            <option value="Admission Office">Admission Office</option>
+                            <option value="Guidance Office">Guidance Office</option>
+                            <option value="ICT Office">ICT Office</option>
+                            <option value="Office of the Student Affairs (OSA)">Office of the Student Affairs (OSA)</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -255,7 +335,7 @@
                             <option value="Registrar">Registrar</option>
                             <option value="Admissions">Admissions</option>
                             <option value="Guidance">Guidance</option>
-                            <option value="ICT Services">ICT Services</option>
+                            <option value="ICT Office">ICT Office</option>
                             <option value="Office of Student Affairs (OSA)">Office of Student Affairs (OSA)</option>
                         </select>
                     </div>
@@ -283,316 +363,854 @@
         </div>
     </div>
 
-    <!-- Add Category Modal -->
-    <div class="modal" id="add-category-modal">
-        <div class="modal-content">
+    <!-- Version History Modal -->
+    <div class="modal" id="version-history-modal">
+        <div class="modal-content" style="max-width: 900px;">
             <div class="modal-header">
-                <h4>Add New Category</h4>
-                <button class="btn-close" onclick="closeModal('add-category-modal')">&times;</button>
+                <h4><i class="fas fa-history"></i> FAQ Version History</h4>
+                <button class="btn-close" onclick="closeModal('version-history-modal')">&times;</button>
             </div>
             <div class="modal-body">
-                <form id="add-category-form">
-                    <div class="form-group">
-                        <label for="add-category-name">Category Name</label>
-                        <input type="text" id="add-category-name" name="name" class="form-control" required>
+                <div id="version-history-content">
+                    <div class="loading-spinner">
+                        <i class="fas fa-spinner fa-spin"></i> Loading version history...
                     </div>
-                    <div class="form-group">
-                        <label for="add-category-description">Description</label>
-                        <input type="text" id="add-category-description" name="description" class="form-control" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="add-category-icon">Icon</label>
-                        <select id="add-category-icon" name="icon" class="form-control" required>
-                            <option value="fas fa-graduation-cap">Graduation Cap</option>
-                            <option value="fas fa-edit">Edit</option>
-                            <option value="fas fa-dollar-sign">Dollar Sign</option>
-                            <option value="fas fa-book">Book</option>
-                            <option value="fas fa-building">Building</option>
-                            <option value="fas fa-users">Users</option>
-                            <option value="fas fa-cog">Settings</option>
-                            <option value="fas fa-info-circle">Info Circle</option>
-                        </select>
-                    </div>
-                </form>
+                </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeModal('add-category-modal')">Cancel</button>
-                <button class="btn btn-primary" onclick="addCategory()">Add Category</button>
+                <button class="btn btn-secondary" onclick="closeModal('version-history-modal')">Close</button>
             </div>
         </div>
     </div>
+
+    <!-- Version Preview Modal -->
+    <div class="modal" id="version-preview-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4><i class="fas fa-eye"></i> Version Preview</h4>
+                <button class="btn-close" onclick="closeModal('version-preview-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="version-preview-content"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('version-preview-modal')">Close</button>
+            </div>
+        </div>
+    </div>
+
 
     <!-- Scripts -->
     <script src="{{ url_for('static', filename='assets/js/core/BaseManager.js') }}"></script>
     <script src="{{ url_for('static', filename='assets/js/modules/AuthManager.js') }}"></script>
     <script src="{{ url_for('static', filename='assets/js/modules/FAQManager.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/js/modules/NotificationManager.js') }}"></script>
     <script src="{{ url_for('static', filename='assets/js/utils/toast.js') }}"></script>
     <script src="{{ url_for('static', filename='assets/js/app.js') }}"></script>
+ <script>
+let currentOffice = 'all';
+let offices = [];
 
-    <script>
-        let faqManager;
-        let currentOffice = 'all';
+// Helper function to get authentication headers
+function getAuthHeaders() {
+    const token = localStorage.getItem('admin_token');
+    return {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+    };
+}
 
-        document.addEventListener('DOMContentLoaded', function() {
-            const authManager = new AuthManager();
-            if (!authManager.checkAuth()) {
-                window.location.href = '../index.html';
-                return;
-            }
+// Helper function to handle API responses and authentication errors
+async function handleApiResponse(response) {
+    if (response.status === 401) {
+        toast.error('Session expired. Please log in again.');
+        localStorage.clear();
+        window.location.href = '/';
+        return null;
+    }
+    return await response.json();
+}
+// Declare authManager globally so it's accessible in logout and other functions
+let authManager;
+let notificationManager;
 
-            faqManager = new FAQManager();
-            loadFAQs();
-            setupEventListeners();
+document.addEventListener('DOMContentLoaded', async function() {
+    authManager = new AuthManager();
+    
+    // Debug authentication status
+    console.log('Auth status:', authManager.isAuthenticated());
+    console.log('Token exists:', !!localStorage.getItem('admin_token'));
+    console.log('User:', authManager.getCurrentUser());
+    
+    if (!authManager.checkAuth()) {
+        console.log('Authentication failed, redirecting to login');
+        window.location.href = '/admin/index';
+        return;
+    }
+
+    // Initialize notification manager
+    notificationManager = new NotificationManager();
+    await notificationManager.initialize();
+
+    // Use default offices instead of loading from MongoDB
+    offices = [
+        { name: 'Registrar\'s Office', description: 'Registration & records', icon: 'fas fa-edit' },
+        { name: 'Admission Office', description: 'Application process', icon: 'fas fa-graduation-cap' },
+        { name: 'Guidance Office', description: 'Financial aid & counseling', icon: 'fas fa-dollar-sign' },
+        { name: 'ICT Office', description: 'Technical support', icon: 'fas fa-laptop' },
+        { name: 'Office of the Student Affairs (OSA)', description: 'Student services', icon: 'fas fa-building' }
+    ];
+    
+    populateOfficeDropdowns();
+    await loadFAQs();
+    setupEventListeners();
+});
+
+function setupEventListeners() {
+    // Office selection
+    document.querySelectorAll('.category-card').forEach(card => {
+        card.addEventListener('click', function() {
+            const office = this.dataset.office;
+            selectOffice(office);
         });
+    });
 
-        function setupEventListeners() {
-            // Office selection
-            document.querySelectorAll('.category-card').forEach(card => {
-                card.addEventListener('click', function() {
-                    const office = this.dataset.office;
-                    selectOffice(office);
-                });
-            });
-
-            // Search functionality
-            const searchInput = document.querySelector('.search-input');
-            searchInput.addEventListener('input', function() {
-                const query = this.value.trim();
-                if (query) {
-                    const filteredFAQs = faqManager.searchFAQs(query);
-                    renderFAQs(filteredFAQs);
-                } else {
-                    loadFAQs();
-                }
-            });
+    // Search functionality
+    const searchInput = document.querySelector('.search-input');
+    searchInput.addEventListener('input', async function() {
+        const query = this.value.trim();
+        if (query) {
+            await searchFAQs(query);
+        } else {
+            await loadFAQs();
         }
+    });
+}
 
-        function selectOffice(office) {
-            // Update active office card
-            document.querySelectorAll('.category-card').forEach(card => {
-                card.classList.remove('active');
-            });
-            document.querySelector(`[data-office="${office}"]`).classList.add('active');
 
-            currentOffice = office;
+
+function populateOfficeDropdowns() {
+    const addSelect = document.getElementById('add-faq-office');
+    const editSelect = document.getElementById('edit-faq-office');
+    addSelect.innerHTML = '<option value="">Select Office</option>';
+    editSelect.innerHTML = '<option value="">Select Office</option>';
+    offices.forEach(office => {
+        const option = `<option value="${office.name}">${office.name}</option>`;
+        addSelect.innerHTML += option;
+        editSelect.innerHTML += option;
+    });
+}
+
+async function loadFAQs() {
+    try {
+        console.log('Loading FAQs from API...');
+        const res = await fetch('/api/faqs', {
+            headers: getAuthHeaders()
+        });
+        const data = await handleApiResponse(res);
+        if (data && data.success) {
+            let allFaqs = data.faqs;
+            console.log('Received FAQs:', allFaqs.length);
+            console.log('Sample FAQ offices:', allFaqs.slice(0, 5).map(f => f.office));
+            
+            // Always update counts with all FAQs
+            updateOfficeCounts(allFaqs);
+            
+            // Filter for display if needed
+            let displayFaqs = allFaqs;
+            if (currentOffice !== 'all') {
+                displayFaqs = allFaqs.filter(f => f.office === currentOffice);
+                console.log(`Filtered to ${displayFaqs.length} FAQs for office: ${currentOffice}`);
+            }
+            renderFAQs(displayFaqs);
+        } else {
+            console.error('Failed to load FAQs: Invalid response', data);
+        }
+    } catch (err) {
+        console.error('Failed to load FAQs', err);
+    }
+}
+
+async function searchFAQs(query) {
+    try {
+        const res = await fetch('/api/faqs', {
+            headers: getAuthHeaders()
+        });
+        const data = await res.json();
+        if (data.success) {
+            let allFaqs = data.faqs;
+            // Always update counts with all FAQs
+            updateOfficeCounts(allFaqs);
+            
+            // Filter by search query
+            let searchResults = allFaqs.filter(f => 
+                f.question.toLowerCase().includes(query.toLowerCase()) ||
+                f.answer.toLowerCase().includes(query.toLowerCase())
+            );
+            
+            // Filter by office if needed
+            if (currentOffice !== 'all') {
+                searchResults = searchResults.filter(f => f.office === currentOffice);
+            }
+            
+            renderFAQs(searchResults);
+        }
+    } catch (err) {
+        console.error('Search failed', err);
+    }
+}
+
+function selectOffice(office) {
+    document.querySelectorAll('.category-card').forEach(card => card.classList.remove('active'));
+    const selectedCard = document.querySelector(`[data-office="${office}"]`);
+    if (selectedCard) selectedCard.classList.add('active');
+    currentOffice = office;
+    loadFAQs();
+}
+
+function renderFAQs(faqs) {
+    const tbody = document.getElementById('faqs-table-body');
+    tbody.innerHTML = '';
+    faqs.forEach(faq => {
+        const row = document.createElement('tr');
+        const source = faq.source || 'admin';
+        const sourceBadge = source === 'sub_admin' 
+            ? '<span class="source-badge sub-admin"><i class="fas fa-user"></i> Sub-Admin</span>' 
+            : '<span class="source-badge admin"><i class="fas fa-user-shield"></i> Admin</span>';
+        
+        row.innerHTML = `
+            <td><strong>${faq.question}</strong></td>
+            <td>${faq.answer.substring(0, 100)}${faq.answer.length > 100 ? '...' : ''}</td>
+            <td><span class="office-badge">${faq.office || 'Not Assigned'}</span></td>
+            <td>${sourceBadge}</td>
+            <td><span class="status-badge ${faq.status.toLowerCase()}">${faq.status}</span></td>
+            <td>
+                <div class="action-buttons">
+                    <button class="btn btn-sm btn-outline-info" onclick="viewFAQHistory('${faq._id}')" title="View History"><i class="fas fa-history"></i></button>
+                    <button class="btn btn-sm btn-outline-primary" onclick="editFAQ('${faq._id}')" title="Edit"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteFAQ('${faq._id}')" title="Delete"><i class="fas fa-trash"></i></button>
+                </div>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+function updateOfficeCounts(faqs) {
+    console.log('Updating office counts with', faqs.length, 'total FAQs');
+    
+    // Initialize counts for each office
+    const stats = { 
+        total: faqs.length, 
+        byOffice: {
+            'Registrar\'s Office': 0,
+            'Admission Office': 0,
+            'Guidance Office': 0,
+            'ICT Office': 0,
+            'Office of the Student Affairs (OSA)': 0
+        }
+    };
+    
+    // Count FAQs per office
+    faqs.forEach(faq => {
+        if (faq.office) {
+            if (stats.byOffice[faq.office] !== undefined) {
+                stats.byOffice[faq.office]++;
+            } else {
+                console.warn('Unknown office:', faq.office);
+            }
+        }
+    });
+    
+    console.log('Office stats:', stats);
+    
+    // Update "All FAQs" count
+    const allCountElem = document.querySelector('[data-office="all"] .category-count');
+    if (allCountElem) {
+        allCountElem.textContent = stats.total;
+    }
+    
+    // Update individual office counts
+    Object.keys(stats.byOffice).forEach(office => {
+        const elem = document.querySelector(`[data-office="${office}"] .category-count`);
+        if (elem) {
+            elem.textContent = stats.byOffice[office];
+            console.log(`Updated ${office}: ${stats.byOffice[office]}`);
+        } else {
+            console.warn(`Element not found for office: ${office}`);
+        }
+    });
+}
+
+// ---------------------
+// FAQ CRUD
+// ---------------------
+async function addFAQ() {
+    // Check authentication first
+    if (!authManager || !authManager.isAuthenticated()) {
+        toast.error('Please log in to add FAQs');
+        window.location.href = '/';
+        return;
+    }
+
+    const form = document.getElementById('add-faq-form');
+    const faqData = {
+        office: form.office.value,
+        question: form.question.value,
+        answer: form.answer.value,
+        status: form.status.value
+    };
+    if (!faqData.office || !faqData.question || !faqData.answer) {
+        toast.error('All fields are required');
+        return;
+    }
+    try {
+        const res = await fetch('/api/faqs', {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify(faqData)
+        });
+        const data = await handleApiResponse(res);
+        if (data && data.success) {
+            toast.success('FAQ added successfully');
+            closeModal('add-faq-modal');
+            form.reset();
             loadFAQs();
+        } else if (data) {
+            toast.error(data.message);
         }
+    } catch (err) { console.error(err); toast.error('Failed to add FAQ'); }
+}
 
-        function loadFAQs() {
-            let faqs;
-            
-            if (currentOffice === 'all') {
-                faqs = faqManager.getAll();
-            } else {
-                faqs = faqManager.getByOffice(currentOffice);
+async function editFAQ(id) {
+    try {
+        const res = await fetch('/api/faqs', {
+            headers: getAuthHeaders()
+        });
+        const data = await res.json();
+        const faq = data.faqs.find(f => f._id === id);
+        if (!faq) return toast.error('FAQ not found');
+        document.getElementById('edit-faq-id').value = faq._id;
+        document.getElementById('edit-faq-office').value = faq.office;
+        document.getElementById('edit-faq-question').value = faq.question;
+        document.getElementById('edit-faq-answer').value = faq.answer;
+        document.getElementById('edit-faq-status').value = faq.status;
+        document.getElementById('edit-faq-modal').style.display = 'flex';
+    } catch (err) { console.error(err); }
+}
+
+async function updateFAQ() {
+    const form = document.getElementById('edit-faq-form');
+    const faqId = form.id.value;
+    const updates = {
+        office: form.office.value,
+        question: form.question.value,
+        answer: form.answer.value,
+        status: form.status.value
+    };
+    if (!updates.office || !updates.question || !updates.answer) {
+        toast.error('All fields are required');
+        return;
+    }
+    try {
+        const res = await fetch(`/api/faqs/${faqId}`, {
+            method: 'PUT',
+            headers: getAuthHeaders(),
+            body: JSON.stringify(updates)
+        });
+        const data = await res.json();
+        if (data.success) {
+            toast.success('FAQ updated successfully');
+            closeModal('edit-faq-modal');
+            loadFAQs();
+        } else toast.error(data.message);
+    } catch (err) { console.error(err); toast.error('Failed to update FAQ'); }
+}
+
+async function deleteFAQ(id) {
+    if (!confirm('Are you sure you want to delete this FAQ?')) return;
+    try {
+        const res = await fetch(`/api/faqs/${id}`, { 
+            method: 'DELETE',
+            headers: getAuthHeaders()
+        });
+        const data = await res.json();
+        if (data.success) {
+            toast.success('FAQ deleted successfully');
+            loadFAQs();
+        } else toast.error(data.message);
+    } catch (err) { console.error(err); toast.error('Failed to delete FAQ'); }
+}
+
+
+
+function showAddFAQModal() { document.getElementById('add-faq-modal').style.display = 'flex'; document.getElementById('add-faq-form').reset(); }
+function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+// ========== VERSION HISTORY FUNCTIONS ==========
+
+async function viewFAQHistory(faqId) {
+    if (!faqId) return;
+    
+    // Show modal with loading state
+    const modal = document.getElementById('version-history-modal');
+    const content = document.getElementById('version-history-content');
+    modal.style.display = 'flex';
+    
+    content.innerHTML = '<div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> Loading version history...</div>';
+    
+    try {
+        const token = localStorage.getItem('admin_token');
+        const response = await fetch(`/api/faqs/${faqId}/versions`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
             }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success && data.versions && data.versions.length > 0) {
+            renderVersionHistory(data.versions, faqId);
+        } else if (data.versions && data.versions.length === 0) {
+            content.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-info-circle"></i>
+                    <p>No version history available for this FAQ yet.</p>
+                    <small>Version history is created when you edit an FAQ.</small>
+                </div>
+            `;
+        } else {
+            content.innerHTML = `
+                <div class="error-state">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <p>Failed to load version history.</p>
+                    <small>${data.message || 'Unknown error'}</small>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Error loading version history:', error);
+        content.innerHTML = `
+            <div class="error-state">
+                <i class="fas fa-exclamation-triangle"></i>
+                <p>Error loading version history.</p>
+                <small>${error.message}</small>
+            </div>
+        `;
+    }
+}
+
+function renderVersionHistory(versions, faqId) {
+    const content = document.getElementById('version-history-content');
+    
+    let html = `
+        <div class="version-history-table">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Version</th>
+                        <th>Question</th>
+                        <th>Edited By</th>
+                        <th>Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+    
+    versions.forEach(version => {
+        const date = new Date(version.timestamp).toLocaleString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+        
+        html += `
+            <tr>
+                <td><span class="version-badge">v${version.version_number}</span></td>
+                <td>${version.question.substring(0, 50)}${version.question.length > 50 ? '...' : ''}</td>
+                <td>${version.edited_by || 'admin'}</td>
+                <td>${date}</td>
+                <td>
+                    <div class="action-buttons">
+                        <button class="btn btn-sm btn-outline-info" onclick="previewVersion('${version._id}')" title="Preview">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-success" onclick="restoreVersion('${faqId}', ${version.version_number})" title="Restore">
+                            <i class="fas fa-undo"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    });
+    
+    html += `
+                </tbody>
+            </table>
+        </div>
+    `;
+    
+    content.innerHTML = html;
+}
+
+async function previewVersion(versionId) {
+    if (!versionId) return;
+    
+    try {
+        const token = localStorage.getItem('admin_token');
+        const response = await fetch(`/api/faqs/${versionId}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success && data.faq) {
+            showVersionPreview(data.faq);
+        } else {
+            toast.error('Failed to load version preview');
+        }
+    } catch (error) {
+        console.error('Error loading version preview:', error);
+        toast.error('Error loading version preview');
+    }
+}
+
+function showVersionPreview(version) {
+    const modal = document.getElementById('version-preview-modal');
+    const content = document.getElementById('version-preview-content');
+    
+    content.innerHTML = `
+        <div class="version-preview">
+            <div class="preview-field">
+                <label><strong>Office:</strong></label>
+                <p>${version.office || 'Not Assigned'}</p>
+            </div>
+            <div class="preview-field">
+                <label><strong>Question:</strong></label>
+                <p>${version.question}</p>
+            </div>
+            <div class="preview-field">
+                <label><strong>Answer:</strong></label>
+                <p>${version.answer}</p>
+            </div>
+            <div class="preview-field">
+                <label><strong>Status:</strong></label>
+                <p><span class="status-badge ${version.status.toLowerCase()}">${version.status}</span></p>
+            </div>
+        </div>
+    `;
+    
+    modal.style.display = 'flex';
+}
+
+async function restoreVersion(faqId, versionNumber) {
+    if (!faqId || !versionNumber) return;
+    
+    const confirmed = confirm(`Are you sure you want to restore this FAQ to version ${versionNumber}?\n\nThis will replace the current FAQ content with the selected version.`);
+    if (!confirmed) return;
+    
+    try {
+        const token = localStorage.getItem('admin_token');
+        const response = await fetch(`/api/faqs/${faqId}/rollback/${versionNumber}`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            toast.success(`Successfully restored FAQ to version ${versionNumber}`);
+            closeModal('version-history-modal');
+            loadFAQs(); // Reload FAQ list
+        } else {
+            toast.error(data.message || 'Failed to restore version');
+        }
+    } catch (error) {
+        console.error('Error restoring version:', error);
+        toast.error('Error restoring version');
+    }
+}
+
+// Toggle user dropdown menu
+function toggleUserDropdown() {
+    const dropdown = document.getElementById('userDropdownMenu');
+    const dropdownContainer = document.querySelector('.user-info-dropdown');
+    
+    dropdown.classList.toggle('show');
+    dropdownContainer.classList.toggle('active');
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(event) {
+    const dropdown = document.querySelector('.user-info-dropdown');
+    const dropdownMenu = document.getElementById('userDropdownMenu');
+    
+    if (dropdown && !dropdown.contains(event.target)) {
+        dropdownMenu.classList.remove('show');
+        dropdown.classList.remove('active');
+    }
+});
+
+// Change Password Modal Functions
+function openChangePasswordModal() {
+    document.getElementById('changePasswordModal').style.display = 'flex';
+    document.getElementById('changePasswordForm').reset();
+    document.getElementById('userDropdownMenu').classList.remove('show');
+    document.querySelector('.user-info-dropdown').classList.remove('active');
+}
+
+function closeChangePasswordModal() {
+    document.getElementById('changePasswordModal').style.display = 'none';
+    document.getElementById('changePasswordForm').reset();
+}
+
+function togglePasswordVisibility(inputId) {
+    const input = document.getElementById(inputId);
+    const button = input.nextElementSibling;
+    const icon = button.querySelector('i');
+    
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+    } else {
+        input.type = 'password';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const changePasswordForm = document.getElementById('changePasswordForm');
+    if (changePasswordForm) {
+        changePasswordForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
             
-            renderFAQs(faqs);
-        }
-
-        function renderFAQs(faqs) {
-            const tbody = document.getElementById('faqs-table-body');
-            tbody.innerHTML = '';
-
-            faqs.forEach(faq => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>
-                        <div class="question-cell">
-                            <strong>${faq.question}</strong>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="answer-cell">
-                            ${faq.answer.substring(0, 100)}${faq.answer.length > 100 ? '...' : ''}
-                        </div>
-                    </td>
-                    <td>
-                        <span class="office-badge">${faq.office || 'Not Assigned'}</span>
-                    </td>
-                    <td>
-                        <span class="status-badge ${faq.status.toLowerCase()}">${faq.status}</span>
-                    </td>
-                    <td>
-                        <div class="action-buttons">
-                            <button class="btn btn-sm btn-outline-primary" onclick="editFAQ('${faq.id}')" title="Edit">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-danger" onclick="deleteFAQ('${faq.id}')" title="Delete">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    </td>
-                `;
-                tbody.appendChild(row);
-            });
-        }
-
-
-
-        function showAddFAQModal() {
-            document.getElementById('add-faq-modal').style.display = 'flex';
-            document.getElementById('add-faq-form').reset();
-        }
-
-        function showAddCategoryModal() {
-            document.getElementById('add-category-modal').style.display = 'flex';
-            document.getElementById('add-category-form').reset();
-        }
-
-        function closeModal(modalId) {
-            document.getElementById(modalId).style.display = 'none';
-        }
-
-        function addFAQ() {
-            const form = document.getElementById('add-faq-form');
-            const formData = new FormData(form);
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
             
-            const faqData = {
-                office: formData.get('office'),
-                question: formData.get('question'),
-                answer: formData.get('answer'),
-                status: formData.get('status')
-            };
-
-            if (!faqData.office || !faqData.question || !faqData.answer) {
-                toast.error('All fields are required');
+            if (newPassword.length < 8) {
+                showToast('Password must be at least 8 characters long', 'error');
                 return;
             }
-
-            const result = faqManager.addFAQ(faqData);
             
-            if (result.success) {
-                toast.success('FAQ added successfully');
-                closeModal('add-faq-modal');
-                loadFAQs();
-                updateOfficeCounts();
-            } else {
-                toast.error(result.message);
-            }
-        }
-
-        function editFAQ(id) {
-            const faq = faqManager.getById(id);
-            if (!faq) {
-                toast.error('FAQ not found');
+            if (newPassword !== confirmPassword) {
+                showToast('New passwords do not match', 'error');
                 return;
             }
-
-            // Populate edit form
-            document.getElementById('edit-faq-id').value = faq.id;
-            document.getElementById('edit-faq-office').value = faq.office || '';
-            document.getElementById('edit-faq-question').value = faq.question;
-            document.getElementById('edit-faq-answer').value = faq.answer;
-            document.getElementById('edit-faq-status').value = faq.status;
-
-            document.getElementById('edit-faq-modal').style.display = 'flex';
-        }
-
-        function updateFAQ() {
-            const form = document.getElementById('edit-faq-form');
-            const formData = new FormData(form);
             
-            const faqId = formData.get('id');
-            const updates = {
-                office: formData.get('office'),
-                question: formData.get('question'),
-                answer: formData.get('answer'),
-                status: formData.get('status')
-            };
-
-            if (!updates.office || !updates.question || !updates.answer) {
-                toast.error('All fields are required');
+            if (currentPassword === newPassword) {
+                showToast('New password must be different from current password', 'error');
                 return;
             }
-
-            const result = faqManager.updateFAQ(faqId, updates);
             
-            if (result.success) {
-                toast.success('FAQ updated successfully');
-                closeModal('edit-faq-modal');
-                loadFAQs();
-                updateOfficeCounts();
-            } else {
-                toast.error(result.message);
-            }
-        }
+            try {
+                // Get the auth token
+                const token = authManager.getToken();
+                if (!token) {
+                    showToast('Please login again', 'error');
+                    return;
+                }
 
-        function deleteFAQ(id) {
-            if (confirm('Are you sure you want to delete this FAQ? This action cannot be undone.')) {
-                const result = faqManager.deleteFAQ(id);
+                const response = await fetch('/api/auth/change-password', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        currentPassword: currentPassword,
+                        newPassword: newPassword
+                    })
+                });
                 
-                if (result.success) {
-                    toast.success('FAQ deleted successfully');
-                    loadFAQs();
-                    updateOfficeCounts();
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showToast('Password changed successfully!', 'success');
+                    closeChangePasswordModal();
                 } else {
-                    toast.error(result.message);
+                    showToast(data.message || 'Failed to change password', 'error');
                 }
+            } catch (error) {
+                console.error('Error changing password:', error);
+                showToast('An error occurred while changing password', 'error');
             }
+        });
+    }
+});
+
+window.addEventListener('click', function(event) {
+    const modal = document.getElementById('changePasswordModal');
+    if (event.target === modal) {
+        closeChangePasswordModal();
+    }
+});
+
+// Show toast notification
+function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `alert alert-${type === 'error' ? 'danger' : type === 'success' ? 'success' : 'info'} alert-dismissible fade show`;
+    toast.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    toast.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
         }
+    }, 5000);
+}
 
-        function addCategory() {
-            const form = document.getElementById('add-category-form');
-            const formData = new FormData(form);
-            
-            const categoryData = {
-                name: formData.get('name'),
-                description: formData.get('description'),
-                icon: formData.get('icon')
-            };
-
-            if (!categoryData.name || !categoryData.description) {
-                toast.error('Name and description are required');
-                return;
-            }
-
-            const result = faqManager.addCategory(categoryData);
-            
-            if (result.success) {
-                toast.success('Category added successfully');
-                closeModal('add-category-modal');
-                // Refresh the page to show new category
-                location.reload();
-            } else {
-                toast.error(result.message);
-            }
+async function logout() {
+    // Show confirmation dialog
+    const confirmLogout = confirm('Are you sure you want to logout?');
+    
+    if (confirmLogout) {
+        try {
+            showToast('Logging out...', 'info');
+            await authManager.logout();
+            window.location.href = '/admin/index';
+        } catch (error) {
+            console.error('Logout error:', error);
+            showToast('Error during logout', 'error');
+            // Still redirect to login page even if logout fails
+            window.location.href = '/admin/index';
         }
+    }
+    // If user clicks "Cancel", do nothing and stay on the page
+}
 
-        function updateOfficeCounts() {
-            const stats = faqManager.getStats();
-            
-            // Update "All FAQs" count
-            document.querySelector('[data-office="all"] .category-count').textContent = stats.total;
-            
-            // Update office counts
-            Object.keys(stats.byOffice).forEach(office => {
-                const countElement = document.querySelector(`[data-office="${office}"] .category-count`);
-                if (countElement) {
-                    countElement.textContent = stats.byOffice[office];
-                }
-            });
+// Alternative logout function with custom modal (more styled)
+async function logoutWithModal() {
+    // Create custom modal
+    const modal = document.createElement('div');
+    modal.className = 'modal fade';
+    modal.id = 'logoutModal';
+    modal.innerHTML = `
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirm Logout</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to logout?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">No</button>
+                    <button type="button" class="btn btn-danger" id="confirmLogoutBtn">Yes, Logout</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Show modal
+    const bootstrapModal = new bootstrap.Modal(modal);
+    bootstrapModal.show();
+    
+    // Handle logout confirmation
+    document.getElementById('confirmLogoutBtn').addEventListener('click', async function() {
+        bootstrapModal.hide();
+        try {
+            showToast('Logging out...', 'info');
+            await authManager.logout();
+            window.location.href = '/admin/index';
+        } catch (error) {
+            console.error('Logout error:', error);
+            showToast('Error during logout', 'error');
+            window.location.href = '/admin/index';
         }
+    });
+    
+    // Clean up modal after it's hidden
+    modal.addEventListener('hidden.bs.modal', function() {
+        document.body.removeChild(modal);
+    });
+}
 
-        function logout() {
-            const authManager = new AuthManager();
-            authManager.logout();
-            window.location.href = '../index.html';
+window.showAddFAQModal = showAddFAQModal;
+window.closeModal = closeModal;
+window.addFAQ = addFAQ;
+window.editFAQ = editFAQ;
+window.updateFAQ = updateFAQ;
+window.deleteFAQ = deleteFAQ;
+window.logout = logout;
+window.viewFAQHistory = viewFAQHistory;
+window.previewVersion = previewVersion;
+window.restoreVersion = restoreVersion;
+
+// Mobile menu toggle
+function toggleMobileMenu() {
+    const sidebar = document.querySelector('.sidebar');
+    const overlay = document.querySelector('.sidebar-overlay');
+    
+    sidebar.classList.toggle('active');
+    
+    if (!overlay) {
+        const newOverlay = document.createElement('div');
+        newOverlay.className = 'sidebar-overlay';
+        newOverlay.onclick = toggleMobileMenu;
+        document.body.appendChild(newOverlay);
+        setTimeout(() => newOverlay.classList.add('active'), 10);
+    } else {
+        overlay.classList.toggle('active');
+        if (!overlay.classList.contains('active')) {
+            setTimeout(() => overlay.remove(), 300);
         }
+    }
+}
 
-        // Global functions
-        window.showAddFAQModal = showAddFAQModal;
-        window.showAddCategoryModal = showAddCategoryModal;
-        window.closeModal = closeModal;
-        window.addFAQ = addFAQ;
-        window.editFAQ = editFAQ;
-        window.updateFAQ = updateFAQ;
-        window.deleteFAQ = deleteFAQ;
-        window.addCategory = addCategory;
-        window.logout = logout;
-    </script>
+window.toggleMobileMenu = toggleMobileMenu;
+</script>
 
     <style>
+        /* Enhanced Search Styles */
+        .search-bar {
+            position: relative;
+        }
+        
+        .search-input {
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 0.75rem 1rem 0.75rem 2.5rem;
+            background: white;
+            font-size: 0.875rem;
+            min-width: 400px;
+            transition: all 0.3s ease;
+        }
+        
+        .search-input:focus {
+            outline: none;
+            min-width: 450px;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        .search-bar i {
+            position: absolute;
+            left: 1rem;
+            color: #64748b;
+            z-index: 1;
+        }
+        
         .sidebar-user-profile {
             position: absolute;
             bottom: 1.5rem;
@@ -640,6 +1258,14 @@
             display: flex;
             align-items: center;
             gap: 0.75rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 8px;
+            transition: background-color 0.2s;
+        }
+
+        .header .user-info:hover {
+            background-color: #f1f5f9;
         }
 
         .header .user-details {
@@ -658,6 +1284,254 @@
             font-size: 0.75rem;
             color: #64748b;
             margin: 0;
+        }
+
+        .user-info-dropdown {
+            position: relative;
+        }
+
+        .dropdown-arrow {
+            font-size: 0.75rem;
+            color: #64748b;
+            transition: transform 0.3s;
+        }
+
+        .user-info-dropdown.active .dropdown-arrow {
+            transform: rotate(180deg);
+        }
+
+        .user-dropdown-menu {
+            position: absolute;
+            top: calc(100% + 0.5rem);
+            right: 0;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            min-width: 200px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+            z-index: 1000;
+            overflow: hidden;
+        }
+
+        .user-dropdown-menu.show {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .user-dropdown-menu .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            color: #1e293b;
+            text-decoration: none;
+            transition: background-color 0.2s;
+            font-size: 0.875rem;
+        }
+
+        .user-dropdown-menu .dropdown-item:hover {
+            background-color: #f1f5f9;
+        }
+
+        .user-dropdown-menu .dropdown-item i {
+            font-size: 0.875rem;
+            width: 16px;
+            text-align: center;
+            color: #64748b;
+        }
+
+        /* Change Password Modal Styles */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-container {
+            background: white;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .modal-header h3 i {
+            color: #3b82f6;
+        }
+
+        .close-modal-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: #64748b;
+            cursor: pointer;
+            padding: 0.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .close-modal-btn:hover {
+            background-color: #f1f5f9;
+            color: #1e293b;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #1e293b;
+            font-size: 0.875rem;
+        }
+
+        .password-input-group {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .password-input-group .form-control {
+            flex: 1;
+            padding-right: 3rem;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.625rem 0.875rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .toggle-password {
+            position: absolute;
+            right: 0.75rem;
+            background: none;
+            border: none;
+            color: #64748b;
+            cursor: pointer;
+            padding: 0.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.2s;
+        }
+
+        .toggle-password:hover {
+            color: #1e293b;
+        }
+
+        .form-text {
+            display: block;
+            margin-top: 0.375rem;
+            font-size: 0.75rem;
+            color: #64748b;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75rem;
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .btn {
+            padding: 0.625rem 1.25rem;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-secondary {
+            background-color: #f1f5f9;
+            color: #475569;
+        }
+
+        .btn-secondary:hover {
+            background-color: #e2e8f0;
+        }
+
+        .btn-primary {
+            background-color: #3b82f6;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #2563eb;
         }
 
         .header-actions {
@@ -802,13 +1676,127 @@
             color: white;
         }
 
+        .source-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.025em;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .source-badge.admin {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .source-badge.sub-admin {
+            background: #f3e8ff;
+            color: #7c3aed;
+        }
+
+        .source-badge i {
+            font-size: 0.65rem;
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: capitalize;
+            letter-spacing: 0.025em;
+        }
+
+        .status-badge.published {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status-badge.draft {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        /* Mobile Menu Toggle Button */
+        .mobile-menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: #1e293b;
+            cursor: pointer;
+            padding: 0.5rem;
+            margin-right: 1rem;
+            border-radius: 8px;
+            transition: background-color 0.2s;
+        }
+        
+        .mobile-menu-toggle:hover {
+            background-color: #f1f5f9;
+        }
+        
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .sidebar-overlay.active {
+            opacity: 1;
+        }
+        
+        /* Mobile Responsive Styles */
+        @media (max-width: 1024px) {
+            .mobile-menu-toggle {
+                display: block;
+            }
+            
+            .sidebar-overlay {
+                display: block;
+            }
+            
+            .sidebar {
+                transform: translateX(-100%);
+                position: fixed;
+                z-index: 1000;
+                transition: transform 0.3s ease;
+                height: 100vh;
+                overflow-y: auto;
+            }
+            
+            .sidebar.active {
+                transform: translateX(0);
+            }
+            
+            .main-content {
+                margin-left: 0;
+                width: 100%;
+            }
+        }
+        
         @media (max-width: 768px) {
             .header-actions {
                 flex-direction: column;
+                width: 100%;
+            }
+            
+            .header-actions .btn {
+                width: 100%;
             }
 
             .faq-categories {
                 grid-template-columns: 1fr;
+                gap: 0.75rem;
             }
 
             .category-card {
@@ -818,6 +1806,175 @@
             .question-cell, .answer-cell {
                 max-width: none;
             }
+            
+            .table-container {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            
+            .table {
+                min-width: 800px;
+            }
+            
+            .header .user-info .user-details {
+                display: none;
+            }
+            
+            .search-bar {
+                width: 100%;
+            }
+            
+            .search-input {
+                width: 100%;
+                min-width: 100%;
+            }
+            
+            .page-header {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .page-content {
+                padding: 1rem;
+            }
+            
+            .page-title {
+                font-size: 1.5rem;
+            }
+            
+            .action-buttons {
+                flex-wrap: wrap;
+            }
+            
+            .action-buttons .btn {
+                flex: 1;
+                min-width: 80px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .category-card {
+                padding: 0.75rem;
+            }
+            
+            .category-icon {
+                width: 40px;
+                height: 40px;
+                font-size: 1rem;
+            }
+            
+            .category-info h4 {
+                font-size: 0.875rem;
+            }
+            
+            .category-info p {
+                font-size: 0.75rem;
+            }
+            
+            .modal-container {
+                width: 95%;
+            }
+            
+            .modal-header h3 {
+                font-size: 1rem;
+            }
+            
+            .form-group label {
+                font-size: 0.8rem;
+            }
+        }
+
+        /* Version History Styles */
+        .version-history-table {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .version-badge {
+            background: #3b82f6;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .loading-spinner, .empty-state, .error-state {
+            text-align: center;
+            padding: 3rem 2rem;
+        }
+
+        .loading-spinner i, .empty-state i, .error-state i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        .loading-spinner i {
+            color: #3b82f6;
+        }
+
+        .empty-state i {
+            color: #94a3b8;
+        }
+
+        .error-state i {
+            color: #ef4444;
+        }
+
+        .empty-state p, .error-state p {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .empty-state small, .error-state small {
+            color: #64748b;
+        }
+
+        .version-preview {
+            padding: 1rem;
+        }
+
+        .preview-field {
+            margin-bottom: 1.5rem;
+        }
+
+        .preview-field label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #1e293b;
+            font-size: 0.875rem;
+        }
+
+        .preview-field p {
+            background: #f8fafc;
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            margin: 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .btn-outline-info {
+            color: #0ea5e9;
+            border-color: #0ea5e9;
+        }
+
+        .btn-outline-info:hover {
+            background-color: #0ea5e9;
+            color: white;
+        }
+
+        .btn-outline-success {
+            color: #10b981;
+            border-color: #10b981;
+        }
+
+        .btn-outline-success:hover {
+            background-color: #10b981;
+            color: white;
         }
     </style>
 </body>

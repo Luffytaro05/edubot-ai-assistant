@@ -17,46 +17,45 @@
                 <h3>EduChat Admin</h3>
             </div>
             <nav class="sidebar-nav">
-    <ul>
-        <li class="{% if active_page == 'dashboard' %}active{% endif %}">
-            <a href="{{ url_for('dashboard') }}"><i class="fas fa-th-large"></i> Dashboard</a>
-        </li>
-        
-        <li class="section-header">USER MANAGEMENT</li>
-        <li class="{% if active_page == 'users' %}active{% endif %}">
-            <a href="{{ url_for('users') }}"><i class="fas fa-users"></i> User Accounts</a>
-        </li>
-        <li class="{% if active_page == 'roles' %}active{% endif %}">
-            <a href="{{ url_for('roles') }}"><i class="fas fa-user-shield"></i> Roles & Permissions</a>
-        </li>
-        
-        <li class="section-header">CHATBOT MANAGEMENT</li>
-        <li class="{% if active_page == 'conversations' %}active{% endif %}">
-            <a href="{{ url_for('conversations') }}"><i class="fas fa-comments"></i> Conversation Logs</a>
-        </li>
-        <li class="{% if active_page == 'faq' %}active{% endif %}">
-            <a href="{{ url_for('faq') }}"><i class="fas fa-question-circle"></i> FAQ Management</a>
-        </li>
-        <li class="{% if active_page == 'settings' %}active{% endif %}">
-            <a href="{{ url_for('settings') }}"><i class="fas fa-cog"></i> Bot Settings</a>
-        </li>
-        
-        <li class="section-header">ANALYTICS</li>
-        <li class="{% if active_page == 'usage' %}active{% endif %}">
-            <a href="{{ url_for('usage') }}"><i class="fas fa-chart-bar"></i> Usage Statistics</a>
-        </li>
-        <li class="{% if active_page == 'feedback' %}active{% endif %}">
-            <a href="{{ url_for('feedback') }}"><i class="fas fa-heart"></i> User Feedback</a>
-        </li>
-    </ul>
-</nav>
-
+                <ul>
+                    <li class="{% if active_page == 'dashboard' %}active{% endif %}">
+                        <a href="{{ url_for('dashboard') }}"><i class="fas fa-th-large"></i> Dashboard</a>
+                    </li>
+                    
+                    <li class="section-header">USER MANAGEMENT</li>
+                    <li class="{% if active_page == 'users' %}active{% endif %}">
+                        <a href="{{ url_for('users') }}"><i class="fas fa-users"></i> User Accounts</a>
+                    </li>
+                    <li class="{% if active_page == 'roles' %}active{% endif %}">
+                        <a href="{{ url_for('roles') }}"><i class="fas fa-user-shield"></i> Roles & Permissions</a>
+                    </li>
+                    
+                    <li class="section-header">CHATBOT MANAGEMENT</li>
+                    <li class="{% if active_page == 'conversations' %}active{% endif %}">
+                        <a href="{{ url_for('conversations') }}"><i class="fas fa-comments"></i> Conversation Logs</a>
+                    </li>
+                    <li class="{% if active_page == 'faq' %}active{% endif %}">
+                        <a href="{{ url_for('faq') }}"><i class="fas fa-question-circle"></i> FAQ Management</a>
+                    </li>
+                    <li class="{% if active_page == 'settings' %}active{% endif %}">
+                        <a href="{{ url_for('settings') }}"><i class="fas fa-cog"></i> Bot Settings</a>
+                    </li>
+                    
+                    <li class="section-header">ANALYTICS</li>
+                    <li class="{% if active_page == 'usage' %}active{% endif %}">
+                        <a href="{{ url_for('usage') }}"><i class="fas fa-chart-bar"></i> Usage Statistics</a>
+                    </li>
+                    <li class="{% if active_page == 'feedback' %}active{% endif %}">
+                        <a href="{{ url_for('feedback') }}"><i class="fas fa-heart"></i> User Feedback</a>
+                    </li>
+                </ul>
+            </nav>
             
             <!-- User Profile at Bottom -->
             <div class="sidebar-user-profile">
-                <div class="user-avatar">A</div>
+                <div class="user-avatar">S</div>
                 <div class="user-details">
-                    <div class="user-name">Admin User</div>
+                    <div class="user-name">Super Admin</div>
                     <div class="user-role">Super Administrator</div>
                 </div>
             </div>
@@ -67,25 +66,58 @@
             <!-- Header -->
             <header class="header">
                 <div class="header-left">
+                    <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">
+                        <i class="fas fa-bars"></i>
+                    </button>
                     <div class="search-bar">
                         <i class="fas fa-search"></i>
-                        <input type="text" placeholder="Search" class="search-input" data-search-type="roles">
+                        <input type="text" placeholder="Search sub-admins..." class="search-input" data-search-type="sub-admins">
                     </div>
                 </div>
                 <div class="header-right">
                     <div class="notification-icon">
                         <i class="fas fa-bell"></i>
-                        <span class="notification-badge">3</span>
+                        <span class="notification-badge" style="display: none;">0</span>
                     </div>
-                    <div class="user-info">
-                        <div class="user-avatar">A</div>
-                        <div class="user-details">
-                            <div class="user-name">Admin User</div>
-                            <div class="user-role">Super Administrator</div>
+                    
+                    <!-- Notification Dropdown Panel -->
+                    <div class="notification-dropdown" id="notificationDropdown">
+                        <div class="notification-header">
+                            <h3><i class="fas fa-bell"></i> Notifications</h3>
+                            <div class="notification-header-actions">
+                                <button id="notificationRefreshBtn" title="Refresh notifications">
+                                    <i class="fas fa-sync-alt"></i>
+                                </button>
+                                <button id="notificationMarkAllReadBtn" title="Mark all as read">
+                                    <i class="fas fa-check-double"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="notification-list" id="notificationList">
+                            <div class="notification-empty">
+                                <i class="fas fa-bell-slash"></i>
+                                <p>Loading notifications...</p>
+                            </div>
                         </div>
                     </div>
-                    <div class="logout-icon" onclick="new AuthManager().logout().then(() => window.location.href='/admin/index')">
-                        <i class="fas fa-sign-out-alt"></i>
+                    
+                    <div class="user-info-dropdown">
+                        <div class="user-info" onclick="toggleUserDropdown()">
+                            <div class="user-avatar">S</div>
+                            <div class="user-details">
+                                <div class="user-name">Super Admin</div>
+                                <div class="user-role">Super Administrator</div>
+                            </div>
+                            <i class="fas fa-chevron-down dropdown-arrow"></i>
+                        </div>
+                        <div class="user-dropdown-menu" id="userDropdownMenu">
+                            <a href="javascript:void(0);" onclick="openChangePasswordModal()" class="dropdown-item">
+                                <i class="fas fa-key"></i> Change Password
+                            </a>
+                            <a href="javascript:void(0);" onclick="logout()" class="dropdown-item">
+                                <i class="fas fa-sign-out-alt"></i> Logout
+                            </a>
+                        </div>
                     </div>
                 </div>
             </header>
@@ -95,142 +127,158 @@
                 <div class="page-header">
                     <div>
                         <h1 class="page-title">Roles & Permissions</h1>
-                        <p class="page-subtitle">Manage user roles and their associated permissions.</p>
+                        <p class="page-subtitle">Manage sub-admin access permissions to specific pages and features.</p>
                     </div>
-                    <button class="btn btn-primary" onclick="showAddRoleModal()">
-                        <i class="fas fa-plus"></i>
-                        + Add Role
+                    <button class="btn btn-primary" onclick="saveAllChanges()" id="save-changes-btn" disabled>
+                        <i class="fas fa-save"></i>
+                        Save Changes
                     </button>
                 </div>
 
-                <!-- Role Cards -->
-                <div class="role-cards" id="role-cards">
-                    <!-- Role cards will be populated here -->
+                <!-- Sub-Admins Table -->
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Sub-Admin</th>
+                                <th>Office</th>
+                                <th>Dashboard</th>
+                                <th>Conversations</th>
+                                <th>FAQ</th>
+                                <th>Announcements</th>
+                                <th>Usage Stats</th>
+                                <th>Feedback</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sub-admins-table-body">
+                            <!-- Sub-admins will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- No Data Message -->
+                <div id="no-data-message" class="no-data-message" style="display: none;">
+                    <div class="no-data-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <h3>No Sub-Admins Found</h3>
+                    <p>No sub-admin users have been created yet. Create sub-admin accounts first in the User Management section.</p>
+                    <a href="{{ url_for('users') }}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i>
+                        Create Sub-Admin
+                    </a>
                 </div>
             </div>
+
+            <!-- Change Password Modal -->
+            <div id="changePasswordModal" class="modal-overlay">
+                <div class="modal-container">
+                    <div class="modal-header">
+                        <h3><i class="fas fa-key"></i> Change Password</h3>
+                        <button class="close-modal-btn" onclick="closeChangePasswordModal()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="changePasswordForm">
+                            <div class="form-group">
+                                <label for="currentPassword">Current Password</label>
+                                <div class="password-input-group">
+                                    <input type="password" id="currentPassword" class="form-control" placeholder="Enter current password" required>
+                                    <button type="button" class="toggle-password" onclick="togglePasswordVisibility('currentPassword')">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="newPassword">New Password</label>
+                                <div class="password-input-group">
+                                    <input type="password" id="newPassword" class="form-control" placeholder="Enter new password" required>
+                                    <button type="button" class="toggle-password" onclick="togglePasswordVisibility('newPassword')">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                                <small class="form-text">Password must be at least 8 characters long</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="confirmPassword">Confirm New Password</label>
+                                <div class="password-input-group">
+                                    <input type="password" id="confirmPassword" class="form-control" placeholder="Confirm new password" required>
+                                    <button type="button" class="toggle-password" onclick="togglePasswordVisibility('confirmPassword')">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" onclick="closeChangePasswordModal()">Cancel</button>
+                                <button type="submit" class="btn btn-primary">Change Password</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
         </main>
     </div>
 
-    <!-- Add Role Modal -->
-    <div class="modal" id="add-role-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h4>Add New Role</h4>
-                <button class="btn-close" onclick="closeModal('add-role-modal')">&times;</button>
-            </div>
-            <div class="modal-body">
-                <form id="add-role-form">
-                    <div class="form-group">
-                        <label for="add-office">Office</label>
-                        <select id="add-office" name="office" class="form-control" required>
-                            <option value="">Select Office</option>
-                            <option value="Registrar">Registrar</option>
-                            <option value="Admissions">Admissions</option>
-                            <option value="Guidance">Guidance</option>
-                            <option value="ICT Services">ICT Services</option>
-                            <option value="Office of Student Affairs (OSA)">Office of Student Affairs (OSA)</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="add-permission">Permission</label>
-                        <div class="permission-input-group">
-                            <select id="add-permission" name="permission" class="form-control">
-                                <option value="">Select Permission</option>
-                                <option value="Access Dashboard">Access Dashboard</option>
-                                <option value="Conversation Logs">Conversation Logs</option>
-                                <option value="FAQ Management">FAQ Management</option>
-                                <option value="Announcements">Announcements</option>
-                                <option value="Usage Statistics">Usage Statistics</option>
-                                <option value="User Feedback">User Feedback</option>
-                            </select>
-                            <button type="button" class="btn btn-outline-primary" onclick="addPermission()">
-                                <i class="fas fa-plus"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="permissions-list" id="permissions-list">
-                        <!-- Permissions will be added here -->
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeModal('add-role-modal')">Cancel</button>
-                <button class="btn btn-primary" onclick="addRole()">Save</button>
-            </div>
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay" style="display: none;">
+        <div class="loading-spinner">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Loading sub-admin permissions...</p>
         </div>
     </div>
 
-    <!-- Edit Role Modal -->
-    <div class="modal" id="edit-role-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h4>Edit Role</h4>
-                <button class="btn-close" onclick="closeModal('edit-role-modal')">&times;</button>
-            </div>
-            <div class="modal-body">
-                <form id="edit-role-form">
-                    <input type="hidden" id="edit-role-id" name="id">
-                    <div class="form-group">
-                        <label for="edit-office">Office</label>
-                        <select id="edit-office" name="office" class="form-control" required>
-                            <option value="">Select Office</option>
-                            <option value="Registrar">Registrar</option>
-                            <option value="Admissions">Admissions</option>
-                            <option value="Guidance">Guidance</option>
-                            <option value="ICT Services">ICT Services</option>
-                            <option value="Office of Student Affairs (OSA)">Office of Student Affairs (OSA)</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="edit-permission">Permission</label>
-                        <div class="permission-input-group">
-                            <select id="edit-permission" name="permission" class="form-control">
-                                <option value="">Select Permission</option>
-                                <option value="Access Dashboard">Access Dashboard</option>
-                                <option value="Conversation Logs">Conversation Logs</option>
-                                <option value="FAQ Management">FAQ Management</option>
-                                <option value="Announcements">Announcements</option>
-                                <option value="Usage Statistics">Usage Statistics</option>
-                                <option value="User Feedback">User Feedback</option>
-                            </select>
-                            <button type="button" class="btn btn-outline-primary" onclick="addEditPermission()">
-                                <i class="fas fa-plus"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="permissions-list" id="edit-permissions-list">
-                        <!-- Permissions will be added here -->
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeModal('edit-role-modal')">Cancel</button>
-                <button class="btn btn-primary" onclick="updateRole()">Save</button>
-            </div>
-        </div>
-    </div>
+    <!-- Success/Error Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
 
     <!-- Scripts -->
     <script src="{{ url_for('static', filename='assets/js/core/BaseManager.js') }}"></script>
     <script src="{{ url_for('static', filename='assets/js/modules/AuthManager.js') }}"></script>
     <script src="{{ url_for('static', filename='assets/js/modules/RoleManager.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/js/modules/NotificationManager.js') }}"></script>
     <script src="{{ url_for('static', filename='assets/js/utils/toast.js') }}"></script>
     <script src="{{ url_for('static', filename='assets/js/app.js') }}"></script>
-
     <script>
         let roleManager;
-        let currentPermissions = [];
-        let editPermissions = [];
+        let notificationManager;
+        let currentSubAdmins = [];
+        let hasUnsavedChanges = false;
 
-        document.addEventListener('DOMContentLoaded', function() {
+        // Available permissions
+        const AVAILABLE_PERMISSIONS = [
+            'dashboard',
+            'conversations', 
+            'faq',
+            'announcements',
+            'usage',
+            'feedback'
+        ];
+
+        // Permission labels for display
+        const PERMISSION_LABELS = {
+            'dashboard': 'Dashboard',
+            'conversations': 'Conversations',
+            'faq': 'FAQ',
+            'announcements': 'Announcements',
+            'usage': 'Usage Stats',
+            'feedback': 'Feedback'
+        };
+
+        document.addEventListener('DOMContentLoaded', async function() {
             const authManager = new AuthManager();
             if (!authManager.checkAuth()) {
-                window.location.href = '../index.html';
+                window.location.href = '/admin/index';
                 return;
             }
 
+            // Initialize notification manager
+            notificationManager = new NotificationManager();
+            await notificationManager.initialize();
+
             roleManager = new RoleManager();
-            loadRoles();
+            await loadSubAdmins();
             setupEventListeners();
         });
 
@@ -238,234 +286,427 @@
             // Search functionality
             const searchInput = document.querySelector('.search-input');
             searchInput.addEventListener('input', function() {
-                const query = this.value.trim();
+                const query = this.value.trim().toLowerCase();
                 if (query) {
-                    const filteredRoles = roleManager.searchRoles(query);
-                    renderRoleCards(filteredRoles);
+                    const filteredSubAdmins = currentSubAdmins.filter(subAdmin => 
+                        subAdmin.name.toLowerCase().includes(query) ||
+                        subAdmin.email.toLowerCase().includes(query) ||
+                        subAdmin.office.toLowerCase().includes(query)
+                    );
+                    renderSubAdminsTable(filteredSubAdmins);
                 } else {
-                    loadRoles();
+                    renderSubAdminsTable(currentSubAdmins);
+                }
+            });
+
+            // Save button state management
+            const saveBtn = document.getElementById('save-changes-btn');
+            saveBtn.addEventListener('click', saveAllChanges);
+
+            // Auto-save warning
+            window.addEventListener('beforeunload', function(e) {
+                if (hasUnsavedChanges) {
+                    e.preventDefault();
+                    e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
                 }
             });
         }
 
-        function loadRoles() {
-            const roles = roleManager.getAll();
-            renderRoleCards(roles);
-        }
-
-        function renderRoleCards(roles) {
-            const container = document.getElementById('role-cards');
-            container.innerHTML = '';
-
-            roles.forEach(role => {
-                const card = document.createElement('div');
-                card.className = 'role-card';
+        async function loadSubAdmins() {
+            try {
+                showLoading(true);
+                const result = await roleManager.getAllSubAdmins();
                 
-                card.innerHTML = `
-                    <div class="role-card-header">
-                        <div class="role-icon">
-                            <i class="fas fa-user-shield"></i>
+                if (result.success) {
+                    currentSubAdmins = result.subAdmins || [];
+                    renderSubAdminsTable(currentSubAdmins);
+                    
+                    if (currentSubAdmins.length === 0) {
+                        showNoDataMessage(true);
+                    } else {
+                        showNoDataMessage(false);
+                    }
+                } else {
+                    showToast('Failed to load sub-admins: ' + result.message, 'error');
+                    showNoDataMessage(true);
+                }
+            } catch (error) {
+                console.error('Error loading sub-admins:', error);
+                showToast('Error loading sub-admins. Please try again.', 'error');
+                showNoDataMessage(true);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function renderSubAdminsTable(subAdmins) {
+            const tableBody = document.getElementById("sub-admins-table-body");
+            tableBody.innerHTML = "";
+
+            if (!subAdmins || subAdmins.length === 0) {
+                return;
+            }
+
+            subAdmins.forEach(subAdmin => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>
+                        <div class="sub-admin-info">
+                            <div class="sub-admin-name">${subAdmin.name || 'N/A'}</div>
+                            <div class="sub-admin-email">${subAdmin.email || 'N/A'}</div>
                         </div>
-                        <h3 class="role-title">${role.office}</h3>
-                    </div>
-                    <div class="role-permissions">
-                        <p><strong>Permissions:</strong></p>
-                        <div class="permission-tags">
-                            ${role.permissions.map(permission => 
-                                `<span class="permission-tag">${permission}</span>`
-                            ).join('')}
-                        </div>
-                    </div>
-                    <button class="btn btn-outline-primary" onclick="editRole('${role.id}')">
-                        Edit Role
-                    </button>
+                    </td>
+                    <td>
+                        <span class="office-badge">${subAdmin.office || 'Unassigned'}</span>
+                    </td>
+                    ${AVAILABLE_PERMISSIONS.map(permission => `
+                        <td class="permission-cell">
+                            <label class="permission-toggle">
+                                <input type="checkbox" 
+                                       ${subAdmin.permissions && subAdmin.permissions[permission] ? 'checked' : ''}
+                                       onchange="togglePermission('${subAdmin._id}', '${permission}', this.checked)"
+                                       ${!subAdmin.is_active ? 'disabled' : ''}>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </td>
+                    `).join('')}
+                    <td>
+                        <span class="status-badge ${subAdmin.is_active ? 'active' : 'inactive'}">
+                            ${subAdmin.is_active ? 'Active' : 'Inactive'}
+                        </span>
+                    </td>
                 `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        function togglePermission(subAdminId, permission, isEnabled) {
+            // Update the local data
+            const subAdmin = currentSubAdmins.find(sa => sa._id === subAdminId);
+            if (subAdmin) {
+                if (!subAdmin.permissions) {
+                    subAdmin.permissions = {};
+                }
+                subAdmin.permissions[permission] = isEnabled;
                 
-                container.appendChild(card);
-            });
-        }
-
-        function showAddRoleModal() {
-            document.getElementById('add-role-modal').style.display = 'flex';
-            document.getElementById('add-role-form').reset();
-            currentPermissions = [];
-            updatePermissionsList();
-        }
-
-        function closeModal(modalId) {
-            document.getElementById(modalId).style.display = 'none';
-        }
-
-        function addPermission() {
-            const permissionSelect = document.getElementById('add-permission');
-            const permission = permissionSelect.value;
-            
-            if (permission && !currentPermissions.includes(permission)) {
-                currentPermissions.push(permission);
-                permissionSelect.value = '';
-                updatePermissionsList();
-            } else if (permission && currentPermissions.includes(permission)) {
-                toast.error('This permission is already added');
+                // Mark as having unsaved changes
+                hasUnsavedChanges = true;
+                updateSaveButtonState();
             }
         }
 
-        function addEditPermission() {
-            const permissionSelect = document.getElementById('edit-permission');
-            const permission = permissionSelect.value;
+        function updateSaveButtonState() {
+            const saveBtn = document.getElementById('save-changes-btn');
+            saveBtn.disabled = !hasUnsavedChanges;
             
-            if (permission && !editPermissions.includes(permission)) {
-                editPermissions.push(permission);
-                permissionSelect.value = '';
-                updateEditPermissionsList();
-            } else if (permission && editPermissions.includes(permission)) {
-                toast.error('This permission is already added');
-            }
-        }
-
-        function removePermission(index, isEdit = false) {
-            if (isEdit) {
-                editPermissions.splice(index, 1);
-                updateEditPermissionsList();
+            if (hasUnsavedChanges) {
+                saveBtn.innerHTML = '<i class="fas fa-save"></i> Save Changes';
+                saveBtn.classList.remove('btn-primary');
+                saveBtn.classList.add('btn-warning');
             } else {
-                currentPermissions.splice(index, 1);
-                updatePermissionsList();
+                saveBtn.innerHTML = '<i class="fas fa-check"></i> All Saved';
+                saveBtn.classList.remove('btn-warning');
+                saveBtn.classList.add('btn-primary');
             }
         }
 
-        function updatePermissionsList() {
-            const container = document.getElementById('permissions-list');
-            container.innerHTML = '';
-            
-            currentPermissions.forEach((permission, index) => {
-                const tag = document.createElement('div');
-                tag.className = 'permission-tag';
-                tag.innerHTML = `
-                    ${permission}
-                    <button type="button" class="remove-permission" onclick="removePermission(${index})">
-                        <i class="fas fa-times"></i>
-                    </button>
-                `;
-                container.appendChild(tag);
-            });
-        }
-
-        function updateEditPermissionsList() {
-            const container = document.getElementById('edit-permissions-list');
-            container.innerHTML = '';
-            
-            editPermissions.forEach((permission, index) => {
-                const tag = document.createElement('div');
-                tag.className = 'permission-tag';
-                tag.innerHTML = `
-                    ${permission}
-                    <button type="button" class="remove-permission" onclick="removePermission(${index}, true)">
-                        <i class="fas fa-times"></i>
-                    </button>
-                `;
-                container.appendChild(tag);
-            });
-        }
-
-        function addRole() {
-            const form = document.getElementById('add-role-form');
-            const formData = new FormData(form);
-            
-            const office = formData.get('office');
-            
-            if (!office) {
-                toast.error('Please select an office');
+        async function saveAllChanges() {
+            if (!hasUnsavedChanges) {
+                showToast('No changes to save', 'info');
                 return;
             }
 
-            if (currentPermissions.length === 0) {
-                toast.error('Please add at least one permission');
-                return;
+            try {
+                showLoading(true);
+                const saveBtn = document.getElementById('save-changes-btn');
+                saveBtn.disabled = true;
+                saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+
+                let successCount = 0;
+                let errorCount = 0;
+
+                // Save each sub-admin's permissions
+                for (const subAdmin of currentSubAdmins) {
+                    try {
+                        const result = await roleManager.updateSubAdminPermissions(subAdmin._id, subAdmin.permissions);
+                        if (result.success) {
+                            successCount++;
+                        } else {
+                            errorCount++;
+                            console.error(`Failed to update ${subAdmin.name}:`, result.message);
+                        }
+                    } catch (error) {
+                        errorCount++;
+                        console.error(`Error updating ${subAdmin.name}:`, error);
+                    }
+                }
+
+                if (errorCount === 0) {
+                    showToast(`Successfully updated permissions for ${successCount} sub-admin(s)`, 'success');
+                    hasUnsavedChanges = false;
+                    updateSaveButtonState();
+                } else if (successCount > 0) {
+                    showToast(`Updated ${successCount} sub-admin(s), ${errorCount} failed`, 'warning');
+                } else {
+                    showToast(`Failed to update permissions. Please try again.`, 'error');
+                }
+
+            } catch (error) {
+                console.error('Error saving changes:', error);
+                showToast('Error saving changes. Please try again.', 'error');
+            } finally {
+                showLoading(false);
+                const saveBtn = document.getElementById('save-changes-btn');
+                saveBtn.disabled = false;
+                updateSaveButtonState();
             }
+        }
 
-            const roleData = {
-                office: office,
-                permissions: currentPermissions
-            };
+        function showLoading(show) {
+            const overlay = document.getElementById('loading-overlay');
+            overlay.style.display = show ? 'flex' : 'none';
+        }
 
-            const result = roleManager.addRole(roleData);
+        function showNoDataMessage(show) {
+            const noDataMsg = document.getElementById('no-data-message');
+            const tableContainer = document.querySelector('.table-container');
             
-            if (result.success) {
-                toast.success('Role added successfully');
-                closeModal('add-role-modal');
-                loadRoles();
+            if (show) {
+                noDataMsg.style.display = 'block';
+                tableContainer.style.display = 'none';
             } else {
-                toast.error(result.message);
+                noDataMsg.style.display = 'none';
+                tableContainer.style.display = 'block';
             }
         }
 
-        function editRole(roleId) {
-            const role = roleManager.getById(roleId);
-            if (!role) {
-                toast.error('Role not found');
-                return;
-            }
+        function showToast(message, type = 'info') {
+            // Create toast element
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.innerHTML = `
+                <div class="toast-content">
+                    <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : type === 'warning' ? 'exclamation-triangle' : 'info-circle'}"></i>
+                    <span>${message}</span>
+                </div>
+                <button class="toast-close" onclick="this.parentElement.remove()">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
 
-            // Populate form
-            document.getElementById('edit-role-id').value = role.id;
-            document.getElementById('edit-office').value = role.office;
-            editPermissions = [...role.permissions];
-            updateEditPermissionsList();
+            // Add to container
+            const container = document.getElementById('toast-container');
+            container.appendChild(toast);
 
-            document.getElementById('edit-role-modal').style.display = 'flex';
+            // Show toast
+            setTimeout(() => toast.classList.add('show'), 100);
+
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 5000);
         }
 
-        function updateRole() {
-            const form = document.getElementById('edit-role-form');
-            const formData = new FormData(form);
+        // Toggle user dropdown menu
+        function toggleUserDropdown() {
+            const dropdown = document.getElementById('userDropdownMenu');
+            const dropdownContainer = document.querySelector('.user-info-dropdown');
             
-            const roleId = formData.get('id');
-            const office = formData.get('office');
+            dropdown.classList.toggle('show');
+            dropdownContainer.classList.toggle('active');
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            const dropdown = document.querySelector('.user-info-dropdown');
+            const dropdownMenu = document.getElementById('userDropdownMenu');
             
-            if (!office) {
-                toast.error('Please select an office');
-                return;
+            if (dropdown && !dropdown.contains(event.target)) {
+                dropdownMenu.classList.remove('show');
+                dropdown.classList.remove('active');
             }
+        });
 
-            if (editPermissions.length === 0) {
-                toast.error('Please add at least one permission');
-                return;
-            }
+        // Change Password Modal Functions
+        function openChangePasswordModal() {
+            document.getElementById('changePasswordModal').style.display = 'flex';
+            document.getElementById('changePasswordForm').reset();
+            document.getElementById('userDropdownMenu').classList.remove('show');
+            document.querySelector('.user-info-dropdown').classList.remove('active');
+        }
 
-            const updates = {
-                office: office,
-                permissions: editPermissions
-            };
+        function closeChangePasswordModal() {
+            document.getElementById('changePasswordModal').style.display = 'none';
+            document.getElementById('changePasswordForm').reset();
+        }
 
-            const result = roleManager.updateRole(roleId, updates);
+        function togglePasswordVisibility(inputId) {
+            const input = document.getElementById(inputId);
+            const button = input.nextElementSibling;
+            const icon = button.querySelector('i');
             
-            if (result.success) {
-                toast.success('Role updated successfully');
-                closeModal('edit-role-modal');
-                loadRoles();
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
             } else {
-                toast.error(result.message);
+                input.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
             }
         }
 
-        function logout() {
-            const authManager = new AuthManager();
-            authManager.logout();
-            window.location.href = '../index.html';
+        document.addEventListener('DOMContentLoaded', function() {
+            const changePasswordForm = document.getElementById('changePasswordForm');
+            if (changePasswordForm) {
+                changePasswordForm.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    
+                    const currentPassword = document.getElementById('currentPassword').value;
+                    const newPassword = document.getElementById('newPassword').value;
+                    const confirmPassword = document.getElementById('confirmPassword').value;
+                    
+                    if (newPassword.length < 8) {
+                        showToast('Password must be at least 8 characters long', 'error');
+                        return;
+                    }
+                    
+                    if (newPassword !== confirmPassword) {
+                        showToast('New passwords do not match', 'error');
+                        return;
+                    }
+                    
+                    if (currentPassword === newPassword) {
+                        showToast('New password must be different from current password', 'error');
+                        return;
+                    }
+                    
+                    try {
+                        // Get the auth token
+                        const token = authManager.getToken();
+                        if (!token) {
+                            showToast('Please login again', 'error');
+                            return;
+                        }
+
+                        const response = await fetch('/api/auth/change-password', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
+                            },
+                            body: JSON.stringify({
+                                currentPassword: currentPassword,
+                                newPassword: newPassword
+                            })
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (response.ok) {
+                            showToast('Password changed successfully!', 'success');
+                            closeChangePasswordModal();
+                        } else {
+                            showToast(data.message || 'Failed to change password', 'error');
+                        }
+                    } catch (error) {
+                        console.error('Error changing password:', error);
+                        showToast('An error occurred while changing password', 'error');
+                    }
+                });
+            }
+        });
+
+        window.addEventListener('click', function(event) {
+            const modal = document.getElementById('changePasswordModal');
+            if (event.target === modal) {
+                closeChangePasswordModal();
+            }
+        });
+
+        async function logout() {
+            const confirmLogout = confirm('Are you sure you want to logout?');
+            
+            if (confirmLogout) {
+                try {
+                    if (hasUnsavedChanges) {
+                        const saveFirst = confirm('You have unsaved changes. Do you want to save them before logging out?');
+                        if (saveFirst) {
+                            await saveAllChanges();
+                        }
+                    }
+                    
+                    showToast('Logging out...', 'info');
+                    const authManager = new AuthManager();
+                    await authManager.logout();
+                    window.location.href = '/admin/index';
+                } catch (error) {
+                    console.error('Logout error:', error);
+                    showToast('Error during logout', 'error');
+                    window.location.href = '/admin/index';
+                }
+            }
+        }
+
+        // Mobile menu toggle
+        function toggleMobileMenu() {
+            const sidebar = document.querySelector('.sidebar');
+            const overlay = document.querySelector('.sidebar-overlay');
+            
+            sidebar.classList.toggle('active');
+            
+            if (!overlay) {
+                const newOverlay = document.createElement('div');
+                newOverlay.className = 'sidebar-overlay';
+                newOverlay.onclick = toggleMobileMenu;
+                document.body.appendChild(newOverlay);
+                setTimeout(() => newOverlay.classList.add('active'), 10);
+            } else {
+                overlay.classList.toggle('active');
+                if (!overlay.classList.contains('active')) {
+                    setTimeout(() => overlay.remove(), 300);
+                }
+            }
         }
 
         // Global functions
-        window.showAddRoleModal = showAddRoleModal;
-        window.closeModal = closeModal;
-        window.addPermission = addPermission;
-        window.addEditPermission = addEditPermission;
-        window.removePermission = removePermission;
-        window.addRole = addRole;
-        window.editRole = editRole;
-        window.updateRole = updateRole;
+        window.toggleMobileMenu = toggleMobileMenu;
+        window.togglePermission = togglePermission;
+        window.saveAllChanges = saveAllChanges;
         window.logout = logout;
     </script>
 
     <style>
+        /* Enhanced Search Styles */
+        .search-bar {
+            position: relative;
+        }
+        
+        .search-input {
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 0.75rem 1rem 0.75rem 2.5rem;
+            background: white;
+            font-size: 0.875rem;
+            min-width: 400px;
+            transition: all 0.3s ease;
+        }
+        
+        .search-input:focus {
+            outline: none;
+            min-width: 450px;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        .search-bar i {
+            position: absolute;
+            left: 1rem;
+            color: #64748b;
+            z-index: 1;
+        }
+        
         .sidebar-user-profile {
             position: absolute;
             bottom: 1.5rem;
@@ -513,6 +754,14 @@
             display: flex;
             align-items: center;
             gap: 0.75rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 8px;
+            transition: background-color 0.2s;
+        }
+
+        .header .user-info:hover {
+            background-color: #f1f5f9;
         }
 
         .header .user-details {
@@ -533,125 +782,668 @@
             margin: 0;
         }
 
-        .role-cards {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 1.5rem;
-            margin-top: 1.5rem;
+        .user-info-dropdown {
+            position: relative;
         }
 
-        .role-card {
-            background: white;
-            border-radius: 12px;
-            padding: 1.5rem;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-            border: 1px solid #e2e8f0;
-        }
-
-        .role-card-header {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            margin-bottom: 1rem;
-        }
-
-        .role-icon {
-            width: 48px;
-            height: 48px;
-            border-radius: 8px;
-            background: #3b82f6;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 1.25rem;
-        }
-
-        .role-title {
-            font-size: 1.125rem;
-            font-weight: 600;
-            color: #1e293b;
-            margin: 0;
-        }
-
-        .role-permissions {
-            margin-bottom: 1.5rem;
-        }
-
-        .role-permissions p {
-            margin: 0 0 0.75rem 0;
+        .dropdown-arrow {
+            font-size: 0.75rem;
             color: #64748b;
+            transition: transform 0.3s;
+        }
+
+        .user-info-dropdown.active .dropdown-arrow {
+            transform: rotate(180deg);
+        }
+
+        .user-dropdown-menu {
+            position: absolute;
+            top: calc(100% + 0.5rem);
+            right: 0;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            min-width: 200px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+            z-index: 1000;
+            overflow: hidden;
+        }
+
+        .user-dropdown-menu.show {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .user-dropdown-menu .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            color: #1e293b;
+            text-decoration: none;
+            transition: background-color 0.2s;
             font-size: 0.875rem;
         }
 
-        .permission-tags {
+        .user-dropdown-menu .dropdown-item:hover {
+            background-color: #f1f5f9;
+        }
+
+        .user-dropdown-menu .dropdown-item i {
+            font-size: 0.875rem;
+            width: 16px;
+            text-align: center;
+            color: #64748b;
+        }
+
+        /* Change Password Modal Styles */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-container {
+            background: white;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid #e2e8f0;
             display: flex;
-            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
             gap: 0.5rem;
         }
 
-        .permission-tag {
+        .modal-header h3 i {
+            color: #3b82f6;
+        }
+
+        .close-modal-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: #64748b;
+            cursor: pointer;
+            padding: 0.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .close-modal-btn:hover {
+            background-color: #f1f5f9;
+            color: #1e293b;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #1e293b;
+            font-size: 0.875rem;
+        }
+
+        .password-input-group {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .password-input-group .form-control {
+            flex: 1;
+            padding-right: 3rem;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.625rem 0.875rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .toggle-password {
+            position: absolute;
+            right: 0.75rem;
+            background: none;
+            border: none;
+            color: #64748b;
+            cursor: pointer;
+            padding: 0.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.2s;
+        }
+
+        .toggle-password:hover {
+            color: #1e293b;
+        }
+
+        .form-text {
+            display: block;
+            margin-top: 0.375rem;
+            font-size: 0.75rem;
+            color: #64748b;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75rem;
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .btn {
+            padding: 0.625rem 1.25rem;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-secondary {
+            background-color: #f1f5f9;
+            color: #475569;
+        }
+
+        .btn-secondary:hover {
+            background-color: #e2e8f0;
+        }
+
+        .btn-primary {
+            background-color: #3b82f6;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #2563eb;
+        }
+
+        .sub-admin-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .sub-admin-name {
+            font-weight: 600;
+            color: #1e293b;
+            font-size: 0.875rem;
+        }
+
+        .sub-admin-email {
+            color: #64748b;
+            font-size: 0.75rem;
+        }
+
+        .office-badge {
             background: #dbeafe;
             color: #1e40af;
             padding: 0.25rem 0.75rem;
-            border-radius: 20px;
+            border-radius: 12px;
             font-size: 0.75rem;
             font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
         }
 
-        .permission-tag .remove-permission {
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .status-badge.active {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status-badge.inactive {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .permission-cell {
+            text-align: center;
+        }
+
+        .permission-toggle {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+            cursor: pointer;
+        }
+
+        .permission-toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            border-radius: 24px;
+            transition: 0.4s;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            border-radius: 50%;
+            transition: 0.4s;
+        }
+
+        .permission-toggle input:checked + .toggle-slider {
+            background-color: #3b82f6;
+        }
+
+        .permission-toggle input:checked + .toggle-slider:before {
+            transform: translateX(26px);
+        }
+
+        .permission-toggle input:disabled + .toggle-slider {
+            background-color: #e5e7eb;
+            cursor: not-allowed;
+        }
+
+        .permission-toggle input:disabled + .toggle-slider:before {
+            background-color: #f3f4f6;
+        }
+
+        .no-data-message {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: #64748b;
+        }
+
+        .no-data-icon {
+            font-size: 4rem;
+            color: #cbd5e1;
+            margin-bottom: 1rem;
+        }
+
+        .no-data-message h3 {
+            color: #374151;
+            margin-bottom: 0.5rem;
+        }
+
+        .no-data-message p {
+            margin-bottom: 2rem;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .loading-spinner {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .loading-spinner i {
+            font-size: 2rem;
+            color: #3b82f6;
+            margin-bottom: 1rem;
+        }
+
+        .loading-spinner p {
+            margin: 0;
+            color: #64748b;
+        }
+
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .toast {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            min-width: 300px;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast-content {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .toast i {
+            font-size: 1.25rem;
+        }
+
+        .toast-success {
+            border-left: 4px solid #10b981;
+        }
+
+        .toast-success i {
+            color: #10b981;
+        }
+
+        .toast-error {
+            border-left: 4px solid #ef4444;
+        }
+
+        .toast-error i {
+            color: #ef4444;
+        }
+
+        .toast-warning {
+            border-left: 4px solid #f59e0b;
+        }
+
+        .toast-warning i {
+            color: #f59e0b;
+        }
+
+        .toast-info {
+            border-left: 4px solid #3b82f6;
+        }
+
+        .toast-info i {
+            color: #3b82f6;
+        }
+
+        .toast-close {
             background: none;
             border: none;
-            color: #1e40af;
+            color: #64748b;
             cursor: pointer;
-            padding: 0;
-            font-size: 0.75rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-            transition: background-color 0.2s ease;
+            padding: 0.25rem;
+            border-radius: 4px;
+            transition: background-color 0.2s;
         }
 
-        .permission-tag .remove-permission:hover {
-            background: rgba(30, 64, 175, 0.1);
+        .toast-close:hover {
+            background: #f3f4f6;
         }
 
-        .permission-input-group {
-            display: flex;
-            gap: 0.5rem;
+        .btn-warning {
+            background-color: #f59e0b;
+            border-color: #f59e0b;
         }
 
-        .permission-input-group .form-control {
-            flex: 1;
+        .btn-warning:hover {
+            background-color: #d97706;
+            border-color: #d97706;
         }
 
-        .permission-input-group .btn {
-            padding: 0.75rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        /* Mobile Menu Toggle Button */
+        .mobile-menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: #1e293b;
+            cursor: pointer;
+            padding: 0.5rem;
+            margin-right: 1rem;
+            border-radius: 8px;
+            transition: background-color 0.2s;
         }
-
-        .permissions-list {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-            margin-top: 1rem;
+        
+        .mobile-menu-toggle:hover {
+            background-color: #f1f5f9;
         }
-
-        @media (max-width: 768px) {
-            .role-cards {
-                grid-template-columns: 1fr;
+        
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .sidebar-overlay.active {
+            opacity: 1;
+        }
+        
+        /* Mobile Responsive Styles */
+        @media (max-width: 1024px) {
+            .mobile-menu-toggle {
+                display: block;
             }
-
-            .permission-input-group {
+            
+            .sidebar-overlay {
+                display: block;
+            }
+            
+            .sidebar {
+                transform: translateX(-100%);
+                position: fixed;
+                z-index: 1000;
+                transition: transform 0.3s ease;
+                height: 100vh;
+                overflow-y: auto;
+            }
+            
+            .sidebar.active {
+                transform: translateX(0);
+            }
+            
+            .main-content {
+                margin-left: 0;
+                width: 100%;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .table-container {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            
+            .table {
+                min-width: 900px;
+            }
+            
+            .toast {
+                min-width: 250px;
+                margin: 0 1rem;
+            }
+            
+            .toast-container {
+                right: 10px;
+                left: 10px;
+            }
+            
+            .header .user-info .user-details {
+                display: none;
+            }
+            
+            .search-bar {
+                width: 100%;
+            }
+            
+            .search-input {
+                width: 100%;
+                min-width: 100%;
+            }
+            
+            .page-header {
                 flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .page-header .btn {
+                width: 100%;
+            }
+            
+            .page-content {
+                padding: 1rem;
+            }
+            
+            .page-title {
+                font-size: 1.5rem;
+            }
+            
+            .page-subtitle {
+                font-size: 0.875rem;
+            }
+            
+            .permission-toggle {
+                width: 40px;
+                height: 20px;
+            }
+            
+            .toggle-slider:before {
+                height: 14px;
+                width: 14px;
+            }
+            
+            .permission-toggle input:checked + .toggle-slider:before {
+                transform: translateX(20px);
+            }
+            
+            .sub-admin-info {
+                font-size: 0.875rem;
+            }
+            
+            .sub-admin-name {
+                font-size: 0.8rem;
+            }
+            
+            .sub-admin-email {
+                font-size: 0.7rem;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .modal-container {
+                width: 95%;
+            }
+            
+            .no-data-message {
+                padding: 2rem 1rem;
+            }
+            
+            .no-data-icon {
+                font-size: 3rem;
+            }
+            
+            .toast {
+                min-width: 200px;
+            }
+            
+            .loading-spinner {
+                padding: 1.5rem;
             }
         }
     </style>

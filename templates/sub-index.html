@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sub Admin Login - EduChat Portal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            min-height: 100vh;
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .login-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .login-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            width: 100%;
+            max-width: 450px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .login-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #3b82f6, #1d4ed8);
+        }
+        
+        .login-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .login-title {
+            color: #2d3748;
+            font-weight: 700;
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+        
+        .login-subtitle {
+            color: #718096;
+            font-size: 16px;
+            margin-bottom: 0;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-label {
+            color: #4a5568;
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: block;
+        }
+        
+        .form-control {
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: #f7fafc;
+        }
+        
+        .form-control:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            background: white;
+        }
+        
+        .password-input-group {
+            position: relative;
+        }
+        
+        .password-input-group .form-control {
+            padding-right: 45px;
+        }
+        
+        .password-toggle {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #718096;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            z-index: 10;
+        }
+        
+        .password-toggle:hover {
+            color: #3b82f6;
+            background: rgba(59, 130, 246, 0.1);
+        }
+        
+        .password-toggle:focus {
+            outline: none;
+            color: #3b82f6;
+        }
+        
+        .btn-login {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            border: none;
+            border-radius: 12px;
+            padding: 14px 24px;
+            font-weight: 600;
+            font-size: 16px;
+            color: white;
+            width: 100%;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3);
+        }
+        
+        .btn-login:active {
+            transform: translateY(0);
+        }
+        
+        .btn-login:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .office-select {
+            background: #f7fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-size: 16px;
+            width: 100%;
+            transition: all 0.3s ease;
+        }
+        
+        .office-select:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            background: white;
+            outline: none;
+        }
+        
+        .alert {
+            border-radius: 12px;
+            border: none;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+        }
+        
+        .alert-danger {
+            background: #fed7d7;
+            color: #c53030;
+        }
+        
+        .alert-success {
+            background: #c6f6d5;
+            color: #2f855a;
+        }
+        
+        .loading-spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #ffffff;
+            border-top: 2px solid transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .switch-login {
+            text-align: center;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e2e8f0;
+        }
+        
+        .switch-login a {
+            color: #3b82f6;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .switch-login a:hover {
+            color: #1d4ed8;
+            text-decoration: underline;
+        }
+        
+        .sub-admin-badge {
+            display: inline-flex;
+            align-items: center;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+        
+        .sub-admin-badge i {
+            margin-right: 8px;
+        }
+        
+        .office-info {
+            background: #f7fafc;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+            border-left: 4px solid #3b82f6;
+        }
+        
+        .office-info h6 {
+            color: #2d3748;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .office-info p {
+            color: #718096;
+            font-size: 14px;
+            margin-bottom: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="sub-admin-badge">
+                    <i class="fas fa-user-shield"></i>
+                    Sub Admin Access
+                </div>
+                <h1 class="login-title">Sub Admin Login</h1>
+                <p class="login-subtitle">Access your office dashboard</p>
+            </div>
+            
+            <!-- Alert Messages -->
+            <div id="alertContainer"></div>
+            
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="office" class="form-label">
+                        <i class="fas fa-building me-2"></i>Office
+                    </label>
+                    <select id="office" name="office" class="office-select" required>
+                        <option value="">Select your office</option>
+                        <option value="Registrar's Office">Registrar's Office</option>
+                        <option value="Office of the Student Affairs (OSA)">Office of the Student Affairs (OSA)</option>
+                        <option value="Guidance Office">Guidance Office</option>
+                        <option value="Admissions Office">Admissions Office</option>
+                        <option value="ICT Office">ICT Office</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="email" class="form-label">
+                        <i class="fas fa-envelope me-2"></i>Email Address
+                    </label>
+                    <input type="email" id="email" name="email" class="form-control" 
+                           placeholder="Enter your email" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password" class="form-label">
+                        <i class="fas fa-lock me-2"></i>Password
+                    </label>
+                    <div class="password-input-group">
+                        <input type="password" id="password" name="password" class="form-control" 
+                               placeholder="Enter your password" required>
+                        <button type="button" class="password-toggle" id="passwordToggle">
+                            <i class="fas fa-eye" id="passwordToggleIcon"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn btn-login" id="loginBtn">
+                    <span class="loading-spinner" id="loadingSpinner"></span>
+                    <span id="loginText">Login as Sub Admin</span>
+                </button>
+            </form>
+            
+            <div class="office-info">
+                <h6><i class="fas fa-info-circle me-2"></i>Office Access</h6>
+                <p>Please select your assigned office to access the appropriate dashboard and features.</p>
+            </div>
+            
+            <div class="switch-login">
+                <p class="mb-0">Need Super Admin access?</p>
+                <a href="/index" id="switchToSuperAdmin">
+                    <i class="fas fa-crown me-2"></i>Login as Super Admin
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    // Initialize the application
+    document.addEventListener('DOMContentLoaded', async function() {
+        try {
+            // ✅ Check if redirected due to session expiration
+            const urlParams = new URLSearchParams(window.location.search);
+            const sessionExpired = urlParams.get('expired');
+            
+            if (sessionExpired === 'true') {
+                showAlert('Your session has expired after 24 hours. Please login again.', 'danger');
+                // Clear the URL parameter
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+            
+            // 🔹 Check active session from Flask
+            const res = await fetch('/subadmin/session', {
+                method: 'GET',
+                credentials: 'include' // ✅ keep session cookies
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                
+                // ✅ Handle session expiration
+                if (data.expired) {
+                    showAlert(data.message || 'Your session has expired after 24 hours. Please login again.', 'danger');
+                    return;
+                }
+                
+                if (data.authenticated) {
+                    // Already logged in → redirect to dashboard
+                    const office = data.office || "";
+                    window.location.href = `/Sub-dashboard?office=${encodeURIComponent(office)}`;
+                    return;
+                }
+            }
+        } catch (err) {
+            console.error("Session check error:", err);
+        }
+
+        // Initialize login form and password toggle
+        initializeLoginForm();
+        initializePasswordToggle();
+    });
+
+    // Initialize password toggle functionality
+    function initializePasswordToggle() {
+        const passwordToggle = document.getElementById('passwordToggle');
+        const passwordInput = document.getElementById('password');
+        const passwordToggleIcon = document.getElementById('passwordToggleIcon');
+
+        if (passwordToggle && passwordInput && passwordToggleIcon) {
+            passwordToggle.addEventListener('click', function() {
+                const isPassword = passwordInput.type === 'password';
+                
+                // Toggle input type
+                passwordInput.type = isPassword ? 'text' : 'password';
+                
+                // Toggle icon
+                passwordToggleIcon.className = isPassword ? 'fas fa-eye-slash' : 'fas fa-eye';
+                
+                // Update button title for accessibility
+                passwordToggle.title = isPassword ? 'Hide password' : 'Show password';
+                
+                // Brief focus back to input for better UX
+                passwordInput.focus();
+            });
+        }
+    }
+
+    // Initialize login form
+    function initializeLoginForm() {
+        const loginForm = document.getElementById('loginForm');
+        if (loginForm) {
+            loginForm.addEventListener('submit', handleSubAdminLogin);
+        }
+    }
+
+    // Handle sub admin login form submission
+    async function handleSubAdminLogin(event) {
+        event.preventDefault();
+        
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+        const office = document.getElementById('office').value;
+
+        clearAlerts();
+
+        if (!office || !email || !password) {
+            showAlert('Please fill in all fields', 'danger');
+            return;
+        }
+
+        if (!isValidEmail(email)) {
+            showAlert('Please enter a valid email address', 'danger');
+            return;
+        }
+
+        setLoadingState(true);
+
+        try {
+            // 🔹 Call Flask backend for login
+            const response = await fetch('/subadmin/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include', // ✅ keep Flask session cookies
+                body: JSON.stringify({ office, email, password })
+            });
+
+            let result = {};
+            try {
+                result = await response.json();
+            } catch {
+                result = {};
+            }
+
+            if (response.ok && result.success) {
+                showAlert(`Welcome ${result.name}! Redirecting to ${result.office}...`, 'success');
+                setTimeout(() => {
+                    // ✅ Redirect to dashboard with office parameter
+                    window.location.href = `/Sub-dashboard?office=${encodeURIComponent(result.office)}`;
+                }, 1500);
+            } else if (response.status === 401) {
+                showAlert(result.message || 'Invalid office, email, or password', 'danger');
+            } else {
+                showAlert(result.message || 'Unexpected error occurred.', 'danger');
+            }
+        } catch (error) {
+            console.error('Login error:', error);
+            showAlert('Server error. Please try again later.', 'danger');
+        } finally {
+            setLoadingState(false);
+        }
+    }
+
+    // --- Utility functions ---
+    function setLoadingState(loading) {
+        const loginBtn = document.getElementById('loginBtn');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const loginText = document.getElementById('loginText');
+        
+        if (loading) {
+            loginBtn.disabled = true;
+            loadingSpinner.style.display = 'inline-block';
+            loginText.textContent = 'Signing In...';
+        } else {
+            loginBtn.disabled = false;
+            loadingSpinner.style.display = 'none';
+            loginText.textContent = 'Login as Sub Admin';
+        }
+    }
+
+    function clearAlerts() {
+        const alertContainer = document.getElementById('alertContainer');
+        if (alertContainer) alertContainer.innerHTML = '';
+    }
+
+    function showAlert(message, type) {
+        const alertContainer = document.getElementById('alertContainer');
+        const alertId = 'alert-' + Date.now();
+        
+        const alertHTML = `
+            <div id="${alertId}" class="alert alert-${type}" role="alert">
+                <i class="fas fa-${type === 'danger' ? 'exclamation-triangle' : 'check-circle'} me-2"></i>
+                ${message}
+            </div>
+        `;
+        
+        alertContainer.innerHTML = alertHTML;
+        setTimeout(() => {
+            const alert = document.getElementById(alertId);
+            if (alert) alert.remove();
+        }, 5000);
+    }
+
+    function isValidEmail(email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+    }
+    </script>
+
+</body>
+</html>

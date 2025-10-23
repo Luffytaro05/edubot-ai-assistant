@@ -1,21 +1,101 @@
+<!--(Sub-feedback.html)-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>User Feedback - {{ office|capitalize }} Office</title>
+    <title>User Feedback - {{ office|capitalize }}</title>
+    <!-- ✅ MOBILE RESPONSIVE: This page is fully optimized for mobile, tablet, and desktop devices -->
+    <!-- Features: Mobile sidebar toggle, responsive layouts, touch-friendly controls, and adaptive content -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="{{ url_for('static', filename='Sub-assets/css/style.css') }}" rel="stylesheet">
+    <style>
+        /* Enhanced Mobile Responsive Styles */
+        @media (max-width: 768px) {
+            .mobile-menu-toggle {
+                display: flex !important;
+                align-items: center;
+                justify-content: center;
+            }
+            
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+            
+            .sidebar.show {
+                transform: translateX(0);
+            }
+            
+            .sidebar-overlay {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.5);
+                z-index: 999;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+            }
+            
+            .sidebar-overlay.show {
+                display: block;
+                opacity: 1;
+            }
+            
+            .main-content {
+                margin-left: 0 !important;
+            }
+            
+            .header {
+                padding-left: 70px !important;
+            }
+            
+            .page-title {
+                font-size: 1.5rem !important;
+            }
+            
+            .user-profile .user-info {
+                display: none !important;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .header {
+                padding-left: 65px !important;
+            }
+            
+            .page-title {
+                font-size: 1.375rem !important;
+            }
+        }
+    </style>
 </head>
 <body>
+    <!-- Mobile Responsive Notification (Shows on first mobile visit) -->
+    <div id="mobileNotification" style="display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 24px; border-radius: 50px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 10000; font-size: 14px; animation: slideUp 0.5s ease;">
+        <i class="fas fa-mobile-alt" style="margin-right: 8px;"></i>
+        <span>📱 Mobile-optimized! Tap menu to navigate</span>
+    </div>
+    
+    <!-- Mobile Menu Toggle Button -->
+    <button class="mobile-menu-toggle" onclick="toggleMobileSidebar()" aria-label="Toggle Menu">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <!-- Sidebar Overlay for Mobile -->
+    <div class="sidebar-overlay" onclick="closeMobileSidebar()"></div>
+
     <div class="dashboard-container">
         <!-- Sidebar -->
-        <div class="sidebar">
+        <div class="sidebar" id="subFeedbackSidebar">
             <div class="sidebar-header">
                 <h5 class="sidebar-title">
                    <i class="fas fa-comments me-2"></i>
-                   {{ office|capitalize }} Office
+                   {{ office|capitalize }}
                 </h5>
             </div>
             
@@ -62,8 +142,8 @@
                         <i class="fas fa-user"></i>
                     </div>
                     <div class="user-details">
-                        <div class="user-name">{{ office|capitalize }} Office</div>
-                        <div class="user-role">Sub Admin</div>
+                        <div class="user-name">{{ name }}</div>
+                        <div class="user-role">{{ office|capitalize }} - Sub Admin</div>
                     </div>
                 </div>
              </div>
@@ -75,18 +155,52 @@
             <div class="header">
                 <div class="header-search">
                     <i class="fas fa-search"></i>
-                    <input type="text" id="searchInput" placeholder="Search feedback..." class="form-control">
+                    <input type="text" placeholder="Search feedback, actions..." class="form-control" id="subFeedbackSearchInput">
+                    <!-- Search Results Dropdown -->
+                    <div class="search-results-dropdown" id="searchResultsDropdown" style="display: none;">
+                        <div class="search-results-header">
+                            <span class="search-results-count"></span>
+                            <button class="search-close-btn" onclick="closeSearch()">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="search-results-list" id="searchResultsList">
+                            <!-- Results will be populated here -->
+                        </div>
+                    </div>
                 </div>
                 
                 <div class="header-actions">
                     <div class="notification-bell">
                         <i class="fas fa-bell"></i>
-                        <div class="notification-dot"></div>
+                        <div class="notification-dot" style="display: none;"></div>
                     </div>
+                    
+                    <!-- Notification Dropdown Panel -->
+                    <div class="notification-dropdown" id="subAdminNotificationDropdown">
+                        <div class="notification-header">
+                            <h3><i class="fas fa-bell"></i> Notifications</h3>
+                            <div class="notification-header-actions">
+                                <button id="subAdminNotificationRefreshBtn" title="Refresh notifications">
+                                    <i class="fas fa-sync-alt"></i>
+                                </button>
+                                <button id="subAdminNotificationMarkAllReadBtn" title="Mark all as read">
+                                    <i class="fas fa-check-double"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="notification-list" id="subAdminNotificationList">
+                            <div class="notification-empty">
+                                <i class="fas fa-bell-slash"></i>
+                                <p>Loading notifications...</p>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <div class="user-profile">
                         <div class="user-info">
-                            <div class="user-name">{{ office|capitalize }} Office</div>
-                            <div class="user-role">Sub Admin</div>
+                            <div class="user-name">{{ name }}</div>
+                            <div class="user-role">{{ office|capitalize }} - Sub Admin</div>
                         </div>
                         <div class="user-avatar">
                             <i class="fas fa-user"></i>
@@ -158,22 +272,63 @@
                     </div>
                 </div>
 
+                <!-- Time Filter Section -->
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <div class="row align-items-end">
+                            <div class="col-md-3">
+                                <label for="timeFilterType" class="form-label">Time Period</label>
+                                <select id="timeFilterType" class="form-select">
+                                    <option value="">All Time</option>
+                                    <option value="hours">Last N Hours</option>
+                                    <option value="days">Last N Days</option>
+                                    <option value="weeks">Last N Weeks</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="timeFilterValue" class="form-label">Value</label>
+                                <input type="number" id="timeFilterValue" class="form-control" min="1" placeholder="Enter number">
+                            </div>
+                            <div class="col-md-3">
+                                <button class="btn btn-primary" onclick="applyTimeFilter()">
+                                    <i class="fas fa-filter"></i> Apply Filter
+                                </button>
+                                <button class="btn btn-outline-secondary" onclick="clearTimeFilter()">
+                                    <i class="fas fa-times"></i> Clear
+                                </button>
+                            </div>
+                            <div class="col-md-3 text-end">
+                                <button class="btn btn-outline-primary" onclick="refreshData()">
+                                    <i class="fas fa-sync-alt"></i> Refresh
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Recent Feedback Section -->
                 <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h5 class="mb-0">Recent Feedback</h5>
                         <div class="d-flex gap-2">
-                            <button class="btn btn-sm btn-outline-secondary" onclick="clearFilters()">All</button>
-                            <button class="btn btn-sm btn-outline-secondary" onclick="filterFeedback(1)">1★</button>
-                            <button class="btn btn-sm btn-outline-secondary" onclick="filterFeedback(2)">2★</button>
-                            <button class="btn btn-sm btn-outline-secondary" onclick="filterFeedback(3)">3★</button>
-                            <button class="btn btn-sm btn-outline-secondary" onclick="filterFeedback(4)">4★</button>
-                            <button class="btn btn-sm btn-outline-secondary" onclick="filterFeedback(5)">5★</button>
+                            <button class="btn btn-sm btn-outline-secondary active" id="filterAll" onclick="clearFilters()">All</button>
+                            <button class="btn btn-sm btn-outline-danger" id="filter1" onclick="filterFeedback(1)">1★</button>
+                            <button class="btn btn-sm btn-outline-warning" id="filter2" onclick="filterFeedback(2)">2★</button>
+                            <button class="btn btn-sm btn-outline-warning" id="filter3" onclick="filterFeedback(3)">3★</button>
+                            <button class="btn btn-sm btn-outline-success" id="filter4" onclick="filterFeedback(4)">4★</button>
+                            <button class="btn btn-sm btn-outline-success" id="filter5" onclick="filterFeedback(5)">5★</button>
                         </div>
+
                     </div>
                     <div class="card-body">
                         <div id="feedbackContainer">
                             <!-- Feedback items will be populated here -->
+                            <div class="text-center py-5">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-3 text-muted">Loading feedback...</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -195,25 +350,33 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="../assets/js/core/StorageManager.js"></script>
-    <script src="../assets/js/modules/AuthManager.js"></script>
-    <script src="../assets/js/UIManager.js"></script>
-    <script src="../assets/js/modules/FeedbackManager.js"></script>
+    <script src="{{ url_for('static', filename='Sub-assets/js/core/StorageManager.js') }}"></script>
+    <script src="{{ url_for('static', filename='Sub-assets/js/modules/AuthManager.js') }}"></script>
+    <script src="{{ url_for('static', filename='Sub-assets/js/UIManager.js') }}"></script>
+    <script src="{{ url_for('static', filename='Sub-assets/js/modules/FeedbackManager.js') }}"></script>
+    <script src="{{ url_for('static', filename='Sub-assets/js/SubAdminNotificationManager.js') }}"></script>
     <script>
         // Initialize managers
         window.storageManager = new StorageManager();
-        window.authManager = new AuthManager();
         window.uiManager = new UIManager();
-        window.feedbackManager = new FeedbackManager();
+        let subAdminNotificationManager;
 
-        // Check authentication
-        if (!window.authManager.isAuthenticated()) {
-            window.location.href = '../index.html';
-        }
+        // Initialize page with authentication
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Get the office from the URL
+            const office = window.authManager.getOfficeFromURL();
 
-        // Initialize page
-        document.addEventListener('DOMContentLoaded', function() {
-            window.feedbackManager.initialize();
+            // Require authentication + correct office
+            const valid = await window.authManager.requireSubAdminAuth(office);
+            if (!valid) return; // will redirect if not valid
+
+            // Initialize notification manager
+            subAdminNotificationManager = new SubAdminNotificationManager();
+            await subAdminNotificationManager.initialize();
+
+            // Initialize Feedback manager
+            window.feedbackManager = new FeedbackManager();
+            await window.feedbackManager.initialize();
             
             // Add search functionality
             const searchInput = document.getElementById('searchInput');
@@ -225,18 +388,46 @@
         });
 
         // Logout function
-        function logout() {
-            window.authManager.logout();
-            window.location.href = '../index.html';
+        async function logout() {
+        if (window.authManager) {
+            await window.authManager.logoutSubAdmin();
+        } else {
+            // Fallback if authManager is not available
+            const confirmed = confirm('Are you sure you want to logout?');
+            if (confirmed) {
+                try {
+                    await fetch('/subadmin/logout', {
+                        method: 'POST',
+                        credentials: 'include'
+                    });
+                } catch (err) {
+                    console.error('Logout error:', err);
+                } finally {
+                    window.location.href = '/sub-index';
+                }
+            }
         }
+    }
 
         // Filter feedback by rating
         function filterFeedback(rating) {
+            // Update button states
+            document.querySelectorAll('.card-header .btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.getElementById(`filter${rating}`).classList.add('active');
+            
             window.feedbackManager.filterByRating(rating);
         }
 
         // Clear all filters
         function clearFilters() {
+            // Update button states
+            document.querySelectorAll('.card-header .btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.getElementById('filterAll').classList.add('active');
+            
             window.feedbackManager.clearFilters();
         }
 
@@ -245,6 +436,684 @@
             const searchTerm = document.getElementById('searchInput').value;
             window.feedbackManager.searchFeedback(searchTerm);
         }
+
+        // Apply time filter
+        function applyTimeFilter() {
+            const type = document.getElementById('timeFilterType').value;
+            const value = document.getElementById('timeFilterValue').value;
+            
+            if (!type || !value) {
+                alert('Please select both time period and value');
+                return;
+            }
+            
+            window.feedbackManager.setTimeFilter(type, parseInt(value));
+        }
+
+        // Clear time filter
+        function clearTimeFilter() {
+            document.getElementById('timeFilterType').value = '';
+            document.getElementById('timeFilterValue').value = '';
+            window.feedbackManager.clearTimeFilter();
+        }
+
+        // Refresh data
+        function refreshData() {
+            window.feedbackManager.initialize();
+        }
+
+// ========================================
+// SUB-FEEDBACK SEARCH FUNCTIONALITY
+// ========================================
+
+const searchableContent = [
+    // Navigation Pages
+    { type: 'page', icon: 'fa-th-large', title: 'Dashboard', desc: 'Overview and statistics', action: () => window.location.href = `/sub-admin/dashboard?office=${window.authManager.getOfficeFromURL()}` },
+    { type: 'page', icon: 'fa-comments', title: 'Conversation Logs', desc: 'View chat history', action: () => window.location.href = `/sub-admin/conversations?office=${window.authManager.getOfficeFromURL()}` },
+    { type: 'page', icon: 'fa-question-circle', title: 'FAQ Management', desc: 'Manage frequently asked questions', action: () => window.location.href = `/sub-admin/faq?office=${window.authManager.getOfficeFromURL()}` },
+    { type: 'page', icon: 'fa-bullhorn', title: 'Announcements', desc: 'Manage office announcements', action: () => window.location.href = `/sub-admin/announcements?office=${window.authManager.getOfficeFromURL()}` },
+    { type: 'page', icon: 'fa-chart-bar', title: 'Usage Statistics', desc: 'Analyze usage patterns', action: () => window.location.href = `/sub-admin/usage?office=${window.authManager.getOfficeFromURL()}` },
+    { type: 'page', icon: 'fa-heart', title: 'User Feedback', desc: 'View user ratings and comments', action: () => window.location.reload() },
+    
+    // Feedback Actions
+    { type: 'action', icon: 'fa-download', title: 'Export Feedback', desc: 'Export feedback to CSV', action: () => typeof exportFeedback === 'function' && exportFeedback() },
+    { type: 'action', icon: 'fa-sync', title: 'Refresh Feedback', desc: 'Reload feedback data', action: () => refreshData() },
+    { type: 'info', icon: 'fa-search', title: 'Search Feedback', desc: 'Search by rating or comment', action: () => document.getElementById('searchInput')?.focus() },
+    { type: 'stat', icon: 'fa-star', title: '5 Star Ratings', desc: 'View excellent feedback', action: () => alert('Use the table search to filter by rating') },
+];
+
+function initializeSearch() {
+    const searchInput = document.getElementById('subFeedbackSearchInput');
+    if (!searchInput) return;
+    
+    searchInput.addEventListener('input', function(e) {
+        const query = e.target.value.trim().toLowerCase();
+        
+        if (query.length === 0) {
+            closeSearch();
+            return;
+        }
+        
+        if (query.length < 2) return;
+        
+        performSearch(query);
+    });
+    
+    searchInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeSearch();
+            searchInput.blur();
+        }
+    });
+    
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.header-search')) {
+            closeSearch();
+        }
+    });
+}
+
+function performSearch(query) {
+    const searchDropdown = document.getElementById('searchResultsDropdown');
+    const searchResultsList = document.getElementById('searchResultsList');
+    const searchCount = document.querySelector('.search-results-count');
+    
+    if (!searchDropdown || !searchResultsList) return;
+    
+    const results = searchableContent.filter(item => {
+        return item.title.toLowerCase().includes(query) || 
+               item.desc.toLowerCase().includes(query);
+    });
+    
+    if (searchCount) {
+        searchCount.textContent = results.length === 0 ? 'No results' : 
+            `${results.length} result${results.length !== 1 ? 's' : ''} found`;
+    }
+    
+    searchDropdown.style.display = 'block';
+    
+    if (results.length === 0) {
+        searchResultsList.innerHTML = `
+            <div class="search-no-results">
+                <i class="fas fa-search"></i>
+                <p>No results found for "${query}"</p>
+            </div>
+        `;
+    } else {
+        searchResultsList.innerHTML = results.map((item, index) => {
+            const highlightedTitle = highlightText(item.title, query);
+            const highlightedDesc = highlightText(item.desc, query);
+            
+            return `
+                <div class="search-result-item" onclick="handleSearchResultClick(event, ${index})">
+                    <div class="search-result-icon ${item.type}">
+                        <i class="fas ${item.icon}"></i>
+                    </div>
+                    <div class="search-result-content">
+                        <div class="search-result-title">${highlightedTitle}</div>
+                        <div class="search-result-desc">${highlightedDesc}</div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+}
+
+function handleSearchResultClick(event, index) {
+    event.stopPropagation();
+    const item = searchableContent[index];
+    
+    if (item && item.action) {
+        closeSearch();
+        document.getElementById('subFeedbackSearchInput').value = '';
+        item.action();
+    }
+}
+
+function highlightText(text, query) {
+    const regex = new RegExp(`(${escapeRegex(query)})`, 'gi');
+    return text.replace(regex, '<span class="search-highlight">$1</span>');
+}
+
+function escapeRegex(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function closeSearch() {
+    const searchDropdown = document.getElementById('searchResultsDropdown');
+    if (searchDropdown) {
+        searchDropdown.style.display = 'none';
+    }
+}
+
+// Initialize search when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeSearch);
+} else {
+    initializeSearch();
+}
     </script>
+
+<style>
+/* =============================================
+   SEARCH RESULTS DROPDOWN STYLES
+   ============================================= */
+
+.header-search {
+    position: relative;
+}
+
+.search-results-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    width: 500px;
+    max-height: 600px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    overflow: hidden;
+    z-index: 9999;
+    animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.search-results-header {
+    padding: 1rem 1.25rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.search-results-count {
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.search-close-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.search-close-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.search-results-list {
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.search-results-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.search-results-list::-webkit-scrollbar-track {
+    background: #f1f5f9;
+}
+
+.search-results-list::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+}
+
+.search-result-item {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #f1f5f9;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.search-result-item:hover {
+    background: #f8fafc;
+}
+
+.search-result-item:last-child {
+    border-bottom: none;
+}
+
+.search-result-icon {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    color: white;
+}
+
+.search-result-icon.page {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.search-result-icon.stat {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.search-result-icon.chart {
+    background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.search-result-icon.info {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+
+.search-result-icon.action {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+
+.search-result-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.search-result-title {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 0.25rem;
+}
+
+.search-result-desc {
+    font-size: 0.8125rem;
+    color: #64748b;
+    line-height: 1.4;
+}
+
+.search-no-results {
+    padding: 3rem 2rem;
+    text-align: center;
+    color: #94a3b8;
+}
+
+.search-no-results i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.search-no-results p {
+    margin: 0;
+    font-size: 0.9375rem;
+    font-weight: 500;
+}
+
+.search-highlight {
+    background: #fef3c7;
+    color: #92400e;
+    padding: 0.1rem 0.2rem;
+    border-radius: 3px;
+    font-weight: 600;
+}
+
+/* =============================================
+   SUB-ADMIN NOTIFICATION SYSTEM STYLES
+   ============================================= */
+
+/* Notification Bell Enhanced */
+.notification-bell {
+    position: relative;
+    cursor: pointer;
+}
+
+.notification-dot {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    width: 18px;
+    height: 18px;
+    background: #ef4444;
+    border-radius: 50%;
+    border: 2px solid white;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: white;
+}
+
+.notification-dot::after {
+    content: attr(data-count);
+}
+
+/* Notification Dropdown */
+.notification-dropdown {
+    position: absolute;
+    top: calc(100% + 12px);
+    right: 0;
+    width: 380px;
+    max-height: 500px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.3s ease;
+    z-index: 9999;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.notification-dropdown.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+/* Notification Header */
+.notification-header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #e2e8f0;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.notification-header h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0;
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.notification-header-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.notification-header-actions button {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    font-size: 0.875rem;
+}
+
+.notification-header-actions button:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* Notification List */
+.notification-list {
+    max-height: 400px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.notification-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.notification-list::-webkit-scrollbar-track {
+    background: #f1f5f9;
+}
+
+.notification-list::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+}
+
+.notification-list::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Notification Item */
+.notification-item {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #f1f5f9;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.notification-item:hover {
+    background: #f8fafc;
+}
+
+.notification-item:last-child {
+    border-bottom: none;
+}
+
+.notification-item::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: transparent;
+    transition: background 0.2s ease;
+}
+
+/* Notification Item Types */
+.notification-item.notification-success::before {
+    background: #10b981;
+}
+
+.notification-item.notification-warning::before {
+    background: #f59e0b;
+}
+
+.notification-item.notification-danger::before {
+    background: #ef4444;
+}
+
+.notification-item.notification-info::before {
+    background: #3b82f6;
+}
+
+.notification-item.notification-primary::before {
+    background: #8b5cf6;
+}
+
+/* Notification Icon */
+.notification-item .notification-icon {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    color: white;
+}
+
+.notification-success .notification-icon {
+    background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.notification-warning .notification-icon {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.notification-danger .notification-icon {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+
+.notification-info .notification-icon {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+
+.notification-primary .notification-icon {
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+}
+
+/* Notification Content */
+.notification-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.notification-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 0.25rem;
+    line-height: 1.4;
+}
+
+.notification-message {
+    font-size: 0.8125rem;
+    color: #64748b;
+    margin-bottom: 0.5rem;
+    line-height: 1.4;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.notification-time {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.notification-time i {
+    font-size: 0.7rem;
+}
+
+/* Empty State */
+.notification-empty {
+    padding: 3rem 2rem;
+    text-align: center;
+    color: #94a3b8;
+}
+
+.notification-empty i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.notification-empty p {
+    margin: 0;
+    font-size: 0.9375rem;
+    font-weight: 500;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .notification-dropdown {
+        position: fixed;
+        top: 60px;
+        right: 10px;
+        left: 10px;
+        width: auto;
+        max-height: 70vh;
+    }
+}
+</style>
+
+<script>
+// Mobile Sidebar Functions
+function toggleMobileSidebar() {
+    const sidebar = document.getElementById('subFeedbackSidebar');
+    const overlay = document.querySelector('.sidebar-overlay');
+    
+    sidebar.classList.toggle('show');
+    overlay.classList.toggle('show');
+    
+    // Prevent body scroll when sidebar is open
+    if (sidebar.classList.contains('show')) {
+        document.body.style.overflow = 'hidden';
+    } else {
+        document.body.style.overflow = '';
+    }
+}
+
+function closeMobileSidebar() {
+    const sidebar = document.getElementById('subFeedbackSidebar');
+    const overlay = document.querySelector('.sidebar-overlay');
+    
+    sidebar.classList.remove('show');
+    overlay.classList.remove('show');
+    document.body.style.overflow = '';
+}
+
+// Close sidebar when clicking on a navigation link on mobile
+document.addEventListener('DOMContentLoaded', function() {
+    const navLinks = document.querySelectorAll('.sidebar-nav a');
+    navLinks.forEach(link => {
+        link.addEventListener('click', function() {
+            if (window.innerWidth <= 768) {
+                closeMobileSidebar();
+            }
+        });
+    });
+
+    // Close sidebar on window resize if it becomes desktop size
+    window.addEventListener('resize', function() {
+        if (window.innerWidth > 768) {
+            closeMobileSidebar();
+        }
+    });
+});
+
+// Make functions globally accessible
+window.toggleMobileSidebar = toggleMobileSidebar;
+window.closeMobileSidebar = closeMobileSidebar;
+
+// Show mobile notification on mobile devices
+if (window.innerWidth <= 768 && !localStorage.getItem('mobileNotificationShown')) {
+    setTimeout(function() {
+        const notification = document.getElementById('mobileNotification');
+        if (notification) {
+            notification.style.display = 'block';
+            setTimeout(function() {
+                notification.style.display = 'none';
+                localStorage.setItem('mobileNotificationShown', 'true');
+            }, 4000);
+        }
+    }, 1000);
+}
+</script>
 </body>
 </html>
+

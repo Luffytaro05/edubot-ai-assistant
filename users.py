@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from pymongo import MongoClient
-from werkzeug.security import generate_password_hash
+from werkzeug.security import generate_password_hash, check_password_hash
 from bson import ObjectId
 import datetime
 
@@ -149,3 +149,175 @@ def delete_user(user_id):
         return jsonify({"success": False, "message": "User not found"}), 404
     return jsonify({"success": True, "message": "User deleted"})
 
+# ➝ Authenticate user for Sub-Admin login
+def authenticate_user(email, password):
+    """
+    Authenticate user credentials and return user data if valid
+    Returns: dict with success, user data, and redirect info
+    """
+    try:
+        # Find user by email
+        user = sub_users.find_one({"email": email.lower().strip()})
+        
+        if not user:
+            return {
+                "success": False,
+                "message": "Invalid credentials"
+            }
+        
+        # Check if user is active
+        if user.get("status") != "Active":
+            return {
+                "success": False,
+                "message": "Account is inactive"
+            }
+        
+        # Verify password
+        if not check_password_hash(user["password"], password):
+            return {
+                "success": False,
+                "message": "Invalid credentials"
+            }
+        
+        # Update last login
+        sub_users.update_one(
+            {"_id": user["_id"]},
+            {"$set": {"last_login": datetime.datetime.utcnow().isoformat()}}
+        )
+        
+        # Prepare user data (without password)
+        user_data = {
+            "id": str(user["_id"]),
+            "name": user.get("name", ""),
+            "email": user.get("email", ""),
+            "role": user.get("role", "User"),
+            "status": user.get("status", "Active"),
+            "last_login": user.get("last_login", "Never")
+        }
+        
+        # Determine redirect URL based on role
+        redirect_url = "/"
+        if user.get("role") == "Sub-Admin":
+            redirect_url = "/Sub-dashboard.html"
+        elif user.get("role") == "Admin":
+            redirect_url = "/dashboard.html"
+        
+        return {
+            "success": True,
+            "user": user_data,
+            "role": user.get("role", "User"),
+            "office": user.get("office", "-"),
+            "redirect": redirect_url
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "message": f"Authentication error: {str(e)}"
+        }
+
+def authenticate_user_with_office(email, password, office=None, required_role=None):
+    """
+    Enhanced authentication with office and role validation
+    """
+    try:
+        # Find user by email
+        user = sub_users.find_one({"email": email.lower().strip()})
+        
+        if not user:
+            return {
+                "success": False,
+                "message": "Invalid credentials"
+            }
+        
+        # Check if user is active
+        if user.get("status") != "Active":
+            return {
+                "success": False,
+                "message": "Account is inactive"
+            }
+        
+        # Verify password
+        if not check_password_hash(user["password"], password):
+            return {
+                "success": False,
+                "message": "Invalid credentials"
+            }
+        
+        # Check role if specified
+        if required_role and user.get("role") != required_role:
+            return {
+                "success": False,
+                "message": "Invalid credentials"
+            }
+        
+        # Check office if specified
+        if office and user.get("office") != office:
+            return {
+                "success": False,
+                "message": "Invalid credentials"
+            }
+        
+        # Update last login
+        sub_users.update_one(
+            {"_id": user["_id"]},
+            {"$set": {"last_login": datetime.datetime.utcnow().isoformat()}}
+        )
+        
+        # Prepare user data (without password)
+        user_data = {
+            "id": str(user["_id"]),
+            "name": user.get("name", ""),
+            "email": user.get("email", ""),
+            "role": user.get("role", "User"),
+            "office": user.get("office", "-"),
+            "status": user.get("status", "Active"),
+            "last_login": user.get("last_login", "Never")
+        }
+        
+        return {
+            "success": True,
+            "user": user_data,
+            "role": user.get("role", "User"),
+            "office": user.get("office", "-")
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "message": f"Authentication error: {str(e)}"
+        }
+@users_bp.route("/subadmin/login", methods=["POST"])
+def subadmin_login():
+    """Sub Admin login endpoint"""
+    data = request.json
+    email = data.get('email', '').strip()
+    password = data.get('password', '')
+    office = data.get('office', '').strip()
+    
+    if not email or not password or not office:
+        return jsonify({
+            "success": False,
+            "message": "Invalid office, email, or password"
+        }), 400
+    
+    # Authenticate with office and role validation
+    result = authenticate_user_with_office(
+        email=email, 
+        password=password, 
+        office=office, 
+        required_role="Sub-Admin"
+    )
+    
+    if result['success']:
+        return jsonify({
+            "success": True,
+            "user": result['user'],
+            "office": result['office'],
+            "message": "Login successful"
+        })
+    else:
+        return jsonify({
+            "success": False,
+            "message": "Invalid office, email, or password"
+        }), 401

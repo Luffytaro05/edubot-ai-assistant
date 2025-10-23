@@ -1,364 +1,513 @@
+/**
+ * UsageStatsManager.js
+ * Handles fetching and rendering usage statistics for Sub Admin dashboard
+ * Office-specific analytics and metrics
+ */
 class UsageStatsManager {
     constructor() {
-        this.storageManager = window.storageManager;
-        this.uiManager = window.uiManager;
-        this.usageStats = [];
-        this.timeOfDayChart = null;
+        this.baseUrl = '/api/sub-admin/usage';
+        this.charts = {};
+        this.cachedData = null;
+        this.cacheExpiry = null;
+        this.cacheTimeout = 5 * 60 * 1000; // 5 minutes cache
+        this.filterDate = null; // Single date filter
     }
 
-    initialize() {
-        this.loadUsageStats();
-        this.updateKPICards();
-        this.initializeTimeOfDayChart();
-        this.renderQueryCategories();
-        this.renderUsageStatsTable();
+    /**
+     * Initialize the usage stats manager
+     */
+    async initialize() {
+        try {
+            console.log('Initializing UsageStatsManager...');
+            
+            // Load all statistics
+            await this.loadOverviewStats();
+            await this.loadTimeOfDayChart();
+            await this.loadTopCategories();
+            
+            console.log('UsageStatsManager initialized successfully');
+        } catch (error) {
+            console.error('Error initializing UsageStatsManager:', error);
+            this.showError('Failed to load usage statistics');
+        }
     }
 
-    // Load usage statistics from storage
-    loadUsageStats() {
-        this.usageStats = this.storageManager.getUsageStats();
+    /**
+     * Load overview KPI statistics
+     */
+    async loadOverviewStats() {
+        try {
+            const params = new URLSearchParams();
+            if (this.filterDate) {
+                params.append('filter_date', this.filterDate);
+            }
+            const query = params.toString() ? `?${params.toString()}` : '';
+            
+            const response = await fetch(`${this.baseUrl}/overview${query}`, {
+                method: 'GET',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+            
+            if (result.success) {
+                this.renderOverviewKPIs(result.data);
+            } else {
+                throw new Error(result.message || 'Failed to load overview stats');
+            }
+        } catch (error) {
+            console.error('Error loading overview stats:', error);
+            this.renderOverviewKPIs(this.getDefaultOverviewData());
+        }
     }
 
-    // Update KPI cards with real data
-    updateKPICards() {
-        const stats = this.getUsageStatsSummary();
+    /**
+     * Render overview KPI cards
+     */
+    renderOverviewKPIs(data) {
+        // Total Sessions
+        const totalSessionsEl = document.getElementById('totalSessions');
+        if (totalSessionsEl) {
+            totalSessionsEl.textContent = this.formatNumber(data.totalSessions || 0);
+        }
+
+        // Average Session Duration
+        const avgDurationEl = document.getElementById('avgSessionDuration');
+        if (avgDurationEl) {
+            avgDurationEl.textContent = data.avgSessionDuration || '0s';
+        }
+
+        // Response Rate
+        const responseRateEl = document.getElementById('responseRate');
+        if (responseRateEl) {
+            responseRateEl.textContent = `${data.responseRate || 0}%`;
+        }
+
+        // Success Rate
+        const successRateEl = document.getElementById('successRate');
+        if (successRateEl) {
+            successRateEl.textContent = `${data.successRate || 0}%`;
+        }
+
+        // Update trend indicators (optional - can be calculated from historical data)
+        this.updateTrendIndicators(data);
+    }
+
+    /**
+     * Load usage by time of day chart
+     */
+    async loadTimeOfDayChart() {
+        try {
+            const params = new URLSearchParams();
+            if (this.filterDate) {
+                params.append('filter_date', this.filterDate);
+            }
+            const query = params.toString() ? `?${params.toString()}` : '';
+            
+            const response = await fetch(`${this.baseUrl}/time-of-day${query}`, {
+                method: 'GET',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+            
+            if (result.success) {
+                this.renderTimeOfDayChart(result.data);
+            } else {
+                throw new Error(result.message || 'Failed to load time of day data');
+            }
+        } catch (error) {
+            console.error('Error loading time of day chart:', error);
+            this.renderTimeOfDayChart(this.getDefaultTimeOfDayData());
+        }
+    }
+
+    /**
+     * Render time of day bar chart
+     */
+    renderTimeOfDayChart(data) {
+        const canvas = document.getElementById('timeOfDayChart');
+        if (!canvas) {
+            console.warn('timeOfDayChart canvas not found');
+            return;
+        }
+
+        // Destroy existing chart if it exists
+        if (this.charts.timeOfDay) {
+            this.charts.timeOfDay.destroy();
+        }
+
+        const ctx = canvas.getContext('2d');
         
-        document.getElementById('totalSessions').textContent = this.formatNumber(stats.totalSessions);
-        document.getElementById('avgSessionDuration').textContent = stats.avgSessionDuration;
-        document.getElementById('responseRate').textContent = `${stats.responseRate}%`;
-        document.getElementById('successRate').textContent = `${stats.successRate}%`;
-    }
-
-    // Initialize time of day chart
-    initializeTimeOfDayChart() {
-        const ctx = document.getElementById('timeOfDayChart').getContext('2d');
-        
-        // Generate time of day data (simulated)
-        const timeOfDayData = this.generateTimeOfDayData();
-        
-        this.timeOfDayChart = new Chart(ctx, {
-            type: 'line',
+        this.charts.timeOfDay = new Chart(ctx, {
+            type: 'bar',
             data: {
-                labels: timeOfDayData.labels,
+                labels: data.labels || ['Morning', 'Afternoon', 'Evening', 'Night'],
                 datasets: [{
-                    label: 'Usage',
-                    data: timeOfDayData.data,
-                    backgroundColor: 'rgba(59, 130, 246, 0.2)',
-                    borderColor: 'rgba(59, 130, 246, 1)',
+                    label: 'Usage Count',
+                    data: data.counts || [0, 0, 0, 0],
+                    backgroundColor: [
+                        'rgba(59, 130, 246, 0.8)',   // Morning - Blue
+                        'rgba(251, 191, 36, 0.8)',   // Afternoon - Yellow
+                        'rgba(249, 115, 22, 0.8)',   // Evening - Orange
+                        'rgba(99, 102, 241, 0.8)'    // Night - Indigo
+                    ],
+                    borderColor: [
+                        'rgba(59, 130, 246, 1)',
+                        'rgba(251, 191, 36, 1)',
+                        'rgba(249, 115, 22, 1)',
+                        'rgba(99, 102, 241, 1)'
+                    ],
                     borderWidth: 2,
-                    fill: true,
-                    tension: 0.3
+                    borderRadius: 8
                 }]
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 12,
+                        titleFont: {
+                            size: 14,
+                            weight: 'bold'
+                        },
+                        bodyFont: {
+                            size: 13
+                        },
+                        callbacks: {
+                            label: function(context) {
+                                return `Queries: ${context.parsed.y}`;
+                            }
+                        }
+                    }
+                },
                 scales: {
                     y: {
                         beginAtZero: true,
-                        max: 100,
                         ticks: {
-                            stepSize: 25,
-                            callback: function(value) {
-                                return value;
+                            precision: 0,
+                            font: {
+                                size: 12
                             }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
                         }
                     },
                     x: {
                         ticks: {
-                            maxTicksLimit: 12
+                            font: {
+                                size: 12,
+                                weight: '500'
+                            }
+                        },
+                        grid: {
+                            display: false
                         }
-                    }
-                },
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                },
-                elements: {
-                    point: {
-                        radius: 0
                     }
                 }
             }
         });
     }
 
-    // Generate time of day data
-    generateTimeOfDayData() {
-        const labels = ['0:00', '2:00', '4:00', '6:00', '8:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00', '22:00'];
-        const data = [15, 10, 8, 12, 85, 95, 88, 92, 98, 75, 45, 25];
-        
-        return { labels, data };
+    /**
+     * Load top query categories
+     */
+    async loadTopCategories() {
+        try {
+            const params = new URLSearchParams({ limit: 10 });
+            if (this.filterDate) {
+                params.append('filter_date', this.filterDate);
+            }
+            const query = params.toString() ? `?${params.toString()}` : '';
+            
+            const response = await fetch(`${this.baseUrl}/top-categories${query}`, {
+                method: 'GET',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+            
+            if (result.success) {
+                this.renderTopCategories(result.data);
+            } else {
+                throw new Error(result.message || 'Failed to load top categories');
+            }
+        } catch (error) {
+            console.error('Error loading top categories:', error);
+            this.renderTopCategories(this.getDefaultCategoriesData());
+        }
     }
 
-    // Render query categories
-    renderQueryCategories() {
+    /**
+     * Render top query categories list
+     */
+    renderTopCategories(data) {
         const container = document.getElementById('queryCategoriesChart');
-        if (!container) return;
+        if (!container) {
+            console.warn('queryCategoriesChart container not found');
+            return;
+        }
 
-        const categories = [
-            { name: 'Academic Records', percentage: 32, color: '#3b82f6' },
-            { name: 'Financial Aid', percentage: 28, color: '#3b82f6' },
-            { name: 'Course Registration', percentage: 24, color: '#3b82f6' },
-            { name: 'Student Services', percentage: 16, color: '#3b82f6' }
-        ];
-
-        container.innerHTML = categories.map(category => `
-            <div class="mb-3">
-                <div class="d-flex justify-content-between align-items-center mb-1">
-                    <span class="fw-medium">${category.name}</span>
-                    <span class="text-muted">${category.percentage}%</span>
+        const categories = data.categories || [];
+        
+        if (categories.length === 0) {
+            container.innerHTML = `
+                <div class="text-center text-muted py-4">
+                    <i class="fas fa-inbox fa-2x mb-2"></i>
+                    <p>No category data available</p>
                 </div>
-                <div class="progress" style="height: 8px;">
-                    <div class="progress-bar" role="progressbar" 
-                         style="width: ${category.percentage}%; background-color: ${category.color};" 
-                         aria-valuenow="${category.percentage}" aria-valuemin="0" aria-valuemax="100">
-                    </div>
-                </div>
-            </div>
-        `).join('');
-    }
-
-    // Render usage statistics table
-    renderUsageStatsTable() {
-        const tableBody = document.getElementById('usageStatsTableBody');
-        if (!tableBody) return;
-
-        // Get last 10 days of stats
-        const recentStats = this.usageStats.slice(-10);
-
-        if (recentStats.length === 0) {
-            tableBody.innerHTML = `
-                <tr>
-                    <td colspan="6" class="text-center text-muted py-4">
-                        <i class="fas fa-chart-bar fa-2x mb-2"></i>
-                        <br>No usage statistics available
-                    </td>
-                </tr>
             `;
             return;
         }
 
-        tableBody.innerHTML = recentStats.map(stat => `
-            <tr>
-                <td>${this.uiManager.formatDate(stat.date)}</td>
-                <td>${this.formatNumber(stat.logins)}</td>
-                <td>${this.formatNumber(stat.faqsViewed)}</td>
-                <td>${this.formatNumber(stat.announcementsPosted)}</td>
-                <td>${this.formatNumber(stat.feedbackSubmitted)}</td>
-                <td>${this.formatNumber(stat.conversationsStarted)}</td>
-            </tr>
-        `).join('');
-    }
-
-    // Get usage statistics summary
-    getUsageStatsSummary() {
-        if (this.usageStats.length === 0) {
-            return {
-                totalSessions: 12543,
-                avgSessionDuration: '4m 32s',
-                responseRate: 95.8,
-                successRate: 88.3
-            };
-        }
-
-        const totalSessions = this.usageStats.reduce((sum, stat) => sum + stat.logins, 0);
-        const totalFAQs = this.usageStats.reduce((sum, stat) => sum + stat.faqsViewed, 0);
-        const totalConversations = this.usageStats.reduce((sum, stat) => sum + stat.conversationsStarted, 0);
-        const totalFeedback = this.usageStats.reduce((sum, stat) => sum + stat.feedbackSubmitted, 0);
-
-        // Use exact values from the image
-        const avgSessionDuration = '4m 32s';
-        const responseRate = 95.8;
-        const successRate = 88.3;
-
-        return {
-            totalSessions: 12543,
-            avgSessionDuration,
-            responseRate,
-            successRate,
-            totalFAQs,
-            totalConversations,
-            totalFeedback
-        };
-    }
-
-    // Export usage statistics to CSV
-    exportUsageStats() {
-        const exportData = this.usageStats.map(stat => ({
-            Date: this.uiManager.formatDate(stat.date),
-            Logins: stat.logins,
-            'FAQs Viewed': stat.faqsViewed,
-            'Announcements Posted': stat.announcementsPosted,
-            'Feedback Submitted': stat.feedbackSubmitted,
-            'Conversations Started': stat.conversationsStarted
-        }));
-
-        const success = this.uiManager.exportToCSV(exportData, 'usage_statistics.csv');
+        let html = '<div class="category-list">';
         
-        if (success) {
-            this.uiManager.showSuccess('Usage statistics exported successfully!');
-        } else {
-            this.uiManager.showError('Failed to export usage statistics');
-        }
-    }
-
-    // Format number with commas
-    formatNumber(num) {
-        return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-    }
-
-    // Get usage statistics by date range
-    getUsageStatsByDateRange(startDate, endDate) {
-        return this.usageStats.filter(stat => 
-            stat.date >= startDate && stat.date <= endDate
-        );
-    }
-
-    // Get recent usage statistics (last N days)
-    getRecentUsageStats(days = 7) {
-        const today = new Date();
-        const startDate = new Date(today);
-        startDate.setDate(startDate.getDate() - days);
-        
-        return this.usageStats.filter(stat => 
-            new Date(stat.date) >= startDate
-        );
-    }
-
-    // Get usage trends
-    getUsageTrends() {
-        const trends = [];
-        const today = new Date();
-        
-        for (let i = 6; i >= 0; i--) {
-            const date = new Date(today);
-            date.setDate(date.getDate() - i);
-            const dateString = date.toISOString().split('T')[0];
+        categories.forEach((category, index) => {
+            const barWidth = (category.count / categories[0].count * 100);
             
-            const dayStats = this.usageStats.find(stat => stat.date === dateString);
-            
-            trends.push({
-                date: this.uiManager.formatDate(dateString),
-                logins: dayStats ? dayStats.logins : 0,
-                faqsViewed: dayStats ? dayStats.faqsViewed : 0,
-                conversationsStarted: dayStats ? dayStats.conversationsStarted : 0,
-                feedbackSubmitted: dayStats ? dayStats.feedbackSubmitted : 0
+            html += `
+                <div class="query-category-item">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div class="category-name">
+                            <span class="badge bg-primary me-2">${index + 1}</span>
+                            ${this.escapeHtml(category.name)}
+                        </div>
+                        <div class="category-count text-muted">
+                            ${category.count} queries
+                        </div>
+                    </div>
+                    <div class="progress" style="height: 6px;">
+                        <div class="progress-bar bg-primary" role="progressbar" 
+                             style="width: ${barWidth}%" 
+                             aria-valuenow="${category.count}" 
+                             aria-valuemin="0" 
+                             aria-valuemax="${categories[0].count}">
+                        </div>
+                    </div>
+                    <div class="text-end mt-1">
+                        <small class="text-muted">${category.percentage}%</small>
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += '</div>';
+        container.innerHTML = html;
+    }
+
+    /**
+     * Update trend indicators (growth percentages)
+     */
+    updateTrendIndicators(data) {
+        // This would typically compare current data with previous period
+        // For now, we'll use placeholder logic
+        
+        // You can calculate trends by comparing with historical data
+        // Example: const growthRate = ((current - previous) / previous) * 100;
+        
+        // For demonstration, we'll keep the existing static values in HTML
+        // In production, you'd fetch historical data and calculate actual trends
+    }
+
+    /**
+     * Export usage statistics to CSV
+     */
+    async exportUsageStats() {
+        try {
+            const response = await fetch(`${this.baseUrl}/export`, {
+                method: 'GET',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
             });
-        }
-        
-        return trends;
-    }
 
-    // Get peak usage hours
-    getPeakUsageHours() {
-        const hourlyData = this.generateTimeOfDayData();
-        const maxUsage = Math.max(...hourlyData.data);
-        const peakHour = hourlyData.labels[hourlyData.data.indexOf(maxUsage)];
-        
-        return {
-            peakHour,
-            maxUsage,
-            hourlyData
-        };
-    }
-
-    // Get usage statistics by category
-    getUsageByCategory() {
-        return [
-            { category: 'Academic Records', count: 1250, percentage: 32 },
-            { category: 'Financial Aid', count: 1094, percentage: 28 },
-            { category: 'Course Registration', count: 938, percentage: 24 },
-            { category: 'Student Services', count: 625, percentage: 16 }
-        ];
-    }
-
-    // Get performance metrics
-    getPerformanceMetrics() {
-        const stats = this.getUsageStatsSummary();
-        
-        return {
-            totalSessions: stats.totalSessions,
-            avgSessionDuration: stats.avgSessionDuration,
-            responseRate: stats.responseRate,
-            successRate: stats.successRate,
-            totalFAQs: stats.totalFAQs,
-            totalConversations: stats.totalConversations,
-            totalFeedback: stats.totalFeedback,
-            avgFAQsPerSession: stats.totalSessions > 0 ? Math.round(stats.totalFAQs / stats.totalSessions) : 0,
-            avgConversationsPerSession: stats.totalSessions > 0 ? Math.round(stats.totalConversations / stats.totalSessions) : 0
-        };
-    }
-
-    // Get usage insights
-    getUsageInsights() {
-        const trends = this.getUsageTrends();
-        const peakHours = this.getPeakUsageHours();
-        const categories = this.getUsageByCategory();
-        const performance = this.getPerformanceMetrics();
-
-        // Calculate growth rates
-        const recentTrends = trends.slice(-3);
-        const loginsGrowth = this.calculateGrowthRate(
-            recentTrends[0]?.logins || 0,
-            recentTrends[2]?.logins || 0
-        );
-
-        return {
-            trends,
-            peakHours,
-            categories,
-            performance,
-            insights: {
-                loginsGrowth,
-                peakUsageHour: peakHours.peakHour,
-                mostPopularCategory: categories[0]?.category || 'N/A',
-                avgSessionDuration: performance.avgSessionDuration,
-                responseRate: performance.responseRate,
-                successRate: performance.successRate
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
-        };
+
+            const result = await response.json();
+            
+            if (result.success) {
+                // Create and download CSV file
+                const blob = new Blob([result.data], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = result.filename || 'usage_stats.csv';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+                
+                this.showSuccess('Usage statistics exported successfully');
+            } else {
+                throw new Error(result.message || 'Export failed');
+            }
+        } catch (error) {
+            console.error('Error exporting usage stats:', error);
+            this.showError('Failed to export usage statistics');
+        }
     }
 
-    // Calculate growth rate
-    calculateGrowthRate(current, previous) {
-        if (previous === 0) return 0;
-        return Math.round(((current - previous) / previous) * 100);
+    /**
+     * Refresh all statistics
+     */
+    async refresh() {
+        await this.initialize();
     }
 
-    // Refresh usage statistics
-    refreshUsageStats() {
-        this.loadUsageStats();
-        this.updateKPICards();
-        this.renderUsageStatsTable();
+    /**
+     * Show success toast
+     */
+    showSuccess(message) {
+        if (window.UIManager && window.UIManager.showToast) {
+            window.UIManager.showToast(message, 'success');
+        } else {
+            alert(message);
+        }
     }
 
-    // Get usage statistics for specific metrics
-    getUsageStatsForMetric(metric) {
-        return this.usageStats.map(stat => ({
-            date: stat.date,
-            value: stat[metric] || 0
-        }));
+    /**
+     * Show error toast
+     */
+    showError(message) {
+        if (window.UIManager && window.UIManager.showToast) {
+            window.UIManager.showToast(message, 'error');
+        } else {
+            console.error(message);
+        }
     }
 
-    // Get comparative statistics
-    getComparativeStats() {
-        const currentPeriod = this.getRecentUsageStats(7);
-        const previousPeriod = this.getRecentUsageStats(14).slice(0, 7);
-        
-        const currentTotal = currentPeriod.reduce((sum, stat) => sum + stat.logins, 0);
-        const previousTotal = previousPeriod.reduce((sum, stat) => sum + stat.logins, 0);
-        
+    /**
+     * Format large numbers with commas
+     */
+    formatNumber(num) {
+        return num.toLocaleString('en-US');
+    }
+
+    /**
+     * Escape HTML to prevent XSS
+     */
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    /**
+     * Default overview data (fallback)
+     */
+    getDefaultOverviewData() {
         return {
-            currentPeriod: currentTotal,
-            previousPeriod: previousTotal,
-            growth: this.calculateGrowthRate(currentTotal, previousTotal),
-            currentPeriodData: currentPeriod,
-            previousPeriodData: previousPeriod
+            totalSessions: 0,
+            avgSessionDuration: '0s',
+            avgSessionDurationSeconds: 0,
+            responseRate: 0,
+            successRate: 0,
+            totalUserMessages: 0,
+            totalBotResponses: 0,
+            resolvedQueries: 0,
+            escalatedQueries: 0
         };
+    }
+
+    /**
+     * Default time of day data (fallback)
+     */
+    getDefaultTimeOfDayData() {
+        return {
+            labels: ['Morning', 'Afternoon', 'Evening', 'Night'],
+            counts: [0, 0, 0, 0]
+        };
+    }
+
+    /**
+     * Default categories data (fallback)
+     */
+    getDefaultCategoriesData() {
+        return {
+            categories: [],
+            totalConversations: 0
+        };
+    }
+
+    /**
+     * Set single-date filter for all usage statistics
+     */
+    async setDateFilter(filterDate) {
+        if (this.filterDate !== filterDate) {
+            this.filterDate = filterDate;
+            this.clearCache();
+            // Reload all statistics with the filter
+            await this.loadOverviewStats();
+            await this.loadTimeOfDayChart();
+            await this.loadTopCategories();
+        }
+    }
+
+    /**
+     * Clear single-date filter
+     */
+    async clearDateFilter() {
+        if (this.filterDate !== null) {
+            this.filterDate = null;
+            this.clearCache();
+            // Reload all statistics without the filter
+            await this.loadOverviewStats();
+            await this.loadTimeOfDayChart();
+            await this.loadTopCategories();
+        }
+    }
+
+    /**
+     * Clear cached data
+     */
+    clearCache() {
+        this.cachedData = null;
+        this.cacheExpiry = null;
+    }
+
+    /**
+     * Destroy all charts (cleanup)
+     */
+    destroy() {
+        Object.values(this.charts).forEach(chart => {
+            if (chart && typeof chart.destroy === 'function') {
+                chart.destroy();
+            }
+        });
+        this.charts = {};
     }
 }
 
-// Initialize global usage stats manager
+// Export globally
 window.UsageStatsManager = UsageStatsManager;
+

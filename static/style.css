@@ -1190,6 +1190,13 @@ header {
     transform: scale(1.1);
 }
 
+/* Pulse highlight for reset button when context switch is needed */
+.chatbox__reset.pulse-highlight {
+    background: rgba(255, 152, 0, 0.2) !important;
+    animation: pulse 1.5s ease-in-out 3;
+    box-shadow: 0 0 10px rgba(255, 152, 0, 0.7);
+}
+
 .chatbox__tts.active {
     background: rgba(33, 150, 243, 0.2);
     color: #2196f3;
@@ -1307,10 +1314,49 @@ header {
     margin-bottom: 8px;
 }
 
+.announcement-meta {
+    font-size: 11px;
+    color: #666;
+    margin-bottom: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+.announcement-office {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 600;
+    background: #e3f2fd;
+    color: #1976d2;
+}
+
+.announcement-source {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 600;
+    background: #f3e5f5;
+    color: #7b1fa2;
+}
+
 .announcement-message {
     font-size: 12px;
     line-height: 1.4;
     color: #444;
+}
+
+.announcement-author {
+    font-size: 10px;
+    color: #888;
+    font-style: italic;
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px solid rgba(0,0,0,0.05);
 }
 
 .announcement-priority {
@@ -1452,7 +1498,8 @@ header {
     margin-top: 8px;
 }
 
-.chatbox__sub-suggestions button {
+.chatbox__sub-suggestions button,
+.sub-suggestion-btn {
     background: #fff;
     border: 1px solid #ddd;
     padding: 6px 12px;
@@ -1463,7 +1510,8 @@ header {
     color: #555;
 }
 
-.chatbox__sub-suggestions button:hover {
+.chatbox__sub-suggestions button:hover,
+.sub-suggestion-btn:hover {
     background: #f8f8f8;
     border-color: #ccc;
     transform: translateY(-1px);
@@ -1744,6 +1792,131 @@ header {
 @keyframes wave {
     0%, 40%, 100% { transform: scaleY(0.4); }
     20% { transform: scaleY(1); }
+}
+
+/* =======================
+   TYPING INDICATOR & QUICK REPLIES
+   ======================= */
+
+/* Typing Indicator */
+.chatbox__typing-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #f5f5f5;
+    border: 1px solid #e0e0e0;
+    padding: 10px 14px;
+    border-radius: 16px;
+    margin: 8px 0;
+    border-bottom-left-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    animation: fadeIn 0.3s ease-in;
+    max-width: 85%;
+    align-self: flex-start;
+}
+
+.typing-dots {
+    display: flex;
+    gap: 3px;
+    align-items: center;
+}
+
+.typing-dots span {
+    width: 6px;
+    height: 6px;
+    background: #999;
+    border-radius: 50%;
+    animation: typingDots 1.4s infinite ease-in-out;
+}
+
+.typing-dots span:nth-child(1) { animation-delay: 0s; }
+.typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+.typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes typingDots {
+    0%, 60%, 100% { 
+        transform: scale(0.8);
+        opacity: 0.5;
+    }
+    30% { 
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.typing-text {
+    font-size: 12px;
+    color: #666;
+    font-style: italic;
+}
+
+
+/* Enhanced inline suggestions */
+.inline-suggestions-label {
+    margin-top: 12px;
+    margin-bottom: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #555;
+}
+
+.inline-suggestions {
+    margin-top: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.inline-suggest-btn {
+    background: #e3f2fd;
+    border: 1px solid #2196f3;
+    color: #1976d2;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.inline-suggest-btn:hover {
+    background: #bbdefb;
+    border-color: #1976d2;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(33, 150, 243, 0.2);
+}
+
+/* Inline category buttons (office topics) */
+.suggested-category-inline {
+    background: #f5f5f5;
+    border: 2px solid #4a90e2;
+    color: #4a90e2;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.suggested-category-inline:hover {
+    background: #4a90e2;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(74, 144, 226, 0.3);
+}
+
+/* Fade in animation for new elements */
+@keyframes fadeIn {
+    from { 
+        opacity: 0; 
+        transform: translateY(10px); 
+    }
+    to { 
+        opacity: 1; 
+        transform: translateY(0); 
+    }
 }
 
 /* Responsive design */

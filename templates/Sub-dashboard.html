@@ -1,213 +1,1738 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - {{ office|capitalize }} Office</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="{{ url_for('static', filename='Sub-assets/css/style.css') }}" rel="stylesheet">
-</head>
-<body>
-    <div class="dashboard-container">
-        <!-- Sidebar -->
-        <div class="sidebar">
-            <div class="sidebar-header">
-                <h5 class="sidebar-title">
-                    <i class="fas fa-comments me-2"></i>
-                    {{ office|capitalize }} Office
-                </h5>
+<!--(Sub-dashboard.html)--> 
+<!DOCTYPE html> 
+<html lang="en"> 
+    <head> 
+        <meta charset="UTF-8"> 
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+        <title>Sub-Dashboard - {{ office|capitalize }}</title>
+        <!-- ✅ MOBILE RESPONSIVE: This page is fully optimized for mobile, tablet, and desktop devices -->
+        <!-- Features: Mobile sidebar toggle, responsive layouts, touch-friendly controls, and adaptive content -->
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"> 
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"> 
+        <link href="{{ url_for('static', filename='Sub-assets/css/style.css') }}" rel="stylesheet">
+        <style>
+            /* Enhanced Mobile Responsive Styles */
+            @media (max-width: 768px) {
+                .mobile-menu-toggle {
+                    display: flex !important;
+                    align-items: center;
+                    justify-content: center;
+                }
+                
+                .sidebar {
+                    transform: translateX(-100%);
+                    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                }
+                
+                .sidebar.show {
+                    transform: translateX(0);
+                }
+                
+                .sidebar-overlay {
+                    display: none;
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0, 0, 0, 0.5);
+                    z-index: 999;
+                    opacity: 0;
+                    transition: opacity 0.3s ease;
+                }
+                
+                .sidebar-overlay.show {
+                    display: block;
+                    opacity: 1;
+                }
+                
+                .main-content {
+                    margin-left: 0 !important;
+                }
+                
+                .header {
+                    padding-left: 70px !important;
+                }
+                
+                .page-title {
+                    font-size: 1.5rem !important;
+                }
+                
+                .user-profile .user-info {
+                    display: none !important;
+                }
+            }
+            
+            @media (max-width: 480px) {
+                .header {
+                    padding-left: 65px !important;
+                }
+                
+                .page-title {
+                    font-size: 1.375rem !important;
+                }
+            }
+        </style>
+    </head> 
+    <body>
+        <!-- Mobile Responsive Notification (Shows on first mobile visit) -->
+        <div id="mobileNotification" style="display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 24px; border-radius: 50px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 10000; font-size: 14px; animation: slideUp 0.5s ease;">
+            <i class="fas fa-mobile-alt" style="margin-right: 8px;"></i>
+            <span>📱 Mobile-optimized! Tap menu to navigate</span>
+        </div>
+        
+        <!-- Mobile Menu Toggle Button -->
+        <button class="mobile-menu-toggle" onclick="toggleMobileSidebar()" aria-label="Toggle Menu">
+            <i class="fas fa-bars"></i>
+        </button>
+
+        <!-- Sidebar Overlay for Mobile -->
+        <div class="sidebar-overlay" onclick="closeMobileSidebar()"></div>
+
+        <div class="dashboard-container"> 
+            <!-- Sidebar --> 
+             <div class="sidebar" id="subDashboardSidebar"> 
+                <div class="sidebar-header"> 
+                    <h5 class="sidebar-title"> 
+                        <i class="fas fa-comments me-2"></i> 
+                        {{ office|capitalize }} 
+                    </h5> 
+                </div> 
+                <nav class="sidebar-nav"> 
+                    <div class="nav-section"> 
+                        <a href="{{ url_for('sub_dashboard') }}?office={{ office|urlencode }}" 
+                        class="nav-item {% if active_page == 'sub_dashboard' %}active{% endif %}"data-office-page="Sub-dashboard"> 
+                        <i class="fas fa-th-large"></i> Dashboard 
+                    </a> 
+                </div> 
+                <div class="nav-section"> 
+                    <div class="nav-section-title">CHATBOT MANAGEMENT</div> 
+                    <a href="{{ url_for('sub_conversations') }}?office={{ office|urlencode }}" 
+                    class="nav-item {% if active_page == 'sub_conversations' %}active{% endif %}" data-office-page="Sub-conversations"> 
+                    <i class="fas fa-comments"></i> Conversation Logs 
+                </a> 
+                <a href="{{ url_for('sub_faq') }}?office={{ office|urlencode }}" 
+                class="nav-item {% if active_page == 'sub_faq' %}active{% endif %}" data-office-page="Sub-faq"> 
+                <i class="fas fa-question-circle"></i> FAQ Management 
+            </a> 
+            <a href="{{ url_for('sub_announcements') }}?office={{ office|urlencode }}" 
+            class="nav-item {% if active_page == 'sub_announcements' %}active{% endif %}" data-office-page="Sub-announcements"> 
+            <i class="fas fa-bullhorn"></i> Announcements 
+        </a > 
+    </div> 
+    <div class="nav-section"> 
+        <div class="nav-section-title">ANALYTICS
+        </div> 
+        <a href="{{ url_for('sub_usage_stats') }}?office={{ office|urlencode }}" 
+        class="nav-item {% if active_page == 'sub_usage_stats' %}active{% endif %}" data-office-page="Sub-usage_stats"> 
+        <i class="fas fa-chart-bar"></i> Usage Statistics 
+    </a> 
+    <a href="{{ url_for('sub_feedback') }}?office={{ office|urlencode }}" 
+    class="nav-item {% if active_page == 'sub_feedback' %}active{% endif %}" data-office-page="Sub-feedback"> 
+    <i class="fas fa-heart"></i> User Feedback 
+</a> 
+</div> 
+</nav> 
+<div class="sidebar-footer"> 
+    <div class="user-info"> 
+        <div class="user-avatar"> 
+            <i class="fas fa-user"></i> 
+        </div> <div class="user-details"> 
+            <div class="user-name">{{ name }}
+            </div> 
+            <div class="user-role">{{ office|capitalize }} - Sub Admin
+            </div> 
+        </div> 
+    </div> 
+</div> 
+</div> 
+<!-- Main Content --> 
+ <div class="main-content"> 
+    <!-- Header --> 
+     <div class="header"> 
+        <div class="header-search"> 
+            <i class="fas fa-search"></i> 
+            <input type="text" placeholder="Search dashboard, pages, or stats..." class="form-control" id="subDashboardSearchInput"> 
+            <!-- Search Results Dropdown -->
+            <div class="search-results-dropdown" id="searchResultsDropdown" style="display: none;">
+                <div class="search-results-header">
+                    <span class="search-results-count"></span>
+                    <button class="search-close-btn" onclick="closeSearch()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="search-results-list" id="searchResultsList">
+                    <!-- Results will be populated here -->
+                </div>
+            </div>
+        </div> 
+        <div class="header-actions"> 
+            <div class="notification-bell"> 
+                <i class="fas fa-bell">
+                </i> 
+                <div class="notification-dot" style="display: none;">
+                </div> 
             </div>
             
-            <nav class="sidebar-nav">
-                <div class="nav-section">
-                    <a href="{{ url_for('sub_dashboard') }}?office={{ office }}" 
-                      class="nav-item {% if active_page == 'sub_dashboard' %}active{% endif %}">
-                         <i class="fas fa-th-large"></i> Dashboard
-                    </a>
-                </div>
-                
-                <div class="nav-section">
-                    <div class="nav-section-title">CHATBOT MANAGEMENT</div>
-                    <a href="{{ url_for('sub_conversations') }}?office={{ office }}" 
-                      class="nav-item {% if active_page == 'sub_conversations' %}active{% endif %}">
-                       <i class="fas fa-comments"></i> Conversation Logs
-                    </a>
-                    <a href="{{ url_for('sub_faq') }}?office={{ office }}" 
-                      class="nav-item {% if active_page == 'sub_faq' %}active{% endif %}">
-                       <i class="fas fa-question-circle"></i> FAQ Management
-                    </a>
-                    <a href="{{ url_for('sub_announcements') }}?office={{ office }}" 
-                      class="nav-item {% if active_page == 'sub_announcements' %}active{% endif %}">
-                       <i class="fas fa-bullhorn"></i> Announcements
-                    </a >
-                </div>
-                
-                <div class="nav-section">
-                    <div class="nav-section-title">ANALYTICS</div>
-                    <a href="{{ url_for('sub_usage_stats') }}?office={{ office }}" 
-                      class="nav-item {% if active_page == 'sub_usage_stats' %}active{% endif %}">
-                       <i class="fas fa-chart-bar"></i> Usage Statistics
-                    </a>
-                    <a href="{{ url_for('sub_feedback') }}?office={{ office }}" 
-                      class="nav-item {% if active_page == 'sub_feedback' %}active{% endif %}">
-                       <i class="fas fa-heart"></i> User Feedback
-                    </a>
-                </div>
-            </nav>
-            
-            <div class="sidebar-footer">
-                <div class="user-info">
-                    <div class="user-avatar">
-                        <i class="fas fa-user"></i>
-                    </div>
-                    <div class="user-details">
-                        <div class="user-name">{{ office|capitalize }} Office</div>
-                        <div class="user-role">Sub Admin</div>
-                    </div>
-                </div>
-             </div>
-        </div>
-
-        <!-- Main Content -->
-        <div class="main-content">
-            <!-- Header -->
-            <div class="header">
-                <div class="header-search">
-                    <i class="fas fa-search"></i>
-                    <input type="text" placeholder="Search" class="form-control">
-                </div>
-                
-                <div class="header-actions">
-                    <div class="notification-bell">
-                        <i class="fas fa-bell"></i>
-                        <div class="notification-dot"></div>
-                    </div>
-                    <div class="user-profile">
-                        <div class="user-info">
-                            <div class="user-name">{{ office|capitalize }} Office</div>
-                            <div class="user-role">Sub Admin</div>
-                        </div>
-                        <div class="user-avatar">
-                            <i class="fas fa-user"></i>
-                        </div>
-                        <button class="logout-btn" onclick="logout()">
-                            <i class="fas fa-sign-out-alt"></i>
+            <!-- Notification Dropdown Panel -->
+            <div class="notification-dropdown" id="subAdminNotificationDropdown">
+                <div class="notification-header">
+                    <h3><i class="fas fa-bell"></i> Notifications</h3>
+                    <div class="notification-header-actions">
+                        <button id="subAdminNotificationRefreshBtn" title="Refresh notifications">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <button id="subAdminNotificationMarkAllReadBtn" title="Mark all as read">
+                            <i class="fas fa-check-double"></i>
                         </button>
                     </div>
                 </div>
-            </div>
-
-            <!-- Content -->
-            <div class="content">
-                <h1 class="page-title">Dashboard</h1>
-                <p class="page-subtitle">Overview of system performance and metrics</p>
-
-                <!-- KPI Cards -->
-                <div class="row mb-4">
-                    <div class="col-md-3 mb-3">
-                        <div class="kpi-card">
-                            <div class="kpi-icon" style="background: var(--secondary-blue);">
-                                <i class="fas fa-users"></i>
-                            </div>
-                            <div class="kpi-value" id="totalUsers">1,245</div>
-                            <div class="kpi-label">Total Users</div>
-                            <div class="kpi-trend trend-up">
-                                <i class="fas fa-arrow-up"></i> +12% from last month
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="col-md-3 mb-3">
-                        <div class="kpi-card">
-                            <div class="kpi-icon" style="background: var(--success-green);">
-                                <i class="fas fa-comments"></i>
-                            </div>
-                            <div class="kpi-value" id="chatbotQueries">8,721</div>
-                            <div class="kpi-label">Chatbot Queries</div>
-                            <div class="kpi-trend trend-up">
-                                <i class="fas fa-arrow-up"></i> +23% from last week
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="col-md-3 mb-3">
-                        <div class="kpi-card">
-                            <div class="kpi-icon" style="background: var(--warning-yellow);">
-                                <i class="fas fa-check-circle"></i>
-                            </div>
-                            <div class="kpi-value" id="querySuccessRate">92%</div>
-                            <div class="kpi-label">Query Success Rate</div>
-                            <div class="kpi-trend trend-up">
-                                <i class="fas fa-arrow-up"></i> +3% from last month
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="col-md-3 mb-3">
-                        <div class="kpi-card">
-                            <div class="kpi-icon" style="background: var(--danger-red);">
-                                <i class="fas fa-exclamation-triangle"></i>
-                            </div>
-                            <div class="kpi-value" id="escalatedQueries">87</div>
-                            <div class="kpi-label">Escalated Queries</div>
-                            <div class="kpi-trend trend-down">
-                                <i class="fas fa-arrow-down"></i> -5% from last week
-                            </div>
-                        </div>
+                <div class="notification-list" id="subAdminNotificationList">
+                    <div class="notification-empty">
+                        <i class="fas fa-bell-slash"></i>
+                        <p>Loading notifications...</p>
                     </div>
                 </div>
-
-                <!-- Weekly Usage Chart -->
-                <div class="row">
-                    <div class="col-12">
-                        <div class="chart-container">
-                            <h5 class="chart-title">Weekly Chatbot Usage</h5>
-                            <canvas id="weeklyChart" width="400" height="200"></canvas>
-                        </div>
-                    </div>
-                </div>
+            </div> 
+            <div class="user-profile"> 
+                <div class="user-info"> 
+                    <div class="user-name">{{ name }}
+                    </div> 
+                    <div class="user-role">{{ office|capitalize }} - Sub Admin
+                    </div> 
+                </div> 
+                <div class="user-avatar"> 
+                    <i class="fas fa-user">
+                    </i> 
+                </div> 
+                <button class="logout-btn" onclick="logout()"> 
+                    <i class="fas fa-sign-out-alt">
+                    </i> 
+                </button> 
+            </div> 
+        </div> 
+    </div> 
+    <!-- Content --> 
+     <div class="content"> 
+        <div class="d-flex justify-content-between align-items-center mb-3" style="flex-wrap: wrap; gap: 1rem;">
+            <div>
+                <h1 class="page-title">Dashboard</h1> 
+                <p class="page-subtitle" data-office-specific="Overview of {office} performance and metrics"> 
+                    Overview of {{ office|capitalize }} performance and metrics 
+                </p>
             </div>
+            <div class="date-filter-controls" style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                <label for="subDashboardStartDate" style="margin: 0; font-size: 0.875rem; color: #64748b;">From:</label>
+                <input type="date" id="subDashboardStartDate" class="form-control form-control-sm" style="max-width: 150px;">
+                <label for="subDashboardEndDate" style="margin: 0; font-size: 0.875rem; color: #64748b;">To:</label>
+                <input type="date" id="subDashboardEndDate" class="form-control form-control-sm" style="max-width: 150px;">
+                <button class="btn btn-primary btn-sm" id="applySubDashDateFilter">
+                    <i class="fas fa-filter"></i> Apply
+                </button>
+                <button class="btn btn-secondary btn-sm" id="clearSubDashDateFilter">
+                    <i class="fas fa-times"></i> Clear
+                </button>
+                <button class="btn btn-success btn-sm" onclick="exportSubDashboard()">
+                    <i class="fas fa-download"></i> Export
+                </button>
+            </div>
+        </div> 
+        <!-- Office Access Control Notice (Hidden by default) --> 
+         <div id="access-notice" class="alert alert-warning" style="display: none;"> 
+            <i class="fas fa-exclamation-triangle"></i> 
+            <span id="access-message"></span> 
+        </div> 
+        <!-- KPI Cards --> 
+         <div class="row mb-4"> 
+            <div class="col-md-3 mb-3"> 
+                <div class="kpi-card"> 
+                    <div class="kpi-icon" style="background: var(--secondary-blue);"> 
+                        <i class="fas fa-users"></i> 
+                    </div> 
+                    <div class="kpi-value" id="totalUsers">Loading...</div> 
+                    <div class="kpi-label">Total Users</div> 
+                    <div class="kpi-trend trend-up"> 
+                        <i class="fas fa-arrow-up"></i> +12% from last month 
+                    </div> 
+                </div> 
+            </div> 
+            <div class="col-md-3 mb-3"> 
+                <div class="kpi-card"> 
+                    <div class="kpi-icon" style="background: var(--success-green);"> 
+                        <i class="fas fa-comments"></i> 
+                    </div> 
+                    <div class="kpi-value" id="chatbotQueries">Loading...</div> 
+                    <div class="kpi-label">Chatbot Queries</div> 
+                    <div class="kpi-trend trend-up"> 
+                        <i class="fas fa-arrow-up"></i> +23% from last week 
+                    </div> 
+                </div> 
+            </div> 
+            <div class="col-md-3 mb-3"> 
+                <div class="kpi-card"> 
+                    <div class="kpi-icon" style="background: var(--warning-yellow);"> 
+                        <i class="fas fa-check-circle"></i> 
+                    </div> 
+                    <div class="kpi-value" id="querySuccessRate">Loading...</div> 
+                    <div class="kpi-label">Query Success Rate</div> 
+                    <div class="kpi-trend trend-up"> 
+                        <i class="fas fa-arrow-up"></i> +3% from last month 
+                    </div> 
+                </div> 
+            </div> 
+            <div class="col-md-3 mb-3"> 
+                <div class="kpi-card"> 
+                    <div class="kpi-icon" style="background: var(--danger-red);"> 
+                        <i class="fas fa-exclamation-triangle"></i> 
+                    </div> 
+                    <div class="kpi-value" id="escalatedQueries">Loading...</div> 
+                    <div class="kpi-label">Escalated Queries</div> 
+                    <div class="kpi-trend trend-down"> 
+                        <i class="fas fa-arrow-down"></i> -5% from last week 
+                    </div> 
+                </div> 
+            </div> 
+        </div> 
+        <!-- Weekly Usage Chart -->
+<div class="row">
+  <div class="col-12">
+    <div class="chart-card">
+      <div class="chart-header">
+        <div class="chart-header-content">
+          <h5 class="chart-title">
+            <i class="fas fa-chart-line me-2"></i>
+            Weekly Chatbot Usage - {{ office|capitalize }}
+          </h5>
+          <p class="chart-subtitle">Last 7 days activity overview</p>
         </div>
-    </div>
-
-    <!-- Toast Container -->
-    <div class="toast-container position-fixed top-0 end-0 p-3">
-        <div id="toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
-            <div class="toast-header">
-                <strong class="me-auto" id="toastTitle">Notification</strong>
-                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
-            </div>
-            <div class="toast-body" id="toastMessage">
-                This is a toast message.
-            </div>
+        <div class="chart-actions">
+          <button class="btn-chart-action" onclick="refreshChart()" title="Refresh Chart">
+            <i class="fas fa-sync-alt"></i>
+          </button>
+          <button class="btn-chart-action" onclick="exportChartData()" title="Export Data">
+            <i class="fas fa-download"></i>
+          </button>
+          <div class="dropdown d-inline-block">
+            <button class="btn-chart-action dropdown-toggle" type="button" id="chartTypeDropdown" data-bs-toggle="dropdown" aria-expanded="false" title="Chart Type">
+              <i class="fas fa-chart-bar"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="chartTypeDropdown">
+              <li><a class="dropdown-item" href="#" onclick="changeChartType('line')"><i class="fas fa-chart-line me-2"></i>Line Chart</a></li>
+              <li><a class="dropdown-item" href="#" onclick="changeChartType('bar')"><i class="fas fa-chart-bar me-2"></i>Bar Chart</a></li>
+              <li><a class="dropdown-item" href="#" onclick="changeChartType('area')"><i class="fas fa-chart-area me-2"></i>Area Chart</a></li>
+            </ul>
+          </div>
         </div>
+      </div>
+      <div class="chart-body">
+        <div class="chart-stats-row">
+          <div class="chart-stat-item">
+            <span class="chart-stat-label">Total Queries</span>
+            <span class="chart-stat-value" id="chartTotalQueries">-</span>
+          </div>
+          <div class="chart-stat-item">
+            <span class="chart-stat-label">Daily Average</span>
+            <span class="chart-stat-value" id="chartAvgQueries">-</span>
+          </div>
+          <div class="chart-stat-item">
+            <span class="chart-stat-label">Peak Day</span>
+            <span class="chart-stat-value" id="chartPeakDay">-</span>
+          </div>
+          <div class="chart-stat-item">
+            <span class="chart-stat-label">Trend</span>
+            <span class="chart-stat-value" id="chartTrend">
+              <span class="trend-indicator">-</span>
+            </span>
+          </div>
+        </div>
+        <div class="chart-canvas-wrapper">
+          <canvas id="weeklyChart"></canvas>
+        </div>
+      </div>
     </div>
+  </div>
+</div> 
+        <!-- Office Information Panel --> 
+         <div class="row mt-4"> 
+            <div class="col-12"> 
+                <div class="card"> 
+                    <div class="card-header"> 
+                        <h5 class="mb-0"> 
+                            <i class="fas fa-building me-2"></i> Office Information </h5> 
+                        </div> 
+                        <div class="card-body"> 
+                            <div class="row"> 
+                                <div class="col-md-6"> <p><strong>Office:</strong> 
+                                    <span id="current-office">{{ office|capitalize }}</span></p> 
+                                    <p><strong>Administrator:</strong> 
+                                        <span id="current-admin">{{ name }}</span></p> 
+                                        <p><strong>Access Level:</strong> Sub-Admin</p> 
+                                    </div> 
+                                    <div class="col-md-6"> <p><strong>Last Login:</strong> 
+                                        <span id="last-login">Loading...</span></p> 
+                                        <p><strong>Data Scope:</strong> {{ office|capitalize }} Only</p> 
+                                        <p><strong>Status:</strong> 
+                                            <span class="badge bg-success">Active</span></p> 
+                                        </div> 
+                                    </div> 
+                                </div> 
+                            </div> 
+                        </div> 
+                    </div> 
+                </div> 
+            </div> 
+        </div> 
+        <!-- Toast Container --> 
+         <div class="toast-container position-fixed top-0 end-0 p-3"> 
+            <div id="toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true"> 
+                <div class="toast-header"> <strong class="me-auto" id="toastTitle">Notification</strong> 
+                    <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button> 
+                </div> 
+                <div class="toast-body" id="toastMessage"> This is a toast message. </div> 
+            </div> 
+        </div> 
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script> 
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> 
+        <script src="{{ url_for('static', filename='Sub-assets/js/core/StorageManager.js') }}"></script> 
+        <script src="{{ url_for('static', filename='Sub-assets/js/modules/AuthManager.js') }}"></script> 
+        <script src="{{ url_for('static', filename='Sub-assets/js/UIManager.js') }}"></script> 
+        <script src="{{ url_for('static', filename='Sub-assets/js/modules/DashboardManager.js') }}"></script>
+        <script src="{{ url_for('static', filename='Sub-assets/js/SubAdminNotificationManager.js') }}"></script>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="{{ url_for('static', filename='Sub-assets/js/core/StorageManager.js') }}"></script>
-    <script src="{{ url_for('static', filename='Sub-assets/js/modules/AuthManager.js') }}"></script>
-    <script src="{{ url_for('static', filename='Sub-assets/js/UIManager.js') }}"></script>
-    <script src="{{ url_for('static', filename='Sub-assets/js/modules/DashboardManager.js') }}"></script>
-    <script>
-        // Initialize dashboard
-        document.addEventListener('DOMContentLoaded', function() {
-            // Check authentication
-            if (!window.authManager.requireAuth()) {
-                return;
-            }
+        <script> // Initialize dashboard with office access control 
+        let subAdminNotificationManager;
+        
+        document.addEventListener("DOMContentLoaded", async () => {
+  try {
+    // Initialize managers
+    window.dashboardManager = new DashboardManager();
+    await window.dashboardManager.initialize();
+    
+    // Initialize notification manager
+    subAdminNotificationManager = new SubAdminNotificationManager();
+    await subAdminNotificationManager.initialize();
 
-            // Initialize dashboard manager
-            window.dashboardManager = new DashboardManager();
-            window.dashboardManager.initialize();
+    if (window.authManager) {
+      window.authManager.initializeOfficeNavigation();
+    }
+
+    await loadOfficeSpecificData();
+  } catch (error) {
+    console.error("Dashboard initialization error:", error);
+    showAccessNotice("Error initializing dashboard. Please refresh the page.");
+  }
+
+  // Add event listeners for navigation
+  setupOfficeNavigation();
+});
+
+/* ---------------------------
+   OFFICE ACCESS & VALIDATION
+----------------------------*/
+async function loadOfficeSpecificData() {
+  try {
+    const urlOffice = getOfficeFromURL();
+    const validation = await window.authManager.validateOfficeAccess(urlOffice);
+
+    if (!validation.valid) {
+      handleAccessViolation(validation);
+      return;
+    }
+
+    // Load stats if access is valid
+    await loadOfficeStats();
+    updateOfficeDisplay(validation.userOffice);
+  } catch (error) {
+    console.error("Error loading office data:", error);
+    showAccessNotice("Error loading office data.");
+  }
+}
+
+function getOfficeFromURL() {
+  const urlParams = new URLSearchParams(window.location.search);
+  return urlParams.get("office");
+}
+
+function handleAccessViolation(validation) {
+  let message = "";
+
+  switch (validation.reason) {
+    case "not_authenticated":
+      window.location.href = "/sub-index";
+      return;
+
+    case "office_mismatch":
+      message = `Access denied: You are authorized for ${validation.userOffice} only. Redirecting...`;
+      showAccessNotice(message);
+      setTimeout(() => {
+        window.location.href = `/Sub-dashboard?office=${encodeURIComponent(
+          validation.userOffice
+        )}`;
+      }, 2000);
+      return;
+
+    case "validation_error":
+      message = "Unable to validate office access. Please login again.";
+      showAccessNotice(message);
+      setTimeout(() => (window.location.href = "/sub-index"), 3000);
+      return;
+
+    default:
+      message = "Access validation failed.";
+      showAccessNotice(message);
+  }
+}
+
+function showAccessNotice(message) {
+  const noticeElement = document.getElementById("access-notice");
+  const messageElement = document.getElementById("access-message");
+
+  if (noticeElement && messageElement) {
+    messageElement.textContent = message;
+    noticeElement.classList.remove("d-none");
+  }
+}
+
+/* ---------------------------
+   DASHBOARD DATA
+----------------------------*/
+async function loadOfficeStats() {
+  try {
+    const response = await fetch("/api/sub-admin/stats", {
+      method: "GET",
+      credentials: "include", // Send session cookie
+      headers: { "Content-Type": "application/json" },
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data.success && data.stats) {
+        updateDashboardStats(data.stats);
+      } else {
+        console.warn("Failed to load stats:", data);
+      }
+    } else {
+      console.error("Failed to load office stats:", response.status);
+      if (response.status === 401) window.location.href = "/sub-index";
+    }
+  } catch (error) {
+    console.error("Error loading office stats:", error);
+  }
+}
+
+function updateDashboardStats(stats) {
+  if (stats.office_users !== undefined) {
+    document.getElementById("totalUsers").textContent =
+      stats.office_users.toLocaleString();
+  }
+
+  if (stats.office_conversations !== undefined) {
+    document.getElementById("chatbotQueries").textContent =
+      stats.office_conversations.toLocaleString();
+  }
+
+  if (
+    stats.office_resolved_queries !== undefined &&
+    stats.office_conversations !== undefined
+  ) {
+    const total = stats.office_conversations || 1;
+    const resolved = stats.office_resolved_queries;
+    const percentage = Math.round((resolved / total) * 100);
+    document.getElementById("querySuccessRate").textContent = `${percentage}%`;
+  }
+
+  if (stats.office_escalated_issues !== undefined) {
+    document.getElementById("escalatedQueries").textContent =
+      stats.office_escalated_issues.toLocaleString();
+  }
+
+  if (stats.office && stats.name) {
+    document.getElementById("current-office").textContent = stats.office;
+    document.getElementById("current-admin").textContent = stats.name;
+  }
+  
+  // Update last login from MongoDB
+  if (stats.last_login) {
+    const lastLoginElement = document.getElementById("last-login");
+    if (lastLoginElement) {
+      try {
+        const lastLoginDate = new Date(stats.last_login);
+        const formattedDate = lastLoginDate.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
         });
+        lastLoginElement.textContent = formattedDate;
+      } catch (error) {
+        console.error('Error formatting last login date:', error);
+        lastLoginElement.textContent = stats.last_login;
+      }
+    }
+  } else {
+    // If no last_login in database, show current time
+    const lastLoginElement = document.getElementById("last-login");
+    if (lastLoginElement) {
+      const now = new Date();
+      const formattedDate = now.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      });
+      lastLoginElement.textContent = formattedDate;
+    }
+  }
+}
 
-        // Logout function
-        function logout() {
-            window.authManager.logout();
-            window.location.href = "{{ url_for('admin_index') }}";
+function updateOfficeDisplay(office) {
+  document.getElementById("current-office").textContent = office;
+
+  // Update title
+  document.title = `Sub-Dashboard - ${office}`;
+
+  // Update chart title
+  const chartTitle = document.querySelector(".chart-title");
+  if (chartTitle) {
+    chartTitle.textContent = `Weekly Chatbot Usage - ${office}`;
+  }
+}
+
+/* ---------------------------
+   NAVIGATION
+----------------------------*/
+function setupOfficeNavigation() {
+  document.querySelectorAll("[data-office-page]").forEach((link) => {
+    link.addEventListener("click", function (e) {
+      e.preventDefault();
+      const targetPage = this.getAttribute("data-office-page");
+      handleOfficeNavigation(targetPage);
+    });
+  });
+}
+
+function handleOfficeNavigation(targetPage) {
+  if (window.authManager) {
+    window.authManager.navigateToOfficePage(targetPage);
+  } else {
+    const currentOffice =
+      getOfficeFromURL() || document.getElementById("current-office").textContent;
+    window.location.href = `/${targetPage}?office=${encodeURIComponent(
+      currentOffice
+    )}`;
+  }
+}
+
+/* ---------------------------
+   AUTH / LOGOUT
+----------------------------*/
+async function logout() {
+  if (window.authManager) {
+    await window.authManager.logoutSubAdmin();
+  } else {
+    const confirmed = confirm("Are you sure you want to logout?");
+    if (confirmed) {
+      try {
+        await fetch("/subadmin/logout", { method: "POST", credentials: "include" });
+      } catch (err) {
+        console.error("Logout error:", err);
+      } finally {
+        window.location.href = "/sub-index";
+      }
+    }
+  }
+}
+
+/* ---------------------------
+   UTILITIES
+----------------------------*/
+// Export data
+async function exportOfficeData() {
+  if (window.dashboardManager) {
+    window.dashboardManager.exportDashboardData();
+  } else {
+    alert("Export functionality not available. Please refresh the page.");
+  }
+}
+
+// Export Sub-admin dashboard
+async function exportSubDashboard() {
+  if (window.dashboardManager) {
+    await window.dashboardManager.exportDashboardCSV();
+  } else {
+    alert("Export functionality not available. Please refresh the page.");
+  }
+}
+
+// Refresh dashboard
+async function refreshDashboard() {
+  if (window.dashboardManager) {
+    await window.dashboardManager.refreshDashboard();
+  } else {
+    window.location.reload();
+  }
+}
+
+/* ---------------------------
+   PERIODIC CHECKS
+----------------------------*/
+// Validate access every 5 minutes (also checks 24hr session expiration)
+setInterval(async () => {
+  try {
+    // ✅ Check session expiration
+    const sessionRes = await fetch('/subadmin/session', {
+      method: 'GET',
+      credentials: 'include'
+    });
+    
+    if (sessionRes.ok) {
+      const sessionData = await sessionRes.json();
+      
+      // ✅ Handle session expiration
+      if (sessionData.expired || !sessionData.authenticated) {
+        console.warn("Session expired after 24 hours");
+        alert(sessionData.message || 'Your session has expired after 24 hours. Please login again.');
+        window.location.href = '/sub-index?expired=true';
+        return;
+      }
+    }
+    
+    const urlOffice = getOfficeFromURL();
+    const validation = await window.authManager.validateOfficeAccess(urlOffice);
+    if (!validation.valid) {
+      console.warn("Office access validation failed during periodic check");
+      handleAccessViolation(validation);
+    }
+  } catch (error) {
+    console.error("Periodic office validation error:", error);
+  }
+}, 300000); // 5 mins
+
+// Validate on browser back/forward (also checks 24hr session expiration)
+window.addEventListener("popstate", async () => {
+  try {
+    // ✅ Check session expiration
+    const sessionRes = await fetch('/subadmin/session', {
+      method: 'GET',
+      credentials: 'include'
+    });
+    
+    if (sessionRes.ok) {
+      const sessionData = await sessionRes.json();
+      
+      // ✅ Handle session expiration
+      if (sessionData.expired || !sessionData.authenticated) {
+        console.warn("Session expired after 24 hours");
+        alert(sessionData.message || 'Your session has expired after 24 hours. Please login again.');
+        window.location.href = '/sub-index?expired=true';
+        return;
+      }
+    }
+    
+    const urlOffice = getOfficeFromURL();
+    const validation = await window.authManager.validateOfficeAccess(urlOffice);
+    if (!validation.valid) {
+      console.warn("Office access validation failed on navigation");
+      handleAccessViolation(validation);
+    }
+  } catch (error) {
+    console.error("Navigation validation error:", error);
+  }
+});
+
+// ========================================
+// SUB-DASHBOARD SEARCH FUNCTIONALITY
+// ========================================
+
+const searchableContent = [
+    // Navigation Pages
+    { type: 'page', icon: 'fa-th-large', title: 'Dashboard', desc: 'Overview and statistics', action: () => window.location.reload() },
+    { type: 'page', icon: 'fa-comments', title: 'Conversation Logs', desc: 'View chat history', action: () => window.location.href = `/sub-admin/conversations?office=${window.authManager.getOfficeFromURL()}` },
+    { type: 'page', icon: 'fa-question-circle', title: 'FAQ Management', desc: 'Manage frequently asked questions', action: () => window.location.href = `/sub-admin/faq?office=${window.authManager.getOfficeFromURL()}` },
+    { type: 'page', icon: 'fa-bullhorn', title: 'Announcements', desc: 'Manage office announcements', action: () => window.location.href = `/sub-admin/announcements?office=${window.authManager.getOfficeFromURL()}` },
+    { type: 'page', icon: 'fa-chart-bar', title: 'Usage Statistics', desc: 'Analyze usage patterns', action: () => window.location.href = `/sub-admin/usage?office=${window.authManager.getOfficeFromURL()}` },
+    { type: 'page', icon: 'fa-heart', title: 'User Feedback', desc: 'View user ratings and comments', action: () => window.location.href = `/sub-admin/feedback?office=${window.authManager.getOfficeFromURL()}` },
+    
+    // Dashboard Stats
+    { type: 'stat', icon: 'fa-users', title: 'Total Users', desc: 'View registered users for this office', action: () => scrollToElement('totalUsers') },
+    { type: 'stat', icon: 'fa-comments', title: 'Chatbot Queries', desc: 'View chatbot query statistics', action: () => scrollToElement('chatbotQueries') },
+    { type: 'stat', icon: 'fa-check-circle', title: 'Query Success Rate', desc: 'View query success statistics', action: () => scrollToElement('querySuccessRate') },
+    { type: 'stat', icon: 'fa-exclamation-triangle', title: 'Escalated Queries', desc: 'View escalated conversations', action: () => scrollToElement('escalatedQueries') },
+    
+    // Charts & Sections
+    { type: 'chart', icon: 'fa-chart-line', title: 'Weekly Usage', desc: 'View weekly chatbot usage trends', action: () => scrollToElement('weeklyChart') },
+    { type: 'info', icon: 'fa-building', title: 'Office Information', desc: 'View office details and description', action: () => scrollToElement('officeCard') },
+];
+
+function initializeSearch() {
+    const searchInput = document.getElementById('subDashboardSearchInput');
+    if (!searchInput) return;
+    
+    searchInput.addEventListener('input', function(e) {
+        const query = e.target.value.trim().toLowerCase();
+        
+        if (query.length === 0) {
+            closeSearch();
+            return;
         }
-    </script>
-</body>
+        
+        if (query.length < 2) return;
+        
+        performSearch(query);
+    });
+    
+    searchInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeSearch();
+            searchInput.blur();
+        }
+    });
+    
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.header-search')) {
+            closeSearch();
+        }
+    });
+}
+
+function performSearch(query) {
+    const searchDropdown = document.getElementById('searchResultsDropdown');
+    const searchResultsList = document.getElementById('searchResultsList');
+    const searchCount = document.querySelector('.search-results-count');
+    
+    if (!searchDropdown || !searchResultsList) return;
+    
+    const results = searchableContent.filter(item => {
+        return item.title.toLowerCase().includes(query) || 
+               item.desc.toLowerCase().includes(query);
+    });
+    
+    if (searchCount) {
+        searchCount.textContent = results.length === 0 ? 'No results' : 
+            `${results.length} result${results.length !== 1 ? 's' : ''} found`;
+    }
+    
+    searchDropdown.style.display = 'block';
+    
+    if (results.length === 0) {
+        searchResultsList.innerHTML = `
+            <div class="search-no-results">
+                <i class="fas fa-search"></i>
+                <p>No results found for "${query}"</p>
+            </div>
+        `;
+    } else {
+        searchResultsList.innerHTML = results.map((item, index) => {
+            const highlightedTitle = highlightText(item.title, query);
+            const highlightedDesc = highlightText(item.desc, query);
+            
+            return `
+                <div class="search-result-item" onclick="handleSearchResultClick(event, ${index})">
+                    <div class="search-result-icon ${item.type}">
+                        <i class="fas ${item.icon}"></i>
+                    </div>
+                    <div class="search-result-content">
+                        <div class="search-result-title">${highlightedTitle}</div>
+                        <div class="search-result-desc">${highlightedDesc}</div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+}
+
+function handleSearchResultClick(event, index) {
+    event.stopPropagation();
+    const item = searchableContent[index];
+    
+    if (item && item.action) {
+        closeSearch();
+        document.getElementById('subDashboardSearchInput').value = '';
+        item.action();
+    }
+}
+
+function highlightText(text, query) {
+    const regex = new RegExp(`(${escapeRegex(query)})`, 'gi');
+    return text.replace(regex, '<span class="search-highlight">$1</span>');
+}
+
+function escapeRegex(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function scrollToElement(elementId) {
+    const element = document.getElementById(elementId);
+    if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        element.style.transition = 'box-shadow 0.3s ease';
+        element.style.boxShadow = '0 0 0 4px rgba(59, 130, 246, 0.3)';
+        setTimeout(() => {
+            element.style.boxShadow = '';
+        }, 2000);
+    }
+}
+
+function closeSearch() {
+    const searchDropdown = document.getElementById('searchResultsDropdown');
+    if (searchDropdown) {
+        searchDropdown.style.display = 'none';
+    }
+}
+
+// Initialize search when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeSearch);
+} else {
+    initializeSearch();
+}
+</script>
+<style> 
+/* Chart Card Styles */
+.chart-card {
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.chart-card:hover {
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+  transform: translateY(-2px);
+}
+
+.chart-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 24px 28px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.chart-header-content {
+  flex: 1;
+  min-width: 200px;
+}
+
+.chart-title {
+  color: #ffffff;
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  letter-spacing: -0.3px;
+}
+
+.chart-title i {
+  opacity: 0.9;
+}
+
+.chart-subtitle {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 13px;
+  margin: 6px 0 0 0;
+  font-weight: 400;
+}
+
+.chart-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.btn-chart-action {
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  font-size: 14px;
+}
+
+.btn-chart-action:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn-chart-action:active {
+  transform: translateY(0);
+}
+
+.chart-body {
+  padding: 28px;
+}
+
+.chart-stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 16px;
+  margin-bottom: 28px;
+  padding-bottom: 24px;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.chart-stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-radius: 10px;
+  transition: all 0.3s ease;
+}
+
+.chart-stat-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.chart-stat-label {
+  font-size: 12px;
+  color: #6c757d;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.chart-stat-value {
+  font-size: 22px;
+  color: #2c3e50;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.trend-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 16px;
+}
+
+.trend-up {
+  color: #10b981;
+}
+
+.trend-up::before {
+  content: "↑";
+  font-size: 20px;
+}
+
+.trend-down {
+  color: #ef4444;
+}
+
+.trend-down::before {
+  content: "↓";
+  font-size: 20px;
+}
+
+.trend-stable {
+  color: #f59e0b;
+}
+
+.trend-stable::before {
+  content: "→";
+  font-size: 20px;
+}
+
+.chart-canvas-wrapper {
+  position: relative;
+  height: 380px;
+  width: 100%;
+}
+
+#weeklyChart {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Dark Theme Support */
+@media (prefers-color-scheme: dark) {
+  .chart-card {
+    background: #1e293b;
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .chart-header {
+    background: linear-gradient(135deg, #4c1d95 0%, #5b21b6 100%);
+  }
+
+  .chart-stats-row {
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .chart-stat-item {
+    background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+  }
+
+  .chart-stat-label {
+    color: #94a3b8;
+  }
+
+  .chart-stat-value {
+    color: #f1f5f9;
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .chart-header {
+    padding: 20px;
+  }
+
+  .chart-title {
+    font-size: 18px;
+  }
+
+  .chart-subtitle {
+    font-size: 12px;
+  }
+
+  .chart-body {
+    padding: 20px;
+  }
+
+  .chart-stats-row {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .chart-stat-value {
+    font-size: 18px;
+  }
+
+  .chart-canvas-wrapper {
+    height: 300px;
+  }
+
+  .btn-chart-action {
+    width: 34px;
+    height: 34px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .chart-stats-row {
+    grid-template-columns: 1fr;
+  }
+
+  .chart-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .chart-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
+/* Dropdown Menu Styling */
+.dropdown-menu {
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  padding: 8px;
+}
+
+.dropdown-item {
+  border-radius: 6px;
+  padding: 10px 14px;
+  transition: all 0.2s ease;
+}
+
+.dropdown-item:hover {
+  background-color: #f8f9fa;
+  transform: translateX(4px);
+}
+
+.dropdown-item i {
+  color: #667eea;
+}
+
+/* Loading State */
+.chart-loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+
+.chart-loading-spinner {
+  border: 3px solid #f3f4f6;
+  border-top: 3px solid #667eea;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin: 0 auto;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* =============================================
+   SEARCH RESULTS DROPDOWN STYLES
+   ============================================= */
+
+.header-search {
+    position: relative;
+}
+
+.search-results-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    width: 500px;
+    max-height: 600px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    overflow: hidden;
+    z-index: 9999;
+    animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.search-results-header {
+    padding: 1rem 1.25rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.search-results-count {
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.search-close-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.search-close-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.search-results-list {
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.search-results-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.search-results-list::-webkit-scrollbar-track {
+    background: #f1f5f9;
+}
+
+.search-results-list::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+}
+
+.search-result-item {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #f1f5f9;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.search-result-item:hover {
+    background: #f8fafc;
+}
+
+.search-result-item:last-child {
+    border-bottom: none;
+}
+
+.search-result-icon {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    color: white;
+}
+
+.search-result-icon.page {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.search-result-icon.stat {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.search-result-icon.chart {
+    background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.search-result-icon.info {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+
+.search-result-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.search-result-title {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 0.25rem;
+}
+
+.search-result-desc {
+    font-size: 0.8125rem;
+    color: #64748b;
+    line-height: 1.4;
+}
+
+.search-no-results {
+    padding: 3rem 2rem;
+    text-align: center;
+    color: #94a3b8;
+}
+
+.search-no-results i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.search-no-results p {
+    margin: 0;
+    font-size: 0.9375rem;
+    font-weight: 500;
+}
+
+.search-highlight {
+    background: #fef3c7;
+    color: #92400e;
+    padding: 0.1rem 0.2rem;
+    border-radius: 3px;
+    font-weight: 600;
+}
+
+/* =============================================
+   SUB-ADMIN NOTIFICATION SYSTEM STYLES
+   ============================================= */
+
+/* Notification Bell Enhanced */
+.notification-bell {
+    position: relative;
+    cursor: pointer;
+}
+
+.notification-dot {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    width: 18px;
+    height: 18px;
+    background: #ef4444;
+    border-radius: 50%;
+    border: 2px solid white;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: white;
+}
+
+.notification-dot::after {
+    content: attr(data-count);
+}
+
+/* Notification Dropdown */
+.notification-dropdown {
+    position: absolute;
+    top: calc(100% + 12px);
+    right: 0;
+    width: 380px;
+    max-height: 500px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.3s ease;
+    z-index: 9999;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.notification-dropdown.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+/* Notification Header */
+.notification-header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #e2e8f0;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.notification-header h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0;
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.notification-header-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.notification-header-actions button {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    font-size: 0.875rem;
+}
+
+.notification-header-actions button:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* Notification List */
+.notification-list {
+    max-height: 400px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.notification-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.notification-list::-webkit-scrollbar-track {
+    background: #f1f5f9;
+}
+
+.notification-list::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+}
+
+.notification-list::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Notification Item */
+.notification-item {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #f1f5f9;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.notification-item:hover {
+    background: #f8fafc;
+}
+
+.notification-item:last-child {
+    border-bottom: none;
+}
+
+.notification-item::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: transparent;
+    transition: background 0.2s ease;
+}
+
+/* Notification Item Types */
+.notification-item.notification-success::before {
+    background: #10b981;
+}
+
+.notification-item.notification-warning::before {
+    background: #f59e0b;
+}
+
+.notification-item.notification-danger::before {
+    background: #ef4444;
+}
+
+.notification-item.notification-info::before {
+    background: #3b82f6;
+}
+
+.notification-item.notification-primary::before {
+    background: #8b5cf6;
+}
+
+/* Notification Icon */
+.notification-item .notification-icon {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    color: white;
+}
+
+.notification-success .notification-icon {
+    background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.notification-warning .notification-icon {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.notification-danger .notification-icon {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+
+.notification-info .notification-icon {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+
+.notification-primary .notification-icon {
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+}
+
+/* Notification Content */
+.notification-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.notification-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 0.25rem;
+    line-height: 1.4;
+}
+
+.notification-message {
+    font-size: 0.8125rem;
+    color: #64748b;
+    margin-bottom: 0.5rem;
+    line-height: 1.4;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.notification-time {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.notification-time i {
+    font-size: 0.7rem;
+}
+
+/* Empty State */
+.notification-empty {
+    padding: 3rem 2rem;
+    text-align: center;
+    color: #94a3b8;
+}
+
+.notification-empty i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.notification-empty p {
+    margin: 0;
+    font-size: 0.9375rem;
+    font-weight: 500;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .notification-dropdown {
+        position: fixed;
+        top: 60px;
+        right: 10px;
+        left: 10px;
+        width: auto;
+        max-height: 70vh;
+    }
+}
+</style>
+
+<script>
+// Mobile Sidebar Functions
+function toggleMobileSidebar() {
+    const sidebar = document.getElementById('subDashboardSidebar');
+    const overlay = document.querySelector('.sidebar-overlay');
+    
+    sidebar.classList.toggle('show');
+    overlay.classList.toggle('show');
+    
+    // Prevent body scroll when sidebar is open
+    if (sidebar.classList.contains('show')) {
+        document.body.style.overflow = 'hidden';
+    } else {
+        document.body.style.overflow = '';
+    }
+}
+
+function closeMobileSidebar() {
+    const sidebar = document.getElementById('subDashboardSidebar');
+    const overlay = document.querySelector('.sidebar-overlay');
+    
+    sidebar.classList.remove('show');
+    overlay.classList.remove('show');
+    document.body.style.overflow = '';
+}
+
+// Close sidebar when clicking on a navigation link on mobile
+document.addEventListener('DOMContentLoaded', function() {
+    const navLinks = document.querySelectorAll('.sidebar-nav a');
+    navLinks.forEach(link => {
+        link.addEventListener('click', function() {
+            if (window.innerWidth <= 768) {
+                closeMobileSidebar();
+            }
+        });
+    });
+
+    // Close sidebar on window resize if it becomes desktop size
+    window.addEventListener('resize', function() {
+        if (window.innerWidth > 768) {
+            closeMobileSidebar();
+        }
+    });
+
+    // Setup date filter event listeners
+    const applyBtn = document.getElementById('applySubDashDateFilter');
+    const clearBtn = document.getElementById('clearSubDashDateFilter');
+    
+    if (applyBtn) {
+        applyBtn.addEventListener('click', async function() {
+            const startDate = document.getElementById('subDashboardStartDate').value;
+            const endDate = document.getElementById('subDashboardEndDate').value;
+            
+            if (window.dashboardManager) {
+                await window.dashboardManager.applyDateFilter(startDate, endDate);
+            }
+        });
+    }
+    
+    if (clearBtn) {
+        clearBtn.addEventListener('click', async function() {
+            document.getElementById('subDashboardStartDate').value = '';
+            document.getElementById('subDashboardEndDate').value = '';
+            
+            if (window.dashboardManager) {
+                await window.dashboardManager.clearDateFilter();
+            }
+        });
+    }
+});
+
+// Make functions globally accessible
+window.toggleMobileSidebar = toggleMobileSidebar;
+window.closeMobileSidebar = closeMobileSidebar;
+
+// Show mobile notification on mobile devices
+if (window.innerWidth <= 768 && !localStorage.getItem('mobileNotificationShown')) {
+    setTimeout(function() {
+        const notification = document.getElementById('mobileNotification');
+        if (notification) {
+            notification.style.display = 'block';
+            setTimeout(function() {
+                notification.style.display = 'none';
+                localStorage.setItem('mobileNotificationShown', 'true');
+            }, 4000);
+        }
+    }, 1000);
+}
+</script>
+</body> 
 </html>

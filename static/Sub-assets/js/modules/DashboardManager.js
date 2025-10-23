@@ -1,327 +1,587 @@
+/**
+ * DashboardManager.js
+ * Enhanced version with modern chart rendering and animations
+ */
+
 class DashboardManager {
-    constructor() {
-        this.storageManager = window.storageManager;
-        this.uiManager = window.uiManager;
-        this.weeklyChart = null;
+  constructor() {
+    this.baseUrl = "/api/sub-admin";
+    this.weeklyChart = null;
+    this.office = null;
+    this.chartType = "line"; // Default chart type
+    this.chartData = null; // Store chart data for type switching
+    this.startDate = null; // Date range filter start
+    this.endDate = null; // Date range filter end
+  }
+
+  async initialize() {
+    try {
+      console.log("Initializing DashboardManager...");
+      
+      await this.loadOfficeInfo();
+      await this.loadStats();
+      await this.loadWeeklyUsage();
+      
+      console.log("DashboardManager initialized successfully");
+    } catch (error) {
+      console.error("Error initializing DashboardManager:", error);
+      this.showError("Failed to initialize dashboard. Please refresh the page.");
+    }
+  }
+
+  async loadOfficeInfo() {
+    try {
+      const response = await fetch(`${this.baseUrl}/office-info`, {
+        method: "GET",
+        credentials: "include",
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          this.office = data.office;
+          console.log(`Dashboard loaded for office: ${this.office}`);
+        }
+      }
+    } catch (error) {
+      console.error("Error loading office info:", error);
+    }
+  }
+
+  async loadStats() {
+    try {
+      const params = new URLSearchParams();
+      if (this.startDate) params.append('start_date', this.startDate);
+      if (this.endDate) params.append('end_date', this.endDate);
+      const query = params.toString() ? `?${params.toString()}` : '';
+      
+      const response = await fetch(`${this.baseUrl}/stats${query}`, {
+        method: "GET",
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.success && data.stats) {
+        this.updateStats(data.stats);
+      } else {
+        console.warn("Failed to load stats:", data);
+        this.showError("Unable to load statistics");
+      }
+    } catch (error) {
+      console.error("Error fetching stats:", error);
+      this.showError("Error loading dashboard statistics");
+    }
+  }
+
+  updateStats(stats) {
+    const totalUsersEl = document.getElementById("totalUsers");
+    if (totalUsersEl && stats.office_users !== undefined) {
+      totalUsersEl.textContent = stats.office_users.toLocaleString();
     }
 
-    initialize() {
-        this.loadDashboardData();
-        this.initializeWeeklyChart();
-        this.updateKPICards();
+    const chatbotQueriesEl = document.getElementById("chatbotQueries");
+    if (chatbotQueriesEl && stats.office_conversations !== undefined) {
+      chatbotQueriesEl.textContent = stats.office_conversations.toLocaleString();
     }
 
-    // Load dashboard data
-    loadDashboardData() {
-        // Get data from storage
-        const faqs = this.storageManager.getFAQs();
-        const announcements = this.storageManager.getAnnouncements();
-        const conversations = this.storageManager.getConversations();
-        const feedback = this.storageManager.getFeedback();
-        const usageStats = this.storageManager.getUsageStats();
-
-        // Store data for use in charts
-        this.dashboardData = {
-            faqs: faqs,
-            announcements: announcements,
-            conversations: conversations,
-            feedback: feedback,
-            usageStats: usageStats
-        };
+    const successRateEl = document.getElementById("querySuccessRate");
+    if (successRateEl && stats.office_resolved_queries !== undefined && stats.office_conversations !== undefined) {
+      const total = stats.office_conversations || 1;
+      const resolved = stats.office_resolved_queries;
+      const percentage = Math.round((resolved / total) * 100);
+      successRateEl.textContent = `${percentage}%`;
     }
 
-    // Update KPI cards with real data
-    updateKPICards() {
-        const data = this.dashboardData;
-        
-        // Calculate metrics
-        const totalFAQs = data.faqs.length;
-        const totalAnnouncements = data.announcements.length;
-        const totalConversations = data.conversations.length;
-        const totalFeedback = data.feedback.length;
-        
-        // Calculate success rate from conversations
-        const successfulConversations = data.conversations.filter(c => c.sentiment === 'positive').length;
-        const successRate = totalConversations > 0 ? Math.round((successfulConversations / totalConversations) * 100) : 0;
-        
-        // Calculate escalated queries
-        const escalatedQueries = data.conversations.filter(c => c.escalated).length;
-        
-        // Update KPI cards
-        document.getElementById('totalUsers').textContent = this.formatNumber(1245);
-        document.getElementById('chatbotQueries').textContent = this.formatNumber(8721);
-        document.getElementById('querySuccessRate').textContent = `${successRate}%`;
-        document.getElementById('escalatedQueries').textContent = this.formatNumber(escalatedQueries);
+    const escalatedEl = document.getElementById("escalatedQueries");
+    if (escalatedEl && stats.office_escalated_issues !== undefined) {
+      escalatedEl.textContent = stats.office_escalated_issues.toLocaleString();
     }
 
-    // Initialize weekly usage chart
-    initializeWeeklyChart() {
-        const ctx = document.getElementById('weeklyChart').getContext('2d');
-        
-        // Get last 7 days of usage data
-        const weeklyData = this.getWeeklyUsageData();
-        
-        this.weeklyChart = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: weeklyData.labels,
-                datasets: [{
-                    label: 'Chatbot Usage',
-                    data: weeklyData.data,
-                    backgroundColor: 'rgba(59, 130, 246, 0.8)',
-                    borderColor: 'rgba(59, 130, 246, 1)',
-                    borderWidth: 1
-                }]
+    console.log("Stats updated:", stats);
+  }
+
+  async loadWeeklyUsage() {
+    try {
+      const params = new URLSearchParams();
+      if (this.startDate) params.append('start_date', this.startDate);
+      if (this.endDate) params.append('end_date', this.endDate);
+      const query = params.toString() ? `?${params.toString()}` : '';
+      
+      const response = await fetch(`${this.baseUrl}/weekly-usage${query}`, {
+        method: "GET",
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.success && data.usage) {
+        this.chartData = data.usage; // Store for later use
+        this.renderWeeklyChart(data.usage, data.office);
+        this.updateChartStats(data.usage);
+      } else {
+        console.warn("Failed to load weekly usage:", data);
+        this.showError("Unable to load weekly usage chart");
+      }
+    } catch (error) {
+      console.error("Error fetching weekly usage:", error);
+      this.showError("Error loading weekly usage data");
+    }
+  }
+
+  renderWeeklyChart(usageData, office) {
+    const canvas = document.getElementById("weeklyChart");
+    
+    if (!canvas) {
+      console.error("Canvas element 'weeklyChart' not found");
+      return;
+    }
+
+    const ctx = canvas.getContext("2d");
+    const labels = usageData.map((d) => this.formatDateLabel(d.date));
+    const values = usageData.map((d) => d.count);
+
+    // Create gradient for the chart
+    const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+    gradient.addColorStop(0, 'rgba(102, 126, 234, 0.8)');
+    gradient.addColorStop(0.5, 'rgba(118, 75, 162, 0.4)');
+    gradient.addColorStop(1, 'rgba(118, 75, 162, 0.1)');
+
+    // Destroy existing chart if it exists
+    if (this.weeklyChart) {
+      this.weeklyChart.destroy();
+    }
+
+    // Determine chart configuration based on type
+    const config = this.getChartConfig(labels, values, gradient, office);
+
+    // Create new chart with animation
+    this.weeklyChart = new Chart(ctx, config);
+
+    console.log("Weekly chart rendered with data:", usageData);
+  }
+
+  getChartConfig(labels, values, gradient, office) {
+    const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const textColor = isDarkMode ? '#e2e8f0' : '#475569';
+    const gridColor = isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)';
+
+    const baseConfig = {
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: `${office || 'Office'} Chatbot Queries`,
+            data: values,
+            borderColor: '#667eea',
+            backgroundColor: this.chartType === 'bar' ? gradient : (this.chartType === 'area' ? gradient : 'rgba(102, 126, 234, 0.1)'),
+            fill: this.chartType !== 'line',
+            tension: 0.4,
+            borderWidth: 3,
+            pointBackgroundColor: '#667eea',
+            pointBorderColor: '#ffffff',
+            pointBorderWidth: 3,
+            pointRadius: 6,
+            pointHoverRadius: 9,
+            pointHoverBackgroundColor: '#764ba2',
+            pointHoverBorderColor: '#ffffff',
+            pointHoverBorderWidth: 3,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: {
+          duration: 2000,
+          easing: 'easeInOutQuart',
+          onComplete: () => {
+            console.log('Chart animation complete');
+          }
+        },
+        plugins: {
+          legend: {
+            display: true,
+            position: 'top',
+            align: 'end',
+            labels: {
+              font: {
+                size: 13,
+                family: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+                weight: '500',
+              },
+              padding: 16,
+              usePointStyle: true,
+              pointStyle: 'circle',
+              color: textColor,
+              boxWidth: 10,
+              boxHeight: 10,
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        max: 200,
-                        ticks: {
-                            stepSize: 50,
-                            callback: function(value) {
-                                return value;
-                            }
-                        }
-                    }
-                },
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                }
+          },
+          tooltip: {
+            enabled: true,
+            backgroundColor: isDarkMode ? 'rgba(30, 41, 59, 0.95)' : 'rgba(0, 0, 0, 0.85)',
+            titleColor: '#ffffff',
+            bodyColor: '#e2e8f0',
+            borderColor: '#667eea',
+            borderWidth: 2,
+            titleFont: {
+              size: 15,
+              weight: '600',
+              family: "'Inter', sans-serif",
+            },
+            bodyFont: {
+              size: 14,
+              family: "'Inter', sans-serif",
+            },
+            padding: 16,
+            cornerRadius: 12,
+            displayColors: true,
+            boxWidth: 12,
+            boxHeight: 12,
+            boxPadding: 6,
+            caretSize: 8,
+            caretPadding: 12,
+            callbacks: {
+              title: (context) => {
+                return `📅 ${context[0].label}`;
+              },
+              label: (context) => {
+                const value = context.parsed.y;
+                const plural = value !== 1 ? 'queries' : 'query';
+                return `  ${value.toLocaleString()} ${plural}`;
+              },
+              afterLabel: (context) => {
+                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                const percentage = ((context.parsed.y / total) * 100).toFixed(1);
+                return `  ${percentage}% of weekly total`;
+              }
             }
-        });
-    }
+          },
+        },
+        scales: {
+          x: {
+            title: {
+              display: true,
+              text: '📆 Date',
+              font: {
+                size: 14,
+                weight: '600',
+                family: "'Inter', sans-serif",
+              },
+              color: textColor,
+              padding: { top: 10 }
+            },
+            grid: {
+              display: false,
+              drawBorder: false,
+            },
+            ticks: {
+              font: {
+                size: 12,
+                weight: '500',
+              },
+              color: textColor,
+              padding: 8,
+              maxRotation: 45,
+              minRotation: 0,
+            },
+          },
+          y: {
+            title: {
+              display: true,
+              text: '💬 Number of Queries',
+              font: {
+                size: 14,
+                weight: '600',
+                family: "'Inter', sans-serif",
+              },
+              color: textColor,
+              padding: { bottom: 10 }
+            },
+            beginAtZero: true,
+            ticks: {
+              stepSize: Math.ceil(Math.max(...values) / 5),
+              font: {
+                size: 12,
+                weight: '500',
+              },
+              color: textColor,
+              padding: 10,
+              callback: function(value) {
+                return value.toLocaleString();
+              }
+            },
+            grid: {
+              color: gridColor,
+              drawBorder: false,
+              lineWidth: 1,
+            },
+          },
+        },
+        interaction: {
+          intersect: false,
+          mode: 'index',
+        },
+        hover: {
+          mode: 'index',
+          intersect: false,
+          animationDuration: 400,
+        },
+      },
+    };
 
-    // Get weekly usage data
-    getWeeklyUsageData() {
-        // Fixed data to match the image specifications
-        const labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-        const data = [120, 145, 130, 170, 185, 75, 60];
-        
-        return { labels, data };
-    }
+    // Set chart type
+    baseConfig.type = this.chartType === 'area' ? 'line' : this.chartType;
 
-    // Get usage data for a specific date
-    getUsageForDate(date) {
-        const dateString = date.toISOString().split('T')[0];
-        const usageStats = this.storageManager.getUsageStats();
-        
-        const dayStats = usageStats.find(stat => stat.date === dateString);
-        if (dayStats) {
-            return dayStats.conversationsStarted || 0;
-        }
-        
-        // Return random data for demo purposes
-        return Math.floor(Math.random() * 100) + 50;
-    }
+    return baseConfig;
+  }
 
-    // Format number with commas
-    formatNumber(num) {
-        return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-    }
+  formatDateLabel(dateString) {
+    const date = new Date(dateString);
+    const options = { month: 'short', day: 'numeric' };
+    return date.toLocaleDateString('en-US', options);
+  }
 
-    // Calculate percentage change
-    calculatePercentageChange(current, previous) {
-        if (previous === 0) return 0;
-        return Math.round(((current - previous) / previous) * 100);
-    }
+  updateChartStats(usageData) {
+    const values = usageData.map(d => d.count);
+    const total = values.reduce((a, b) => a + b, 0);
+    const average = Math.round(total / values.length);
+    const maxValue = Math.max(...values);
+    const maxIndex = values.indexOf(maxValue);
+    const peakDay = this.formatDateLabel(usageData[maxIndex].date);
 
-    // Get trend indicator
-    getTrendIndicator(percentage) {
-        if (percentage > 0) {
-            return `<i class="fas fa-arrow-up"></i> +${percentage}%`;
-        } else if (percentage < 0) {
-            return `<i class="fas fa-arrow-down"></i> ${percentage}%`;
+    // Calculate trend
+    const firstHalf = values.slice(0, Math.floor(values.length / 2));
+    const secondHalf = values.slice(Math.floor(values.length / 2));
+    const firstAvg = firstHalf.reduce((a, b) => a + b, 0) / firstHalf.length;
+    const secondAvg = secondHalf.reduce((a, b) => a + b, 0) / secondHalf.length;
+    const trendPercentage = ((secondAvg - firstAvg) / firstAvg * 100).toFixed(1);
+
+    // Update DOM elements
+    const totalEl = document.getElementById("chartTotalQueries");
+    if (totalEl) totalEl.textContent = total.toLocaleString();
+
+    const avgEl = document.getElementById("chartAvgQueries");
+    if (avgEl) avgEl.textContent = average.toLocaleString();
+
+    const peakEl = document.getElementById("chartPeakDay");
+    if (peakEl) peakEl.textContent = peakDay;
+
+    const trendEl = document.getElementById("chartTrend");
+    if (trendEl) {
+      const indicator = trendEl.querySelector('.trend-indicator');
+      if (indicator) {
+        indicator.textContent = `${trendPercentage > 0 ? '+' : ''}${trendPercentage}%`;
+        indicator.className = 'trend-indicator';
+        if (trendPercentage > 0) {
+          indicator.classList.add('trend-up');
+        } else if (trendPercentage < 0) {
+          indicator.classList.add('trend-down');
         } else {
-            return `<i class="fas fa-minus"></i> 0%`;
+          indicator.classList.add('trend-stable');
         }
+      }
     }
+  }
 
-    // Get trend class
-    getTrendClass(percentage) {
-        if (percentage > 0) {
-            return 'trend-up';
-        } else if (percentage < 0) {
-            return 'trend-down';
-        } else {
-            return 'trend-neutral';
-        }
+  changeChartType(type) {
+    this.chartType = type;
+    if (this.chartData) {
+      this.renderWeeklyChart(this.chartData, this.office);
     }
+  }
 
-    // Refresh dashboard data
-    refreshDashboard() {
-        this.loadDashboardData();
-        this.updateKPICards();
-        this.updateWeeklyChart();
+  async refreshDashboard() {
+    try {
+      console.log("Refreshing dashboard...");
+      await this.loadStats();
+      await this.loadWeeklyUsage();
+      this.showSuccess("Dashboard refreshed successfully");
+    } catch (error) {
+      console.error("Error refreshing dashboard:", error);
+      this.showError("Failed to refresh dashboard");
     }
+  }
 
-    // Update weekly chart
-    updateWeeklyChart() {
-        if (this.weeklyChart) {
-            const weeklyData = this.getWeeklyUsageData();
-            this.weeklyChart.data.labels = weeklyData.labels;
-            this.weeklyChart.data.datasets[0].data = weeklyData.data;
-            this.weeklyChart.update();
-        }
+  async exportDashboardData() {
+    try {
+      const exportData = {
+        office: this.office,
+        exportDate: new Date().toISOString(),
+        stats: {
+          totalUsers: document.getElementById("totalUsers")?.textContent || "N/A",
+          chatbotQueries: document.getElementById("chatbotQueries")?.textContent || "N/A",
+          successRate: document.getElementById("querySuccessRate")?.textContent || "N/A",
+          escalatedQueries: document.getElementById("escalatedQueries")?.textContent || "N/A",
+        },
+        weeklyData: this.chartData || [],
+      };
+
+      const dataStr = JSON.stringify(exportData, null, 2);
+      const dataBlob = new Blob([dataStr], { type: "application/json" });
+      const url = URL.createObjectURL(dataBlob);
+      
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `dashboard-export-${this.office}-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      URL.revokeObjectURL(url);
+      
+      this.showSuccess("Dashboard data exported successfully");
+    } catch (error) {
+      console.error("Error exporting dashboard data:", error);
+      this.showError("Failed to export dashboard data");
     }
+  }
 
-    // Get dashboard summary
-    getDashboardSummary() {
-        const data = this.dashboardData;
+  showError(message) {
+    console.error(message);
+    const noticeElement = document.getElementById("access-notice");
+    const messageElement = document.getElementById("access-message");
+    
+    if (noticeElement && messageElement) {
+      messageElement.textContent = message;
+      noticeElement.style.display = "block";
+      noticeElement.className = "alert alert-danger";
+    }
+  }
+
+  showSuccess(message) {
+    console.log(message);
+    const noticeElement = document.getElementById("access-notice");
+    const messageElement = document.getElementById("access-message");
+    
+    if (noticeElement && messageElement) {
+      messageElement.textContent = message;
+      noticeElement.style.display = "block";
+      noticeElement.className = "alert alert-success";
+      
+      setTimeout(() => {
+        noticeElement.style.display = "none";
+      }, 3000);
+    }
+  }
+
+  async applyDateFilter(startDate, endDate) {
+    try {
+      if (!startDate || !endDate) {
+        this.showError("Please select both start and end dates");
+        return;
+      }
+      
+      this.startDate = startDate;
+      this.endDate = endDate;
+      
+      // Reload all dashboard data with date filter
+      await this.loadStats();
+      await this.loadWeeklyUsage();
+      
+      this.showSuccess(`Date filter applied: ${startDate} to ${endDate}`);
+    } catch (error) {
+      console.error("Error applying date filter:", error);
+      this.showError("Failed to apply date filter");
+    }
+  }
+
+  async clearDateFilter() {
+    try {
+      this.startDate = null;
+      this.endDate = null;
+      
+      // Reload all dashboard data without date filter
+      await this.loadStats();
+      await this.loadWeeklyUsage();
+      
+      this.showSuccess("Date filter cleared");
+    } catch (error) {
+      console.error("Error clearing date filter:", error);
+      this.showError("Failed to clear date filter");
+    }
+  }
+
+  async exportDashboardCSV() {
+    try {
+      const params = new URLSearchParams();
+      if (this.startDate) params.append('start_date', this.startDate);
+      if (this.endDate) params.append('end_date', this.endDate);
+      const query = params.toString() ? `?${params.toString()}` : '';
+      
+      this.showSuccess("Preparing export...");
+      
+      const response = await fetch(`${this.baseUrl}/export${query}`, {
+        method: "GET",
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.success && data.csv) {
+        // Create and download CSV file
+        const blob = new Blob([data.csv], { type: 'text/csv;charset=utf-8;' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = data.filename || `sub-dashboard-${this.office}-${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
         
-        return {
-            totalFAQs: data.faqs.length,
-            totalAnnouncements: data.announcements.length,
-            totalConversations: data.conversations.length,
-            totalFeedback: data.feedback.length,
-            activeFAQs: data.faqs.filter(faq => faq.status === 'published').length,
-            activeAnnouncements: data.announcements.filter(ann => ann.status === 'active').length,
-            positiveFeedback: data.feedback.filter(fb => fb.sentiment === 'positive').length,
-            negativeFeedback: data.feedback.filter(fb => fb.sentiment === 'negative').length,
-            escalatedQueries: data.conversations.filter(conv => conv.escalated).length
-        };
+        this.showSuccess("Dashboard data exported successfully");
+      } else {
+        throw new Error(data.message || "Export failed");
+      }
+    } catch (error) {
+      console.error("Error exporting dashboard:", error);
+      this.showError("Failed to export dashboard data");
     }
+  }
 
-    // Export dashboard data
-    exportDashboardData() {
-        const summary = this.getDashboardSummary();
-        const exportData = [
-            {
-                metric: 'Total FAQs',
-                value: summary.totalFAQs,
-                description: 'Number of frequently asked questions'
-            },
-            {
-                metric: 'Active FAQs',
-                value: summary.activeFAQs,
-                description: 'Number of published FAQs'
-            },
-            {
-                metric: 'Total Announcements',
-                value: summary.totalAnnouncements,
-                description: 'Number of announcements created'
-            },
-            {
-                metric: 'Active Announcements',
-                value: summary.activeAnnouncements,
-                description: 'Number of active announcements'
-            },
-            {
-                metric: 'Total Conversations',
-                value: summary.totalConversations,
-                description: 'Number of chatbot conversations'
-            },
-            {
-                metric: 'Escalated Queries',
-                value: summary.escalatedQueries,
-                description: 'Number of escalated conversations'
-            },
-            {
-                metric: 'Total Feedback',
-                value: summary.totalFeedback,
-                description: 'Number of user feedback submissions'
-            },
-            {
-                metric: 'Positive Feedback',
-                value: summary.positiveFeedback,
-                description: 'Number of positive feedback submissions'
-            },
-            {
-                metric: 'Negative Feedback',
-                value: summary.negativeFeedback,
-                description: 'Number of negative feedback submissions'
-            }
-        ];
-
-        const success = this.uiManager.exportToCSV(exportData, 'dashboard_summary.csv');
-        
-        if (success) {
-            this.uiManager.showSuccess('Dashboard data exported successfully!');
-        } else {
-            this.uiManager.showError('Failed to export dashboard data');
-        }
+  destroy() {
+    if (this.weeklyChart) {
+      this.weeklyChart.destroy();
+      this.weeklyChart = null;
     }
-
-    // Get recent activity
-    getRecentActivity() {
-        const data = this.dashboardData;
-        const activities = [];
-
-        // Add recent FAQs
-        data.faqs.slice(0, 3).forEach(faq => {
-            activities.push({
-                type: 'faq',
-                title: `FAQ: ${faq.question}`,
-                timestamp: faq.updatedAt,
-                status: faq.status
-            });
-        });
-
-        // Add recent announcements
-        data.announcements.slice(0, 3).forEach(announcement => {
-            activities.push({
-                type: 'announcement',
-                title: `Announcement: ${announcement.title}`,
-                timestamp: announcement.updatedAt,
-                status: announcement.status
-            });
-        });
-
-        // Add recent conversations
-        data.conversations.slice(0, 3).forEach(conversation => {
-            activities.push({
-                type: 'conversation',
-                title: `Conversation with ${conversation.user}`,
-                timestamp: conversation.startTime,
-                status: conversation.sentiment
-            });
-        });
-
-        // Sort by timestamp and return top 10
-        return activities
-            .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
-            .slice(0, 10);
-    }
-
-    // Get performance metrics
-    getPerformanceMetrics() {
-        const data = this.dashboardData;
-        
-        // Calculate success rate
-        const totalConversations = data.conversations.length;
-        const successfulConversations = data.conversations.filter(c => c.sentiment === 'positive').length;
-        const successRate = totalConversations > 0 ? (successfulConversations / totalConversations) * 100 : 0;
-
-        // Calculate average conversation duration
-        const durations = data.conversations.map(c => {
-            const duration = c.duration;
-            const match = duration.match(/(\d+)m (\d+)s/);
-            if (match) {
-                return parseInt(match[1]) * 60 + parseInt(match[2]);
-            }
-            return 0;
-        });
-        const avgDuration = durations.length > 0 ? durations.reduce((a, b) => a + b, 0) / durations.length : 0;
-
-        // Calculate feedback satisfaction
-        const totalFeedback = data.feedback.length;
-        const positiveFeedback = data.feedback.filter(f => f.sentiment === 'positive').length;
-        const satisfactionRate = totalFeedback > 0 ? (positiveFeedback / totalFeedback) * 100 : 0;
-
-        return {
-            successRate: Math.round(successRate),
-            avgDuration: Math.round(avgDuration),
-            satisfactionRate: Math.round(satisfactionRate),
-            totalConversations,
-            totalFeedback
-        };
-    }
+  }
 }
 
-// Initialize global dashboard manager
-window.DashboardManager = DashboardManager;
+// Global helper functions for chart actions
+function refreshChart() {
+  if (window.dashboardManager) {
+    window.dashboardManager.loadWeeklyUsage();
+  }
+}
+
+function exportChartData() {
+  if (window.dashboardManager) {
+    window.dashboardManager.exportDashboardData();
+  }
+}
+
+function changeChartType(type) {
+  if (window.dashboardManager) {
+    window.dashboardManager.changeChartType(type);
+  }
+  return false; // Prevent default link behavior
+}
+
+// Make it globally accessible
+if (typeof window !== 'undefined') {
+  window.DashboardManager = DashboardManager;
+}

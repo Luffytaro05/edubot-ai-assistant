@@ -15,7 +15,22 @@
         "Hello there",
         "Good day",
         "Howdy",
-        "Salutations"
+        "Salutations",
+        "Yo",
+        "Hiya",
+        "Hey there",
+        "Hi bot",
+        "Hello bot",
+        "Hi TCC",
+        "Hello TCC",
+        "I need help",
+        "Can you help me",
+        "Help me please",
+        "I have a question",
+        "Can I ask something",
+        "I want to ask",
+        "May I ask",
+        "I need information"
       ],
       "responses": [
         "Hello! How can I assist you today?",
@@ -26,217 +41,719 @@
       ]
     },
     {
-      "tag": "admission_office",
+      "tag": "admission_requirements",
       "patterns": [
-        "Admission Office",
-        "How can I apply?",
         "Admission requirements",
-        "Where can I get the application form",
-        "How do I enroll",
-        "Application deadline",
-        "When is the enrollment period",
-        "Enrollment process",
-        "Apply for college",
-        "College application",
-        "Admission criteria",
-        "Entry requirements",
-        "How to get admitted",
-        "Admission procedure",
-        "Application form download",
-        "Admission test",
-        "Entrance exam",
-        "College entrance",
-        "New student application",
-        "Freshman admission",
-        "Transfer student admission",
-        "Graduate admission",
-        "Undergraduate admission",
-        "Application status",
-        "Admission interview",
-        "Document requirements",
-        "Academic requirements",
-        "Minimum grade requirements",
-        "Admission fee"
+        "What are the requirements to apply",
+        "What do I need for admission",
+        "Documents needed for application",
+        "Requirements for admission",
+        "What documents do I need",
+        "Admission documents",
+        "What forms do I need",
+        "PSA requirement",
+        "Form 137",
+        "Form 138",
+        "Voters certificate",
+        "Do I need PSA",
+        "Do I need form 137",
+        "What are the basic requirements",
+        "Requirements to enroll",
+        "Enrollment documents",
+        "Documents for enrollment"
       ],
       "responses": [
-        "The Admission Office handles student applications. You can apply online or visit our office for more details.",
-        "For admission requirements and deadlines, please contact the Admission Office at the main building.",
-        "Enrollment information and forms are available at the Admission Office during business hours.",
-        "Visit our Admission Office for complete application procedures and requirements.",
-        "The Admission Office is located on the ground floor of the Main Building. Office hours: Monday-Friday, 8:00 AM - 5:00 PM.",
-        "Application forms can be downloaded from our website or obtained directly from the Admission Office."
+        "The requirements for admission application are: PSA (Philippine Statistics Authority Birth Certificate), Voter's Certificate, and Form 137 or 138.",
+        "To apply to TCC, you need: PSA Birth Certificate, Voter's Certificate, and Form 137 or 138. Make sure all documents are original or certified true copies."
       ]
     },
     {
-      "tag": "registrar_office",
+      "tag": "admission_process",
+      "patterns": [
+        "How to apply",
+        "Application process",
+        "How to enroll",
+        "How can I enroll in TCC",
+        "What's the admission process",
+        "Steps to apply",
+        "Enrollment process",
+        "How do I get in",
+        "How do I apply to TCC",
+        "I want to apply",
+        "Apply for admission",
+        "Enroll in TCC",
+        "Admission steps"
+      ],
+      "responses": [
+        "To apply to Tanauan City College: 1) Prepare your PSA, Voter's Certificate, and Form 137 or 138. 2) Visit the Admission Office during the application period. 3) Submit your documents and fill out the application form. 4) Take the psychological test if required.",
+        "The application process involves submitting your documents (PSA, Voter's Certificate, Form 137/138) to the Admission Office and completing any required assessments."
+      ]
+    },
+    {
+      "tag": "admission_schedule",
+      "patterns": [
+        "Application period",
+        "When does application start",
+        "When is the deadline for application",
+        "When can I apply",
+        "Application deadline",
+        "Enrollment deadline",
+        "Last day of enrollment",
+        "Can I still apply",
+        "Is enrollment still open",
+        "Application schedule",
+        "Enrollment schedule",
+        "When is admission open",
+        "When does enrollment start",
+        "When does enrollment end"
+      ],
+      "responses": [
+        "Application for incoming first-year students and transferees usually starts in the first week of February and ends in the last week of June.",
+        "TCC typically accepts applications from early February to late June. For the exact dates, please check the official TCC website or contact the Admission Office."
+      ]
+    },
+    {
+      "tag": "transferee_admission",
+      "patterns": [
+        "Do you accept transferees",
+        "Transferee requirements",
+        "Can transferees apply",
+        "I'm a transferee",
+        "Transfer student requirements",
+        "I want to transfer",
+        "Transfer to TCC",
+        "Can I transfer",
+        "Transferring schools",
+        "Requirements for shifters",
+        "Can I shift courses",
+        "Shifting programs",
+        "Transfer from another school",
+        "Moving from another college"
+      ],
+      "responses": [
+        "Yes, Tanauan City College accepts transferees. The requirements are the same: PSA, Voter's Certificate, and Form 137 or 138. However, those with failing grades or who dropped out are not accepted.",
+        "Transferees are welcome at TCC! You need the same documents (PSA, Voter's Certificate, Form 137/138), but note that students with failing grades or those who dropped out cannot be accepted."
+      ]
+    },
+    {
+      "tag": "programs_offered",
+      "patterns": [
+        "Programs offered",
+        "Courses available",
+        "Offered courses",
+        "Available programs",
+        "What courses are offered",
+        "What programs do you have",
+        "List of courses",
+        "Available courses",
+        "What can I take",
+        "What degree programs",
+        "Programs at TCC",
+        "Courses at TCC",
+        "What can I study",
+        "Available degrees",
+        "College programs"
+      ],
+      "responses": [
+        "Programs offered include:\n- BTVTED (Bachelor of Technical Vocational Teacher Education) Major in: Computer Hardware Servicing, Automotive Technology, Electrical Technology, and Electronics Technology\n- Bachelor of Science in Entrepreneurship\n- Bachelor of Science in Computer Engineering\n- Bachelor of Public Administration\n- Bachelor of Science in Management Accounting"
+      ]
+    },
+    {
+      "tag": "graduate_programs",
+      "patterns": [
+        "Graduate programs",
+        "Masteral programs",
+        "Do you have graduate school",
+        "Do you offer masters",
+        "PhD programs",
+        "Master's degree",
+        "Graduate school",
+        "Postgraduate programs",
+        "Masters programs",
+        "Doctoral programs",
+        "Graduate studies"
+      ],
+      "responses": [
+        "Tanauan City College does not currently offer graduate or masteral programs. We only offer undergraduate programs at this time."
+      ]
+    },
+    {
+      "tag": "registrar_general",
       "patterns": [
         "Registrar Office",
-        "Where is the Registrar's Office",
+        "Registrar",
+        "Office of the Registrar",
+        "What does registrar do",
+        "Registrar services"
+      ],
+      "responses": [
+        "The Registrar's Office handles student records, document processing, TOR issuance, enrollment slots, and online certificate requests. How can I help you with registrar services?"
+      ]
+    },
+    {
+      "tag": "transcript_of_records",
+      "patterns": [
+        "Claiming TOR",
+        "How to get Transcript of Records",
+        "Processing of TOR",
+        "I need my TOR",
+        "Transcript of records",
+        "How long does TOR take",
+        "TOR processing time",
+        "Get my transcript",
         "Request transcript",
-        "How to get my grades",
-        "How to get enrollment form",
-        "Academic records",
-        "Change my subjects",
-        "Official transcript",
-        "Grade report",
-        "Enrollment certificate",
-        "Class schedule",
-        "Course registration",
-        "Drop subjects",
-        "Add subjects",
-        "Academic transcript",
-        "Student records",
-        "Diploma verification",
-        "Certificate of grades",
-        "Course enrollment",
-        "Subject registration",
-        "Class scheduling",
-        "Academic calendar",
-        "Semester registration",
-        "Course catalog",
-        "Prerequisites",
-        "Credit hours",
-        "Dean's list",
-        "Academic standing",
-        "GPA computation",
-        "Graduation requirements"
+        "When can I get my TOR",
+        "TOR release",
+        "Official transcript"
       ],
       "responses": [
-        "The Registrar's Office manages student records and enrollment. Office hours: Mon–Fri, 8 AM–5 PM.",
-        "For transcripts, enrollment forms, or schedule changes, visit the Registrar's Office at the main building, 2nd floor.",
-        "Academic records and grade information can be obtained from the Registrar's Office.",
-        "The Registrar's Office handles all official student documents and academic records.",
-        "You can request official transcripts and certificates at the Registrar's Office. Processing time is usually 3-5 business days.",
-        "Course registration and schedule changes are processed through the Registrar's Office during enrollment periods."
+        "The processing of Transcript of Records (TOR) usually takes around 10 days. However, the college aims for graduates to have their TOR during graduation.",
+        "TOR processing typically takes 10 days. If you're a graduating student, TCC works to have your TOR ready by graduation day."
       ]
     },
     {
-      "tag": "ict_office",
+      "tag": "document_claiming",
       "patterns": [
-        "ICT Office",
-        "How to reset student portal password",
-        "Internet issues",
-        "WiFi password",
-        "IT help",
-        "Student email problems",
-        "Where is the ICT office",
-        "Computer lab access",
-        "Network problems",
-        "Login issues",
-        "Student portal",
-        "Email setup",
-        "WiFi connection",
-        "Technical support",
+        "How to claim student documents",
+        "Document claiming process",
+        "Claiming documents on behalf",
+        "Can someone claim for me",
+        "Authorization letter",
+        "Claiming on behalf",
+        "My friend will claim",
+        "Claim documents",
+        "Get my documents",
+        "Pick up documents",
+        "Representative claiming",
+        "Someone else claiming my documents"
+      ],
+      "responses": [
+        "If the student cannot claim their documents personally, they must provide a valid ID of both the student and the authorized person, along with an authorization letter.",
+        "For document claiming by a representative: You need (1) Valid ID of the student, (2) Valid ID of the authorized person, and (3) Authorization letter signed by the student."
+      ]
+    },
+    {
+      "tag": "entrance_exam",
+      "patterns": [
+        "Is there entrance exam",
+        "Do you have entrance test",
+        "Psych test",
+        "Psychological test",
+        "Entrance exam requirements",
+        "Admission test",
+        "Do I need to take an exam",
+        "Entrance examination",
+        "Assessment test",
+        "Admission exam"
+      ],
+      "responses": [
+        "Tanauan City College does not have an entrance exam. Instead, a psychological test is conducted, and it is up to the officer in charge whether the student passes even if they fail the test."
+      ]
+    },
+    {
+      "tag": "enrollment_requirements",
+      "patterns": [
+        "Can I enroll without form 137",
+        "Missing form 137",
+        "I don't have form 137",
+        "Required documents for enrollment",
+        "Enrollment requirements",
+        "What do I need to enroll",
+        "Documents for enrollment",
+        "Can I enroll without documents",
+        "Basic enrollment requirements"
+      ],
+      "responses": [
+        "Students cannot enroll without Form 137. It is one of the basic requirements along with Voter's ID, Form 138, Good Moral Certificate, PSA, and a picture.",
+        "Form 137 is mandatory for enrollment. You also need: Voter's ID, Form 138, Good Moral Certificate, PSA Birth Certificate, and ID picture."
+      ]
+    },
+    {
+      "tag": "enrollment_slots",
+      "patterns": [
+        "Is there a slot for enrollment",
+        "Available slots for programs",
+        "How many slots per program",
+        "Program capacity",
+        "Is the course full",
+        "Still accepting students",
+        "Slots available",
+        "How many students per program",
+        "Limited slots",
+        "Program limit"
+      ],
+      "responses": [
+        "There are limited slots per program: BPA – 250, Entrepreneurship – 250, BTVTED – 100, and Computer Engineering – 150.",
+        "TCC has limited enrollment slots: Bachelor of Public Administration (250), BS Entrepreneurship (250), BTVTED (100), and BS Computer Engineering (150)."
+      ]
+    },
+    {
+      "tag": "tuition_fees",
+      "patterns": [
+        "Tuition fee",
+        "Free tuition",
+        "How much is tuition",
+        "Do I need to pay",
+        "Is it free",
+        "Tuition cost",
+        "School fees",
+        "Cost of tuition",
+        "Tuition price",
+        "How much does it cost",
+        "Is TCC free",
+        "Free education"
+      ],
+      "responses": [
+        "Tanauan City College offers free college education. There are no tuition fees.",
+        "Great news! TCC provides free college education to all enrolled students. No tuition fees required!"
+      ]
+    },
+    {
+      "tag": "online_documents",
+      "patterns": [
+        "Online document request",
+        "Request certificate online",
+        "Online request process",
+        "How to request certificate online",
+        "Student portal documents",
+        "Online certificate request",
+        "E-hub documents",
+        "Get certificate from portal",
+        "Digital documents",
+        "Request documents online",
+        "Online document processing"
+      ],
+      "responses": [
+        "All certificates can be viewed through the student portal and can be requested for certification through a certified copy request online.",
+        "You can view and request certificates through the TCC E-Hub student portal. Simply log in and use the certified copy request feature."
+      ]
+    },
+    {
+      "tag": "ehub_access",
+      "patterns": [
+        "E-Hub access",
+        "How to access TCC E-Hub",
+        "TCC eHub website",
+        "TCC EHub",
+        "How to access portal",
+        "Student portal access",
+        "Login to ehub",
+        "Ehub login",
+        "Portal access",
+        "How do I access ehub"
+      ],
+      "responses": [
+        "To access the TCC E-Hub, search for 'TCC eHub' on your web browser or scan the QR code provided in the guide.",
+        "Access the TCC E-Hub by searching 'TCC eHub' in your browser or scan the QR code from the official guide."
+      ]
+    },
+    {
+      "tag": "ehub_username",
+      "patterns": [
+        "Default username",
+        "Student ID username",
+        "What is my username",
+        "Ehub username",
+        "Portal username",
+        "How to login",
+        "My login credentials",
+        "Username format"
+      ],
+      "responses": [
+        "Your default username is your Student ID Number (e.g., TCC-0000-0000).",
+        "Your E-Hub username is your Student ID Number in the format TCC-0000-0000."
+      ]
+    },
+    {
+      "tag": "ehub_password",
+      "patterns": [
+        "Where to get password",
+        "Forgot password",
         "Password reset",
-        "System maintenance",
-        "Student account",
-        "Computer problems",
-        "Software issues",
-        "Hardware problems",
-        "Printer issues",
-        "Network connectivity",
-        "Student ID card",
-        "Digital services",
-        "Online learning platform",
-        "LMS access",
-        "Video conferencing",
-        "Tech troubleshooting",
-        "System updates",
-        "Security issues"
+        "Request new password",
+        "I forgot my password",
+        "Can't remember password",
+        "Lost password",
+        "Password recovery",
+        "Reset my password",
+        "New password",
+        "Change password"
       ],
       "responses": [
-        "The ICT Office handles tech support like student portal, WiFi, and email issues. They're located at the IT Building, Room 101.",
-        "For password resets, visit the ICT Office or contact our IT support team.",
-        "Technical assistance for student accounts and connectivity issues is available at the ICT Office.",
-        "The ICT Office provides comprehensive technical support for all students.",
-        "WiFi credentials and internet connectivity issues can be resolved at the ICT Office. Support hours: Mon-Fri, 7:30 AM - 6:00 PM.",
-        "Student portal access problems? Visit the ICT Office with your student ID for immediate assistance."
+        "Your password should have been emailed to you by the TCC team. If you forget your password, you can request a new one from the office through a GForm.",
+        "If you forgot your password, request a new one through the GForm on the official TCC MISU Facebook page. Your initial password was sent to your email."
       ]
     },
     {
-      "tag": "guidance_office",
+      "tag": "account_locked",
       "patterns": [
-        "Guidance Office",
-        "I need counseling",
-        "Scholarship requirements",
-        "Career advice",
-        "Personal counseling",
-        "Where is the Guidance Office",
-        "Academic counseling",
-        "Financial aid",
-        "Career guidance",
-        "Scholarship application",
-        "Student counselor",
-        "Mental health support",
-        "Academic planning",
-        "Course selection help",
-        "Career opportunities",
-        "Job placement",
-        "Internship programs",
-        "Psychological counseling",
-        "Stress management",
-        "Study habits",
-        "Time management",
-        "Goal setting",
-        "Career assessment",
-        "Resume building",
-        "Interview preparation",
-        "Job search assistance",
-        "Graduate school preparation",
-        "Academic difficulties",
-        "Personal problems",
-        "Peer counseling"
+        "Login attempts",
+        "Failed login attempts",
+        "Account locked",
+        "Deactivated account",
+        "Can't login",
+        "Too many attempts",
+        "Locked out",
+        "Account disabled",
+        "My account is locked",
+        "Failed to login"
       ],
       "responses": [
-        "The Guidance Office offers counseling, scholarships, and career advice. Location: Main Building, Room 210.",
-        "To schedule an appointment for counseling or career guidance, visit the Guidance Office.",
-        "Scholarship information and personal counseling services are available through the Guidance Office.",
-        "Our Guidance Office provides comprehensive support for academic and personal development.",
-        "The Guidance Office offers free counseling services for students. Walk-ins welcome during office hours: Mon-Fri, 8:00 AM - 5:00 PM.",
-        "Career counseling and job placement assistance are available at the Guidance Office. Schedule an appointment online or visit in person."
+        "You only have 3 login attempts. If you fail all 3, you must request a new password through the GForm found on the official FB Page of TCC MISU.",
+        "After 3 failed login attempts, your account will be locked. Request a new password via the GForm on TCC MISU's official Facebook page."
       ]
     },
     {
-      "tag": "osa_office",
+      "tag": "recovery_email",
+      "patterns": [
+        "Recovery email",
+        "Set recovery email",
+        "Why set recovery email",
+        "Update account email",
+        "Recovery email setup",
+        "How to set recovery email",
+        "Add recovery email",
+        "Change recovery email",
+        "Update email address"
+      ],
+      "responses": [
+        "To set up a recovery email address, log in to your account and go to 'My Account' to set your recovery email. Setting a recovery email is important because the Reset Password link will be sent there, allowing you to regain access to your account.",
+        "Set your recovery email by logging into E-Hub and going to 'My Account'. Make sure your recovery email is ACTIVE and accessible. Click UPDATE to save changes. The password reset link will be sent to this email."
+      ]
+    },
+    {
+      "tag": "account_update",
+      "patterns": [
+        "Registrar contact for update",
+        "Update student information",
+        "Account information update",
+        "Change account details",
+        "Update my account",
+        "Modify student info"
+      ],
+      "responses": [
+        "If your account is deactivated or locked due to multiple failed login attempts, message the Office of the Registrar to update your student information. Ensure you already have an ACTIVE and accessible recovery email address for the update."
+      ]
+    },
+    {
+      "tag": "guidance_appointment",
+      "patterns": [
+        "How to schedule appointment with guidance counselor",
+        "How to book meeting with academic advisor",
+        "Schedule guidance appointment",
+        "Book counseling session",
+        "Make appointment with counselor",
+        "Set up meeting with advisor",
+        "Appointment with guidance",
+        "Book guidance appointment"
+      ],
+      "responses": [
+        "You can schedule an appointment with a Guidance Counselor or Academic Advisor by calling the office, sending an email, or using the online booking system on the student portal. Drop-in hours are also available for quick questions."
+      ]
+    },
+    {
+      "tag": "guidance_vs_academic",
+      "patterns": [
+        "Difference between guidance counselor and academic advisor",
+        "Guidance counselor vs academic advisor",
+        "What's the difference",
+        "Counselor or advisor",
+        "Who should I see"
+      ],
+      "responses": [
+        "Academic Advisors focus on educational planning — like course selection, degree completion, and transfer requirements — while Guidance Counselors provide confidential personal and mental health counseling."
+      ]
+    },
+    {
+      "tag": "career_guidance",
+      "patterns": [
+        "Help choosing my major or career path",
+        "Career guidance and job advice",
+        "Career opportunities",
+        "Career counseling",
+        "Choose my major",
+        "Career planning",
+        "Job advice",
+        "Career path help",
+        "Internship programs",
+        "Career assessment test"
+      ],
+      "responses": [
+        "Yes! The Guidance Office helps students explore majors and careers through vocational assessments, career planning sessions, and advice that connects your academic goals with your future career.",
+        "The Guidance Office provides career guidance through vocational assessments, career planning, and connecting your academic goals with future career paths. Schedule an appointment to discuss your options!"
+      ]
+    },
+    {
+      "tag": "mental_health_support",
+      "patterns": [
+        "I need counseling",
+        "I'm stressed or anxious",
+        "I'm having a personal crisis",
+        "Personal counseling",
+        "Mental health help",
+        "I'm depressed",
+        "I need someone to talk to",
+        "Feeling anxious",
+        "Stress management",
+        "Mental health support",
+        "Crisis counseling",
+        "Emotional support"
+      ],
+      "responses": [
+        "If you're experiencing stress, anxiety, or a personal crisis, contact the Guidance Office immediately. Crisis counseling and emergency walk-in support are available. If the office is closed, national and local hotlines are provided for 24/7 help.",
+        "All personal counseling sessions are strictly confidential. Information is never shared with staff, faculty, or family without your written consent, except in emergencies or as required by law. Please reach out — we're here to help!"
+      ]
+    },
+    {
+      "tag": "academic_support",
+      "patterns": [
+        "Struggling academically",
+        "Need tutoring or study support",
+        "Academic counseling",
+        "Time management support",
+        "Study help",
+        "Need tutoring",
+        "Academic help",
+        "Failing classes",
+        "Need study support",
+        "Academic difficulty"
+      ],
+      "responses": [
+        "Struggling with your studies? The Guidance Office can refer you to tutoring, writing labs, time management workshops, and other academic support services.",
+        "The Guidance Office offers academic support including tutoring referrals, study skills workshops, and time management training. Schedule an appointment to discuss your needs."
+      ]
+    },
+    {
+      "tag": "drop_withdraw_class",
+      "patterns": [
+        "I want to drop or withdraw from a class",
+        "Drop a class",
+        "Withdraw from class",
+        "How to drop a subject",
+        "Dropping courses",
+        "Withdrawal process"
+      ],
+      "responses": [
+        "Before dropping or withdrawing from a class, consult with an Academic Advisor. They'll explain how it affects your GPA, graduation timeline, and financial aid eligibility."
+      ]
+    },
+    {
+      "tag": "change_major",
+      "patterns": [
+        "How to change my major",
+        "Change my program",
+        "Switch programs",
+        "Shift to another course",
+        "Change course",
+        "Transfer programs"
+      ],
+      "responses": [
+        "To change your major or program, meet with an Academic Advisor. They'll guide you through requirements and submit the paperwork to update your record."
+      ]
+    },
+    {
+      "tag": "guidance_testing",
+      "patterns": [
+        "Does the Guidance Office offer testing services",
+        "Psychological testing",
+        "Vocational test",
+        "Career test",
+        "Assessment tests"
+      ],
+      "responses": [
+        "Yes, the Guidance Office may offer psychological and career assessment tests, including placement or vocational interest inventories."
+      ]
+    },
+    {
+      "tag": "transfer_university",
+      "patterns": [
+        "Planning to transfer to university",
+        "Help with transfer requirements",
+        "Transfer to university",
+        "Moving to university",
+        "Transfer to 4-year school"
+      ],
+      "responses": [
+        "If you're planning to transfer to a university, your Academic Advisor can help you select transferable courses, create a Student Education Plan (SEP), and connect you to the Transfer Center."
+      ]
+    },
+    {
+      "tag": "guidance_location",
+      "patterns": [
+        "Where is the Guidance Office",
+        "Office hours of Guidance Office",
+        "Guidance office location",
+        "Where can I find guidance",
+        "Guidance office hours"
+      ],
+      "responses": [
+        "Office hours: Monday to Friday, 8:00 AM - 5:00 PM. Location: Main Building, Room 210. Walk-ins are welcome during office hours."
+      ]
+    },
+    {
+      "tag": "osa_general",
       "patterns": [
         "Office of Student Affairs",
         "OSA Office",
-        "Clubs and organizations",
-        "Student activities",
-        "Student discipline",
-        "OSA events",
-        "Where is the OSA office",
-        "Student organizations",
-        "Campus activities",
-        "Student government",
-        "Extracurricular activities",
-        "Student clubs",
-        "Sports activities",
-        "Cultural events",
-        "Student participation",
-        "Leadership programs",
-        "Student services",
-        "Student council",
-        "Campus events",
-        "Social activities",
-        "Volunteer programs",
-        "Community service",
-        "Student handbook",
-        "Code of conduct",
-        "Disciplinary actions",
-        "Student rights",
-        "Campus policies",
-        "Event planning",
-        "Organization registration",
-        "Club membership"
+        "What does the OSA do",
+        "Responsibilities of OSA",
+        "Student affairs",
+        "What is OSA"
       ],
       "responses": [
-        "The Office of Student Affairs manages student activities, clubs, and discipline. They're at the Student Center, Room 305.",
-        "For joining clubs or student activities, visit OSA or check our student portal.",
-        "Student organization information and campus events are coordinated by the Office of Student Affairs.",
-        "OSA oversees all student life activities and provides support for student organizations.",
-        "The OSA coordinates all extracurricular activities and student organizations. Visit them for club registration and event planning.",
-        "Student disciplinary matters and policy questions are handled by the Office of Student Affairs. Office hours: Mon-Fri, 8:00 AM - 5:00 PM."
+        "The Office of Student Affairs (OSA) oversees student services beyond academics — including student discipline, organization accreditation, extracurricular programs, insurance, and welfare-related matters. It ensures student engagement and responsible citizenship on campus."
+      ]
+    },
+    {
+      "tag": "student_organizations",
+      "patterns": [
+        "Student clubs and organizations",
+        "How to start a student organization",
+        "Club registration process",
+        "How to create a new club",
+        "Where to register a student organization",
+        "Join a club",
+        "Student clubs",
+        "Create organization",
+        "Form a club",
+        "Register club"
+      ],
+      "responses": [
+        "To start a new student organization, submit a petition to the OSA with your group's constitution and by-laws, list of founding officers, and a faculty adviser. The OSA will then guide you through the accreditation process."
+      ]
+    },
+    {
+      "tag": "campus_events",
+      "patterns": [
+        "Student activities and events",
+        "Extracurricular activities",
+        "Campus events and programs",
+        "Foundation Day participation",
+        "How to join student assemblies or intramurals",
+        "Campus events",
+        "School events",
+        "Activities",
+        "Foundation day",
+        "Intramurals",
+        "Student assemblies",
+        "Leadership seminars"
+      ],
+      "responses": [
+        "Campus events like Foundation Day, student assemblies, and leadership seminars are coordinated by the OSA. Check their Facebook page or bulletin boards for announcements and sign-ups."
+      ]
+    },
+    {
+      "tag": "student_discipline",
+      "patterns": [
+        "Student discipline",
+        "Filing complaints or grievances",
+        "Report bullying or misconduct",
+        "Report bullying",
+        "File complaint",
+        "Student misconduct",
+        "Disciplinary case",
+        "Report violation"
+      ],
+      "responses": [
+        "If you need to report bullying, misconduct, or a grievance, go to the OSA immediately. They handle disciplinary cases and investigations following the Student Handbook policies."
+      ]
+    },
+    {
+      "tag": "good_moral_clearance",
+      "patterns": [
+        "Good moral certificate request",
+        "Request for clearance",
+        "OSA clearance requirements",
+        "Certificate of good moral",
+        "Good moral",
+        "School clearance",
+        "Get clearance",
+        "Clearance requirements"
+      ],
+      "responses": [
+        "Need a Certificate of Good Moral Character? Request it from the OSA. Submit a request form, your Student ID, and the minimal processing fee. The office will check your disciplinary record before release.",
+        "To secure an official school clearance, visit the OSA before the end of the semester. They will verify your record for pending obligations, unreturned items, or disciplinary cases before signing your clearance form."
+      ]
+    },
+    {
+      "tag": "student_id",
+      "patterns": [
+        "Lost my ID on campus",
+        "Student ID renewal",
+        "Where to claim student ID",
+        "Get student ID",
+        "Replace ID",
+        "Lost ID",
+        "New student ID",
+        "ID replacement"
+      ],
+      "responses": [
+        "For Student ID issuance or replacement, visit the OSA. They manage ID distribution and renewal schedules. For grades and transcripts, please contact the Registrar's Office instead."
+      ]
+    },
+    {
+      "tag": "lost_and_found",
+      "patterns": [
+        "Lost and found",
+        "I lost something",
+        "Found item",
+        "Lost item on campus",
+        "Where is lost and found"
+      ],
+      "responses": [
+        "Lost something on campus? Visit the OSA's Lost and Found section to report or claim your item. They maintain the campus lost property records with the Security Office."
+      ]
+    },
+    {
+      "tag": "posting_materials",
+      "patterns": [
+        "Posting flyers or posters on campus",
+        "Need permission for posting event materials",
+        "Post flyers",
+        "Can I post posters",
+        "Posting announcement"
+      ],
+      "responses": [
+        "All posters, flyers, or announcements must have an OSA approval stamp before posting on campus. This ensures all materials are appropriate and officially authorized."
+      ]
+    },
+    {
+      "tag": "student_insurance",
+      "patterns": [
+        "Student insurance",
+        "Accident insurance claim",
+        "Insurance coverage",
+        "Accident claim",
+        "Student accident insurance"
+      ],
+      "responses": [
+        "Yes, enrolled students are covered by accident insurance under the OSA. Visit the office for claim forms, procedures, and insurance provider contacts in case of emergencies."
+      ]
+    },
+    {
+      "tag": "scholarships_inquiry",
+      "patterns": [
+        "Scholarships and financial aid inquiries",
+        "Scholarship programs",
+        "Financial aid",
+        "Available scholarships",
+        "How to apply for scholarship"
+      ],
+      "responses": [
+        "While scholarships are managed by the Scholarship or Financial Aid Office, the OSA can provide information and referrals about available programs and application steps."
+      ]
+    },
+    {
+      "tag": "osa_location",
+      "patterns": [
+        "OSA office hours",
+        "Where is the OSA office located",
+        "OSA location",
+        "Where is OSA",
+        "OSA office hours"
+      ],
+      "responses": [
+        "The OSA office is located at the Student Center, Room 305. Office hours are Monday to Friday, 8:00 AM - 5:00 PM. You can visit for concerns related to clubs, student conduct, events, or welfare services."
       ]
     },
     {
@@ -268,7 +785,9 @@
         "Academic announcements",
         "Emergency notices",
         "Holiday announcements",
-        "Schedule changes"
+        "Schedule changes",
+        "Show announcements",
+        "Check announcements"
       ],
       "responses": [
         "Let me check the latest announcements for you!",
@@ -325,7 +844,10 @@
         "Later",
         "Ciao",
         "Till next time",
-        "Have a great day"
+        "Have a great day",
+        "I'm done",
+        "That's all",
+        "No more questions"
       ],
       "responses": [
         "Goodbye — have a great day!",
@@ -356,7 +878,10 @@
         "Amazing, thank you",
         "Fantastic, thanks",
         "Appreciate your help",
-        "Very helpful"
+        "Very helpful",
+        "Thank you very much",
+        "Thanks a bunch",
+        "Appreciate it"
       ],
       "responses": [
         "You're welcome! Happy to help.",
@@ -367,7 +892,6 @@
         "You're most welcome! Feel free to ask if you have more questions."
       ]
     },
-
     {
       "tag": "fallback",
       "patterns": [],

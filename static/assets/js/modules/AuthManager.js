@@ -1,10 +1,13 @@
 /**
  * AuthManager - Handles authentication and session management with MongoDB backend
+ * AuthManager.js - Simplified for Super Admin Login
  */
 class AuthManager {
     constructor() {
         this.sessionKey = 'educhat_session';
-        this.apiBaseUrl = '/api/auth'; // Backend API endpoint
+        this.tokenKey = 'admin_token';
+        this.userKey = 'admin_user';
+        this.apiBaseUrl = '/api/auth';
         this.sessionTimeout = 24 * 60 * 60 * 1000; // 24 hours
         this.init();
     }
@@ -13,14 +16,15 @@ class AuthManager {
      * Initialize authentication system
      */
     init() {
-        // Check if session is still valid
-        this.refreshSession();
+        // Check if session is still valid (but don't refresh on init)
+        // Only verify expiration, don't extend it automatically
+        this.checkSessionExpiration();
     }
 
     /**
-     * Login with email, password, role, and office
+     * Super Admin login - simplified for admin access
      */
-    async login(email, password, role, office = null) {
+    async login(email, password) {
         try {
             const response = await fetch(`${this.apiBaseUrl}/login`, {
                 method: 'POST',
@@ -30,8 +34,7 @@ class AuthManager {
                 body: JSON.stringify({
                     email: email,
                     password: password,
-                    role: role,
-                    office: office
+                    role: 'admin' // Always admin for Super Admin login
                 })
             });
 
@@ -46,7 +49,10 @@ class AuthManager {
                     expiresAt: new Date(Date.now() + this.sessionTimeout).toISOString()
                 };
 
+                // Store in both formats for backward compatibility
                 localStorage.setItem(this.sessionKey, JSON.stringify(session));
+                localStorage.setItem(this.tokenKey, result.token);
+                localStorage.setItem(this.userKey, JSON.stringify(result.user));
                 
                 return {
                     success: true,
@@ -69,83 +75,69 @@ class AuthManager {
     }
 
     /**
-     * Register a new user
+     * Check if user is authenticated
      */
-    async register(userData) {
-        try {
-            const response = await fetch(`${this.apiBaseUrl}/register`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(userData)
-            });
-
-            const result = await response.json();
-            return result;
-        } catch (error) {
-            console.error('Registration error:', error);
-            return {
-                success: false,
-                message: 'Network error. Please try again.'
-            };
-        }
-    }
-
-    /**
-     * Logout current user
-     */
-    async logout() {
-        try {
-            const session = this.getSession();
-            if (session && session.token) {
-                // Notify backend about logout
-                await fetch(`${this.apiBaseUrl}/logout`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${session.token}`,
-                        'Content-Type': 'application/json',
-                    }
-                });
-            }
-        } catch (error) {
-            console.error('Logout error:', error);
-        } finally {
-            // Always clear local session
-            localStorage.removeItem(this.sessionKey);
-        }
+    isAuthenticated() {
+        const token = this.getToken();
+        const user = this.getCurrentUser();
         
-        return { success: true };
+        if (!token || !user) {
+            return false;
+        }
+
+        // Check if session has expired
+        const session = this.getSession();
+        if (session && session.expiresAt) {
+            const now = new Date();
+            const expiresAt = new Date(session.expiresAt);
+            
+            if (now > expiresAt) {
+                this.logout();
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**
      * Get current user
      */
     getCurrentUser() {
-        const session = this.getSession();
-        return session ? session.user : null;
+        try {
+            const userData = localStorage.getItem(this.userKey);
+            return userData ? JSON.parse(userData) : null;
+        } catch (error) {
+            console.error('Error getting current user:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Get current user role
+     */
+    getUserRole() {
+        const user = this.getCurrentUser();
+        return user ? user.role : null;
     }
 
     /**
      * Get current session token
      */
     getToken() {
-        const session = this.getSession();
-        return session ? session.token : null;
+        return localStorage.getItem(this.tokenKey);
     }
 
     /**
-     * Check if user is authenticated
+     * Check authentication and require admin role
      */
     checkAuth() {
-        const session = this.getSession();
-        if (!session) return false;
+        if (!this.isAuthenticated()) {
+            return false;
+        }
 
-        // Check if session has expired
-        const now = new Date();
-        const expiresAt = new Date(session.expiresAt);
-        
-        if (now > expiresAt) {
+        const user = this.getCurrentUser();
+        if (!user || user.role !== 'admin') {
             this.logout();
             return false;
         }
@@ -192,7 +184,52 @@ class AuthManager {
     }
 
     /**
-     * Refresh session timeout
+     * Logout current user
+     */
+    async logout() {
+        try {
+            const token = this.getToken();
+            if (token) {
+                // Notify backend about logout
+                await fetch(`${this.apiBaseUrl}/logout`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('Logout error:', error);
+        } finally {
+            // Always clear local session
+            localStorage.removeItem(this.sessionKey);
+            localStorage.removeItem(this.tokenKey);
+            localStorage.removeItem(this.userKey);
+        }
+        
+        return { success: true };
+    }
+
+    /**
+     * Check if session has expired (without refreshing it)
+     */
+    checkSessionExpiration() {
+        const session = this.getSession();
+        if (session && session.expiresAt) {
+            const now = new Date();
+            const expiresAt = new Date(session.expiresAt);
+            
+            if (now > expiresAt) {
+                console.log('Session has expired after 24 hours');
+                this.logout();
+            }
+        }
+    }
+
+    /**
+     * Refresh session timeout (only call this on explicit user actions, not on page load)
+     * This method should NOT be called automatically - session should expire after 24 hours
      */
     refreshSession() {
         const session = this.getSession();
@@ -249,26 +286,6 @@ class AuthManager {
     }
 
     /**
-     * Get session info
-     */
-    getSessionInfo() {
-        const session = this.getSession();
-        if (!session) return null;
-
-        const now = new Date();
-        const expiresAt = new Date(session.expiresAt);
-        const timeLeft = expiresAt - now;
-
-        return {
-            user: session.user,
-            loginTime: session.loginTime,
-            expiresAt: session.expiresAt,
-            timeLeft: timeLeft,
-            isExpired: timeLeft <= 0
-        };
-    }
-
-    /**
      * Update user profile
      */
     async updateProfile(profileData) {
@@ -291,6 +308,8 @@ class AuthManager {
             
             // Update local session with new user data
             if (result.success && result.user) {
+                localStorage.setItem(this.userKey, JSON.stringify(result.user));
+                
                 const session = this.getSession();
                 if (session) {
                     session.user = { ...session.user, ...result.user };
@@ -301,97 +320,6 @@ class AuthManager {
             return result;
         } catch (error) {
             console.error('Profile update error:', error);
-            return {
-                success: false,
-                message: 'Network error. Please try again.'
-            };
-        }
-    }
-
-    /**
-     * Get all users (admin only)
-     */
-    async getAllUsers() {
-        try {
-            const token = this.getToken();
-            if (!token) {
-                return { success: false, message: 'Not authenticated' };
-            }
-
-            const response = await fetch(`${this.apiBaseUrl}/users`, {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                }
-            });
-
-            const result = await response.json();
-            return result;
-        } catch (error) {
-            console.error('Get users error:', error);
-            return {
-                success: false,
-                message: 'Network error. Please try again.'
-            };
-        }
-    }
-
-    /**
-     * Delete user (admin only)
-     */
-    async deleteUser(userId) {
-        try {
-            const token = this.getToken();
-            if (!token) {
-                return { success: false, message: 'Not authenticated' };
-            }
-
-            const response = await fetch(`${this.apiBaseUrl}/users/${userId}`, {
-                method: 'DELETE',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                }
-            });
-
-            const result = await response.json();
-            return result;
-        } catch (error) {
-            console.error('Delete user error:', error);
-            return {
-                success: false,
-                message: 'Network error. Please try again.'
-            };
-        }
-    }
-
-    /**
-     * Reset password (admin only)
-     */
-    async resetUserPassword(userId, newPassword) {
-        try {
-            const token = this.getToken();
-            if (!token) {
-                return { success: false, message: 'Not authenticated' };
-            }
-
-            const response = await fetch(`${this.apiBaseUrl}/reset-password`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    userId: userId,
-                    newPassword: newPassword
-                })
-            });
-
-            const result = await response.json();
-            return result;
-        } catch (error) {
-            console.error('Reset password error:', error);
             return {
                 success: false,
                 message: 'Network error. Please try again.'
@@ -434,4 +362,27 @@ class AuthManager {
             throw error;
         }
     }
+
+    /**
+     * Get session info for debugging
+     */
+    getSessionInfo() {
+        const session = this.getSession();
+        if (!session) return null;
+
+        const now = new Date();
+        const expiresAt = new Date(session.expiresAt);
+        const timeLeft = expiresAt - now;
+
+        return {
+            user: session.user,
+            loginTime: session.loginTime,
+            expiresAt: session.expiresAt,
+            timeLeft: timeLeft,
+            isExpired: timeLeft <= 0
+        };
+    }
 }
+
+// Make AuthManager globally available
+window.AuthManager = AuthManager;

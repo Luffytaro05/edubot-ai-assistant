@@ -9,6 +9,117 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="{{ url_for('static', filename='assets/css/style.css') }}" rel="stylesheet">
+    
+    <!-- Define critical UI functions IMMEDIATELY in HEAD so they're available when body is parsed -->
+    <script>
+        // Toast notification function
+        window.showToast = function(message, type) {
+            type = type || 'info';
+            // Try to use existing toast system first
+            if (typeof toast !== 'undefined' && toast.success) {
+                switch(type) {
+                    case 'success':
+                        toast.success(message);
+                        break;
+                    case 'error':
+                        toast.error(message);
+                        break;
+                    case 'info':
+                    default:
+                        toast.info(message);
+                        break;
+                }
+            } else {
+                // Fallback to console and alert
+                console.log(type.toUpperCase() + ': ' + message);
+                if (type === 'error') {
+                    alert('Error: ' + message);
+                }
+            }
+        }
+
+        // Logout function
+        window.logout = async function() {
+            const confirmLogout = confirm('Are you sure you want to logout?');
+            
+            if (confirmLogout) {
+                try {
+                    showToast('Logging out...', 'info');
+                    
+                    // Call admin logout endpoint
+                    const response = await fetch('/admin/logout', {
+                        method: 'POST',
+                        credentials: 'include'
+                    });
+                    
+                    if (response.ok) {
+                        showToast('Logged out successfully', 'success');
+                    }
+                    
+                    // Redirect to login page regardless of response
+                    window.location.href = '/admin/index';
+                } catch (error) {
+                    console.error('Logout error:', error);
+                    showToast('Error during logout', 'error');
+                    // Still redirect to login page even if logout fails
+                    window.location.href = '/admin/index';
+                }
+            }
+        }
+
+        // Toggle user dropdown menu
+        window.toggleUserDropdown = function() {
+            const dropdown = document.getElementById('userDropdownMenu');
+            const dropdownContainer = document.querySelector('.user-info-dropdown');
+            
+            if (dropdown && dropdownContainer) {
+                dropdown.classList.toggle('show');
+                dropdownContainer.classList.toggle('active');
+            }
+        }
+
+        // Change Password Modal Functions
+        window.openChangePasswordModal = function() {
+            const modal = document.getElementById('changePasswordModal');
+            const form = document.getElementById('changePasswordForm');
+            const dropdown = document.getElementById('userDropdownMenu');
+            const dropdownContainer = document.querySelector('.user-info-dropdown');
+            
+            if (modal) modal.style.display = 'flex';
+            if (form) form.reset();
+            if (dropdown) dropdown.classList.remove('show');
+            if (dropdownContainer) dropdownContainer.classList.remove('active');
+        }
+
+        window.closeChangePasswordModal = function() {
+            const modal = document.getElementById('changePasswordModal');
+            const form = document.getElementById('changePasswordForm');
+            
+            if (modal) modal.style.display = 'none';
+            if (form) form.reset();
+        }
+
+        window.togglePasswordVisibility = function(inputId) {
+            const input = document.getElementById(inputId);
+            if (!input) return;
+            
+            const button = input.nextElementSibling;
+            if (!button) return;
+            
+            const icon = button.querySelector('i');
+            if (!icon) return;
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+    </script>
 </head>
 <body>
     <div class="app-container">
@@ -55,9 +166,9 @@
             
             <!-- User Profile at Bottom -->
             <div class="sidebar-user-profile">
-                <div class="user-avatar">A</div>
+                <div class="user-avatar">S</div>
                 <div class="user-details">
-                    <div class="user-name">Admin User</div>
+                    <div class="user-name">Super Admin</div>
                     <div class="user-role">Super Administrator</div>
                 </div>
             </div>
@@ -68,25 +179,61 @@
             <!-- Header -->
             <header class="header">
                 <div class="header-left">
+                    <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">
+                        <i class="fas fa-bars"></i>
+                    </button>
                     <div class="search-bar">
                         <i class="fas fa-search"></i>
-                        <input type="text" placeholder="Search conversations" class="search-input" data-search-type="conversations">
+                        <input type="text" placeholder="Search by user, message, office, or sender..." class="search-input" data-search-type="conversations" id="conversationSearchInput">
+                        <div class="search-results-info" id="searchResultsInfo" style="display: none;">
+                            <span class="results-count"></span>
+                        </div>
                     </div>
                 </div>
                 <div class="header-right">
                     <div class="notification-icon">
                         <i class="fas fa-bell"></i>
-                        <span class="notification-badge">3</span>
+                        <span class="notification-badge" style="display: none;">0</span>
                     </div>
-                    <div class="user-info">
-                        <div class="user-avatar">A</div>
-                        <div class="user-details">
-                            <div class="user-name">Admin User</div>
-                            <div class="user-role">Super Administrator</div>
+                    
+                    <!-- Notification Dropdown Panel -->
+                    <div class="notification-dropdown" id="notificationDropdown">
+                        <div class="notification-header">
+                            <h3><i class="fas fa-bell"></i> Notifications</h3>
+                            <div class="notification-header-actions">
+                                <button id="notificationRefreshBtn" title="Refresh notifications">
+                                    <i class="fas fa-sync-alt"></i>
+                                </button>
+                                <button id="notificationMarkAllReadBtn" title="Mark all as read">
+                                    <i class="fas fa-check-double"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="notification-list" id="notificationList">
+                            <div class="notification-empty">
+                                <i class="fas fa-bell-slash"></i>
+                                <p>Loading notifications...</p>
+                            </div>
                         </div>
                     </div>
-                    <div class="logout-icon" onclick="new AuthManager().logout().then(() => window.location.href='/admin/index')">
-                        <i class="fas fa-sign-out-alt"></i>
+                    
+                    <div class="user-info-dropdown">
+                        <div class="user-info" onclick="toggleUserDropdown()">
+                            <div class="user-avatar">S</div>
+                            <div class="user-details">
+                                <div class="user-name">Super Admin</div>
+                                <div class="user-role">Super Administrator</div>
+                            </div>
+                            <i class="fas fa-chevron-down dropdown-arrow"></i>
+                        </div>
+                        <div class="user-dropdown-menu" id="userDropdownMenu">
+                            <a href="javascript:void(0);" onclick="openChangePasswordModal()" class="dropdown-item">
+                                <i class="fas fa-key"></i> Change Password
+                            </a>
+                            <a href="javascript:void(0);" onclick="logout()" class="dropdown-item">
+                                <i class="fas fa-sign-out-alt"></i> Logout
+                            </a>
+                        </div>
                     </div>
                 </div>
             </header>
@@ -132,11 +279,11 @@
                                         <label>Office</label>
                                         <select class="form-control" id="office-filter">
                                             <option value="">All Offices</option>
-                                            <option value="admissions">Admissions Office</option>
-                                            <option value="registrar">Registrar Office</option>
+                                            <option value="admission">Admissions Office</option>
+                                            <option value="registrar">Registrar's Office</option>
                                             <option value="guidance">Guidance Office</option>
-                                            <option value="transportation">Office of Student Affairs</option>
-                                            <option value="it">ICT Office</option>
+                                            <option value="osa">Office of the Student Affairs (OSA)</option>
+                                            <option value="ict">ICT Office</option>
                                         </select>
                                     </div>
                                 </div>
@@ -184,7 +331,14 @@
                             </tr>
                         </thead>
                         <tbody id="conversations-table-body">
-                            <!-- Conversations will be populated here -->
+                            <tr>
+                                <td colspan="6" class="text-center" style="padding: 3rem;">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                    <p class="mt-2 text-muted">Loading conversations...</p>
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
@@ -211,6 +365,55 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Change Password Modal -->
+            <div id="changePasswordModal" class="modal-overlay">
+                <div class="modal-container">
+                    <div class="modal-header">
+                        <h3><i class="fas fa-key"></i> Change Password</h3>
+                        <button class="close-modal-btn" onclick="closeChangePasswordModal()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="changePasswordForm">
+                            <div class="form-group">
+                                <label for="currentPassword">Current Password</label>
+                                <div class="password-input-group">
+                                    <input type="password" id="currentPassword" class="form-control" placeholder="Enter current password" required>
+                                    <button type="button" class="toggle-password" onclick="togglePasswordVisibility('currentPassword')">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="newPassword">New Password</label>
+                                <div class="password-input-group">
+                                    <input type="password" id="newPassword" class="form-control" placeholder="Enter new password" required>
+                                    <button type="button" class="toggle-password" onclick="togglePasswordVisibility('newPassword')">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                                <small class="form-text">Password must be at least 8 characters long</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="confirmPassword">Confirm New Password</label>
+                                <div class="password-input-group">
+                                    <input type="password" id="confirmPassword" class="form-control" placeholder="Confirm new password" required>
+                                    <button type="button" class="toggle-password" onclick="togglePasswordVisibility('confirmPassword')">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" onclick="closeChangePasswordModal()">Cancel</button>
+                                <button type="submit" class="btn btn-primary">Change Password</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
         </main>
     </div>
 
@@ -251,84 +454,296 @@
     <!-- Scripts -->
     <script src="{{ url_for('static', filename='assets/js/core/BaseManager.js') }}"></script>
     <script src="{{ url_for('static', filename='assets/js/modules/AuthManager.js') }}"></script>
-    <script src="{{ url_for('static', filename='assets/js/modules/ConversationManager.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/js/modules/NotificationManager.js') }}"></script>
     <script src="{{ url_for('static', filename='assets/js/utils/toast.js') }}"></script>
     <script src="{{ url_for('static', filename='assets/js/app.js') }}"></script>
 
     <script>
-        let conversationManager;
+        // Note: UI functions (toggleUserDropdown, openChangePasswordModal, etc.) are defined in HEAD section
+let notificationManager;
 let currentPage = 1;
 let itemsPerPage = 10;
 let currentFilters = {};
+let allConversations = []; // Store all conversations for pagination
+let filteredConversations = []; // Store filtered conversations
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
     const authManager = new AuthManager();
     if (!authManager.checkAuth()) {
-        window.location.href = '/';
+        window.location.href = '/admin/index';
         return;
     }
 
-    conversationManager = new ConversationManager();
-    loadConversations();
+    // ✅ Load and display admin info
+    await loadAdminInfo();
+    
+    // Initialize notification manager
+    notificationManager = new NotificationManager();
+    await notificationManager.initialize();
+    
+    // Load conversations and setup event listeners
+    await loadConversations();
     setupEventListeners();
+    
+    console.log('Conversations page initialized successfully');
 });
 
-function setupEventListeners() {
-    // Search functionality
-    const searchInput = document.querySelector('.search-input');
-    searchInput.addEventListener('input', function() {
-        const query = this.value.trim();
-        if (query) {
-            const filteredConversations = conversationManager.searchConversations(query);
-            renderConversations(filteredConversations);
-        } else {
-            loadConversations();
+// ✅ New function to load and display admin information
+async function loadAdminInfo() {
+    try {
+        const response = await fetch('/admin/session', {
+            method: 'GET',
+            credentials: 'include'
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            if (data.authenticated && data.name) {
+                // Update admin name in header/navbar
+                const adminNameElements = document.querySelectorAll('.admin-name, #admin-name, .user-name');
+                adminNameElements.forEach(element => {
+                    element.textContent = data.name;
+                });
+                
+                // Update admin avatar with first letter of name
+                const adminAvatarElements = document.querySelectorAll('.admin-avatar, #admin-avatar, .user-avatar');
+                adminAvatarElements.forEach(element => {
+                    element.textContent = data.name.charAt(0).toUpperCase();
+                });
+                
+                // Update dropdown or profile section if exists
+                const adminEmailElements = document.querySelectorAll('.admin-email, #admin-email, .user-email');
+                adminEmailElements.forEach(element => {
+                    element.textContent = data.email || '';
+                });
+                
+                console.log('Admin info loaded:', data);
+            }
         }
-    });
+    } catch (error) {
+        console.error('Error loading admin info:', error);
+    }
+}
+
+function setupEventListeners() {
+    console.log('Setting up event listeners...');
+    
+    // Enhanced search functionality
+    const searchInput = document.getElementById('conversationSearchInput');
+    console.log('Search input element:', searchInput);
+    
+    const searchResultsInfo = document.getElementById('searchResultsInfo');
+    const resultsCount = searchResultsInfo?.querySelector('.results-count');
+    
+    if (searchInput) {
+        console.log('Search input found, attaching event listener');
+        
+        // Search input event
+        searchInput.addEventListener('input', function(e) {
+            const query = e.target.value.trim();
+            console.log('Search query:', query);
+            performConversationSearch(query);
+        });
+        
+        // Clear search on Escape key
+        searchInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                console.log('Escape pressed, clearing search');
+                searchInput.value = '';
+                performConversationSearch('');
+                searchInput.blur();
+            }
+        });
+    } else {
+        console.error('Search input not found!');
+    }
 
     // Filter change events
-    document.getElementById('date-range').addEventListener('change', applyFilters);
-    document.getElementById('office-filter').addEventListener('change', applyFilters);
-    document.getElementById('sender-filter').addEventListener('change', applyFilters);
-    document.getElementById('status-filter').addEventListener('change', applyFilters);
+    const dateRange = document.getElementById('date-range');
+    const officeFilter = document.getElementById('office-filter');
+    const senderFilter = document.getElementById('sender-filter');
+    const statusFilter = document.getElementById('status-filter');
+    
+    if (dateRange) dateRange.addEventListener('change', applyFilters);
+    if (officeFilter) officeFilter.addEventListener('change', applyFilters);
+    if (senderFilter) senderFilter.addEventListener('change', applyFilters);
+    if (statusFilter) statusFilter.addEventListener('change', applyFilters);
+    
+    console.log('Event listeners setup complete');
+}
+
+function performConversationSearch(query) {
+    console.log('performConversationSearch called with query:', query);
+    console.log('allConversations length:', allConversations.length);
+    
+    const searchResultsInfo = document.getElementById('searchResultsInfo');
+    const resultsCount = searchResultsInfo?.querySelector('.results-count');
+    
+    if (!query) {
+        // Show all conversations
+        console.log('Empty query, showing all conversations');
+        if (searchResultsInfo) searchResultsInfo.style.display = 'none';
+        filteredConversations = allConversations;
+        currentPage = 1;
+        renderConversationsWithPagination();
+        return;
+    }
+    
+    const lowerQuery = query.toLowerCase();
+    console.log('Searching for:', lowerQuery);
+    
+    // Filter conversations by search query
+    filteredConversations = allConversations.filter(conv => {
+        const user = (conv.user || '').toLowerCase();
+        const message = (conv.message || '').toLowerCase();
+        const office = (conv.office || '').toLowerCase();
+        const sender = (conv.sender || '').toLowerCase();
+        
+        const matches = user.includes(lowerQuery) || 
+               message.includes(lowerQuery) || 
+               office.includes(lowerQuery) ||
+               sender.includes(lowerQuery);
+        
+        return matches;
+    });
+    
+    console.log('Filtered conversations length:', filteredConversations.length);
+    
+    // Update result count
+    if (searchResultsInfo && resultsCount) {
+        const total = allConversations.length;
+        const found = filteredConversations.length;
+        
+        console.log(`Found ${found} of ${total} conversations`);
+        
+        if (found === 0) {
+            resultsCount.textContent = `No conversations found for "${query}"`;
+            resultsCount.style.color = '#ef4444';
+            searchResultsInfo.style.display = 'block';
+        } else if (found === total) {
+            searchResultsInfo.style.display = 'none';
+        } else {
+            resultsCount.textContent = `${found} of ${total} conversations`;
+            resultsCount.style.color = '#3b82f6';
+            searchResultsInfo.style.display = 'block';
+        }
+    }
+    
+    currentPage = 1; // Reset to first page
+    renderConversationsWithPagination();
+}
+
+// New function to handle pagination
+function renderConversationsWithPagination() {
+    const totalItems = filteredConversations.length;
+    const totalPages = Math.ceil(totalItems / itemsPerPage);
+    
+    // Ensure current page is valid
+    if (currentPage > totalPages && totalPages > 0) {
+        currentPage = totalPages;
+    }
+    if (currentPage < 1) {
+        currentPage = 1;
+    }
+    
+    // Calculate start and end indices
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
+    
+    // Get conversations for current page
+    const pageConversations = filteredConversations.slice(startIndex, endIndex);
+    
+    // Render conversations
+    renderConversations(pageConversations);
+    
+    // Update pagination UI
+    updatePagination(totalItems, startIndex, endIndex);
 }
 
 // Updated loadConversations function with async/await and fetch
 async function loadConversations() {
+    const tbody = document.getElementById('conversations-table-body');
+    
     try {
+        console.log('Loading conversations from API...');
+        
         const response = await fetch("http://localhost:5000/api/conversations");
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         const conversations = await response.json();
         
+        console.log('Loaded conversations:', conversations.length);
+        
+        // Store all conversations
+        allConversations = conversations;
+        filteredConversations = conversations;
+        
         // Enhanced debugging - log first conversation structure
         if (conversations.length > 0) {
             console.log('Sample conversation structure:');
             console.log(JSON.stringify(conversations[0], null, 2));
             console.log('All available keys:', Object.keys(conversations[0]));
+        } else {
+            console.log('No conversations found in database');
         }
         
-        renderConversations(conversations);
-        updatePagination(conversations.length);
+        // Reset to first page when loading new data
+        currentPage = 1;
+        
+        // Render conversations with pagination
+        renderConversationsWithPagination();
+        
+        console.log('Conversations rendered successfully');
+        
     } catch (error) {
         console.error("Error loading conversations:", error);
         // Show user-friendly error message
-        const tbody = document.getElementById('conversations-table-body');
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger">Failed to load conversations. Please try again.</td></tr>';
+        if (tbody) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="text-center text-danger" style="padding: 3rem;">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 3rem; margin-bottom: 1rem; display: block;"></i>
+                        <h4>Failed to load conversations</h4>
+                        <p>Please check your connection and try again.</p>
+                        <button class="btn btn-primary mt-3" onclick="loadConversations()">
+                            <i class="fas fa-sync-alt"></i> Retry
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }
     }
 }
 
 function renderConversations(conversations) {
     const tbody = document.getElementById('conversations-table-body');
+    if (!tbody) return;
+    
     tbody.innerHTML = '';
 
-    conversations.forEach(conversation => {
-        console.log('Rendering conversation:', conversation);
+    // Enhanced empty state
+    if (conversations.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" class="empty-state-cell">
+                    <div class="empty-state-content">
+                        <i class="fas fa-comments"></i>
+                        <h4>No conversations found</h4>
+                        <p>Try adjusting your search or filters to find conversations</p>
+                    </div>
+                </td>
+            </tr>
+        `;
+        return;
+    }
 
+    conversations.forEach((conversation, index) => {
         const row = document.createElement('tr');
+        row.className = 'conversation-row';
+        row.style.animationDelay = `${index * 0.03}s`;
 
-        // Get the sender field - this is the key change
+        // Get the sender field
         const sender = conversation.sender || 'unknown';
         const senderDisplay = sender.toLowerCase() === 'user' ? 'User' : sender.toLowerCase() === 'bot' ? 'Bot' : 'Unknown';
         
@@ -336,34 +751,42 @@ function renderConversations(conversations) {
         const message = conversation.message || '';
         
         // Truncate long messages for table display
-        const truncatedMessage = message.length > 100 ? message.substring(0, 100) + '...' : message;
-
-        // DEBUG: Log the data to see what we're working with
-        console.log('Sender:', sender);
-        console.log('Message:', message);
-        console.log('Available fields:', Object.keys(conversation));
+        const truncatedMessage = message.length > 80 ? message.substring(0, 80) + '...' : message;
+        
+        // Get status
+        const status = conversation.status || 'resolved';
+        const statusDisplay = status.charAt(0).toUpperCase() + status.slice(1);
+        
+        // Get office and determine color
+        const office = conversation.office || conversation.department || conversation.category || 'General';
+        const officeClass = getOfficeBadgeClass(office);
+        
+        // Get avatar color
+        const avatarColor = getAvatarColor(conversation.user || 'Guest');
 
         row.innerHTML = `
             <!-- User Column -->
             <td>
                 <div class="user-info-cell">
-                    <div class="user-avatar">${(conversation.user || 'Guest').charAt(0).toUpperCase()}</div>
+                    <div class="user-avatar user-avatar-${avatarColor}">
+                        ${(conversation.user || 'Guest').charAt(0).toUpperCase()}
+                    </div>
                     <div class="user-details">
-                        <div class="user-name">${conversation.user || 'Guest'}</div>
-                        <div class="user-email">${conversation.email || ''}</div>
+                        <div class="user-name">${escapeHtml(conversation.user || 'Guest')}</div>
+                        ${conversation.email ? `<div class="user-email">${escapeHtml(conversation.email)}</div>` : ''}
                     </div>
                 </div>
             </td>
 
             <!-- Message Column -->
-            <td>
-                <div class="message-preview" style="max-width: 400px; white-space: pre-wrap; overflow: hidden; text-overflow: ellipsis; max-height: 100px;">
-                    ${truncatedMessage}
+            <td class="message-cell">
+                <div class="message-preview" title="${escapeHtml(message)}">
+                    ${escapeHtml(truncatedMessage)}
                 </div>
-                ${message.length > 100 ? '<small class="text-muted">Click view for full message</small>' : ''}
+                ${message.length > 80 ? '<small class="message-hint"><i class="fas fa-info-circle"></i> Click view to see full message</small>' : ''}
             </td>
 
-            <!-- Sender Column - NEW -->
+            <!-- Sender Column -->
             <td>
                 <span class="sender-badge sender-${sender.toLowerCase()}">
                     <i class="fas ${sender.toLowerCase() === 'user' ? 'fa-user' : sender.toLowerCase() === 'bot' ? 'fa-robot' : 'fa-question'}"></i>
@@ -373,27 +796,43 @@ function renderConversations(conversations) {
 
             <!-- Office Column -->
             <td>
-                <span class="office-badge">${conversation.office || conversation.department || conversation.category || 'General'}</span>
+                <span class="office-badge office-${officeClass}">
+                    <i class="fas fa-building"></i>
+                    ${escapeHtml(office)}
+                </span>
             </td>
 
             <!-- Date Column -->
             <td>
                 <div class="date-info">
-                    <div class="date">${formatDate(conversation.date || conversation.timestamp || conversation.created_at)}</div>
-                    <div class="time">${formatTime(conversation.date || conversation.timestamp || conversation.created_at)}</div>
+                    <div class="date-main">
+                        <i class="fas fa-calendar-alt"></i>
+                        ${formatDate(conversation.date || conversation.timestamp || conversation.created_at)}
+                    </div>
+                    <div class="time-sub">
+                        <i class="fas fa-clock"></i>
+                        ${formatTime(conversation.date || conversation.timestamp || conversation.created_at)}
+                    </div>
                 </div>
             </td>
 
             <!-- Actions Column -->
             <td>
                 <div class="action-buttons">
-                    <button class="btn btn-sm btn-outline-primary" onclick="viewConversation('${conversation._id || conversation.id}')" title="View Full Conversation">
+                    <button class="btn btn-action btn-view" onclick="viewConversation('${conversation._id || conversation.id}')" title="View Details">
                         <i class="fas fa-eye"></i>
                     </button>
-                    <button class="btn btn-sm btn-outline-warning" onclick="escalateConversation('${conversation._id || conversation.id}')" title="Escalate">
-                        <i class="fas fa-flag"></i>
-                    </button>
-                    <button class="btn btn-sm btn-outline-danger" onclick="deleteConversation('${conversation._id || conversation.id}')" title="Delete">
+                    ${status !== 'resolved' ? `
+                        <button class="btn btn-action btn-resolve" onclick="resolveConversation('${conversation._id || conversation.id}')" title="Mark as Resolved">
+                            <i class="fas fa-check"></i>
+                        </button>
+                    ` : ''}
+                    ${status !== 'escalated' ? `
+                        <button class="btn btn-action btn-escalate" onclick="escalateConversation('${conversation._id || conversation.id}')" title="Escalate">
+                            <i class="fas fa-flag"></i>
+                        </button>
+                    ` : ''}
+                    <button class="btn btn-action btn-delete" onclick="deleteConversation('${conversation._id || conversation.id}')" title="Delete">
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
@@ -401,11 +840,58 @@ function renderConversations(conversations) {
         `;
         tbody.appendChild(row);
     });
+}
 
-    // If no conversations found
-    if (conversations.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No conversations found</td></tr>';
+// Helper function to get avatar color based on username
+function getAvatarColor(username) {
+    const colors = ['blue', 'green', 'purple', 'orange', 'pink', 'teal', 'indigo'];
+    const charCode = username.charCodeAt(0);
+    const index = charCode % colors.length;
+    return colors[index];
+}
+
+// Helper function to get office badge class
+function getOfficeBadgeClass(office) {
+    const officeLower = office.toLowerCase();
+    
+    if (officeLower.includes('admission')) return 'admission';
+    if (officeLower.includes('registrar')) return 'registrar';
+    if (officeLower.includes('guidance')) return 'guidance';
+    if (officeLower.includes('ict')) return 'ict';
+    if (officeLower.includes('osa') || officeLower.includes('student affairs')) return 'osa';
+    
+    return 'general';
+}
+
+// Helper function to resolve conversation
+async function resolveConversation(id) {
+    if (!confirm('Mark this conversation as resolved?')) return;
+    
+    try {
+        // Find and update conversation
+        const convIndex = allConversations.findIndex(c => (c._id || c.id) === id);
+        if (convIndex !== -1) {
+            allConversations[convIndex].status = 'resolved';
+            const filteredIndex = filteredConversations.findIndex(c => (c._id || c.id) === id);
+            if (filteredIndex !== -1) {
+                filteredConversations[filteredIndex].status = 'resolved';
+            }
+        }
+        
+        showToast('Conversation marked as resolved', 'success');
+        renderConversationsWithPagination();
+    } catch (error) {
+        console.error('Error resolving conversation:', error);
+        showToast('Failed to resolve conversation', 'error');
     }
+}
+
+// Helper function to escape HTML
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
 // Helper functions for date formatting
@@ -440,46 +926,120 @@ async function deleteConversation(id) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         
-        toast.success('Conversation deleted successfully');
-        loadConversations(); // Reload the conversations
+        showToast('Conversation deleted successfully', 'success');
+        
+        // Remove from local arrays
+        allConversations = allConversations.filter(conv => (conv._id || conv.id) !== id);
+        filteredConversations = filteredConversations.filter(conv => (conv._id || conv.id) !== id);
+        
+        // Re-render with pagination
+        renderConversationsWithPagination();
     } catch (error) {
         console.error("Error deleting conversation:", error);
-        toast.error('Failed to delete conversation');
+        showToast('Failed to delete conversation', 'error');
     }
 }
 
 function showFilters() {
     const filtersSection = document.getElementById('filters-section');
-    filtersSection.style.display = filtersSection.style.display === 'none' ? 'block' : 'none';
+    if (filtersSection) {
+        filtersSection.style.display = filtersSection.style.display === 'none' ? 'block' : 'none';
+    }
 }
 
 function applyFilters() {
-    const dateRange = document.getElementById('date-range').value;
-    const office = document.getElementById('office-filter').value;
-    const sender = document.getElementById('sender-filter').value;
-    const status = document.getElementById('status-filter').value;
+    const dateRange = document.getElementById('date-range')?.value || '';
+    const office = document.getElementById('office-filter')?.value || '';
+    const sender = document.getElementById('sender-filter')?.value || '';
+    const status = document.getElementById('status-filter')?.value || '';
 
     currentFilters = { dateRange, office, sender, status };
     
-    const filteredConversations = conversationManager.getFilteredConversations(currentFilters);
-    renderConversations(filteredConversations);
-    updatePagination(filteredConversations.length);
+    // Apply filters to all conversations
+    filteredConversations = allConversations.filter(conv => {
+        let matches = true;
+        
+        // Filter by office
+        if (office) {
+            const officeVal = (conv.office || conv.department || conv.category || '').toLowerCase();
+            const isOSA = office === 'osa' && (officeVal.includes('osa') || officeVal.includes('student affairs'));
+            const isAdmissions = office === 'admission' && officeVal.includes('admission');
+            const isRegistrar = office === 'registrar' && officeVal.includes('registrar');
+            const isGuidance = office === 'guidance' && officeVal.includes('guidance');
+            const isICT = office === 'ict' && (officeVal.includes('ict') || officeVal.includes('information and communications technology'));
+            const anyMatch = isOSA || isAdmissions || isRegistrar || isGuidance || isICT;
+            if (!anyMatch) {
+                matches = false;
+            }
+        }
+        
+        // Filter by sender
+        if (sender && conv.sender && conv.sender.toLowerCase() !== sender.toLowerCase()) {
+            matches = false;
+        }
+        
+        // Filter by status
+        if (status && conv.status && conv.status.toLowerCase() !== status.toLowerCase()) {
+            matches = false;
+        }
+        
+        // Filter by date range (basic implementation)
+        if (dateRange && conv.timestamp) {
+            const convDate = new Date(conv.timestamp);
+            const now = new Date();
+            const daysDiff = Math.floor((now - convDate) / (1000 * 60 * 60 * 24));
+            
+            switch(dateRange) {
+                case 'today':
+                    matches = matches && daysDiff === 0;
+                    break;
+                case 'week':
+                    matches = matches && daysDiff <= 7;
+                    break;
+                case 'month':
+                    matches = matches && daysDiff <= 30;
+                    break;
+                case 'quarter':
+                    matches = matches && daysDiff <= 90;
+                    break;
+                case 'year':
+                    matches = matches && daysDiff <= 365;
+                    break;
+            }
+        }
+        
+        return matches;
+    });
+    
+    currentPage = 1; // Reset to first page
+    renderConversationsWithPagination();
 }
 
 function clearFilters() {
-    document.getElementById('date-range').value = 'month';
-    document.getElementById('office-filter').value = '';
-    document.getElementById('sender-filter').value = '';
-    document.getElementById('status-filter').value = '';
+    const dateRange = document.getElementById('date-range');
+    const officeFilter = document.getElementById('office-filter');
+    const senderFilter = document.getElementById('sender-filter');
+    const statusFilter = document.getElementById('status-filter');
+    const searchInput = document.querySelector('.search-input');
+    
+    if (dateRange) dateRange.value = 'month';
+    if (officeFilter) officeFilter.value = '';
+    if (senderFilter) senderFilter.value = '';
+    if (statusFilter) statusFilter.value = '';
+    if (searchInput) searchInput.value = '';
     
     currentFilters = {};
-    loadConversations();
+    filteredConversations = allConversations;
+    currentPage = 1;
+    renderConversationsWithPagination();
 }
 
 function viewConversation(id) {
-    const conversation = conversationManager.getById(id);
+    // Find conversation in our arrays
+    const conversation = allConversations.find(c => (c._id || c.id) === id);
+    
     if (!conversation) {
-        toast.error('Conversation not found');
+        showToast('Conversation not found', 'error');
         return;
     }
 
@@ -490,125 +1050,439 @@ function viewConversation(id) {
 
     // Populate conversation detail modal
     const modal = document.getElementById('conversation-detail-modal');
+    if (!modal) return;
+    
     const messagesContainer = document.getElementById('conversation-messages');
     
     // Update user info
-    modal.querySelector('.user-name').textContent = conversation.user || 'Guest';
-    modal.querySelector('.user-email').textContent = conversation.email || '';
-    modal.querySelector('.user-avatar').textContent = (conversation.user || 'G').charAt(0).toUpperCase();
+    const userNameEl = modal.querySelector('.user-name');
+    const userEmailEl = modal.querySelector('.user-email');
+    const userAvatarEl = modal.querySelector('.user-avatar');
+    const officeBadgeEl = modal.querySelector('.office-badge');
+    const statusBadgeEl = modal.querySelector('.status-badge');
     
-    // Update office and status badges
-    modal.querySelector('.office-badge').textContent = conversation.office || conversation.department || conversation.category || 'General';
-    modal.querySelector('.status-badge').textContent = conversation.status || 'Active';
-    modal.querySelector('.status-badge').className = `status-badge ${(conversation.status || 'active').toLowerCase()}`;
+    if (userNameEl) userNameEl.textContent = conversation.user || 'Guest';
+    if (userEmailEl) userEmailEl.textContent = conversation.email || '';
+    if (userAvatarEl) userAvatarEl.textContent = (conversation.user || 'G').charAt(0).toUpperCase();
+    if (officeBadgeEl) officeBadgeEl.textContent = conversation.office || conversation.department || conversation.category || 'General';
+    
+    if (statusBadgeEl) {
+        statusBadgeEl.textContent = conversation.status || 'Active';
+        statusBadgeEl.className = `status-badge ${(conversation.status || 'active').toLowerCase()}`;
+    }
 
     // Render conversation message with sender info
-    messagesContainer.innerHTML = `
-        <div class="message ${sender.toLowerCase() === 'user' ? 'user-message' : 'bot-message'}">
-            <div class="message-content">
-                <div class="message-sender">
-                    <span class="sender-badge sender-${sender.toLowerCase()}">
-                        <i class="fas ${sender.toLowerCase() === 'user' ? 'fa-user' : sender.toLowerCase() === 'bot' ? 'fa-robot' : 'fa-question'}"></i>
-                        ${senderDisplay}
-                    </span>
+    if (messagesContainer) {
+        messagesContainer.innerHTML = `
+            <div class="message ${sender.toLowerCase() === 'user' ? 'user-message' : 'bot-message'}">
+                <div class="message-content">
+                    <div class="message-sender">
+                        <span class="sender-badge sender-${sender.toLowerCase()}">
+                            <i class="fas ${sender.toLowerCase() === 'user' ? 'fa-user' : sender.toLowerCase() === 'bot' ? 'fa-robot' : 'fa-question'}"></i>
+                            ${senderDisplay}
+                        </span>
+                    </div>
+                    <div class="message-text" style="white-space: pre-wrap;">${message}</div>
+                    <div class="message-time">${new Date(conversation.date || conversation.timestamp || conversation.created_at || Date.now()).toLocaleString()}</div>
                 </div>
-                <div class="message-text" style="white-space: pre-wrap;">${message}</div>
-                <div class="message-time">${new Date(conversation.date || conversation.timestamp || conversation.created_at || Date.now()).toLocaleString()}</div>
             </div>
-        </div>
-    `;
+        `;
+    }
 
     modal.style.display = 'flex';
 }
 
-function escalateConversation(id) {
-    if (confirm('Are you sure you want to escalate this conversation?')) {
-        const result = conversationManager.escalateConversation(id);
-        if (result.success) {
-            toast.success('Conversation escalated successfully');
-            loadConversations();
-        } else {
-            toast.error(result.message);
+async function escalateConversation(id) {
+    if (!confirm('Are you sure you want to escalate this conversation?')) return;
+    
+    try {
+        // Find conversation in array and update locally
+        const convIndex = allConversations.findIndex(c => (c._id || c.id) === id);
+        if (convIndex !== -1) {
+            allConversations[convIndex].status = 'escalated';
+            
+            // Update filtered array too
+            const filteredIndex = filteredConversations.findIndex(c => (c._id || c.id) === id);
+            if (filteredIndex !== -1) {
+                filteredConversations[filteredIndex].status = 'escalated';
+            }
         }
+        
+        showToast('Conversation escalated successfully', 'success');
+        renderConversationsWithPagination();
+        
+        // TODO: Send update to backend if you have an update endpoint
+        // await fetch(`/api/conversations/${id}`, { 
+        //     method: 'PUT',
+        //     body: JSON.stringify({ status: 'escalated' })
+        // });
+        
+    } catch (error) {
+        console.error('Error escalating conversation:', error);
+        showToast('Failed to escalate conversation', 'error');
     }
 }
 
 function exportConversations() {
-    const conversations = conversationManager.getAll();
-    const csvContent = conversationManager.exportToCSV(conversations);
+    if (filteredConversations.length === 0) {
+        showToast('No conversations to export', 'error');
+        return;
+    }
     
-    if (csvContent) {
-        const blob = new Blob([csvContent], { type: 'text/csv' });
+    try {
+        // Create CSV content
+        const headers = ['User', 'Email', 'Message', 'Sender', 'Office', 'Date'];
+        const csvRows = [headers.join(',')];
+        
+        filteredConversations.forEach(conv => {
+            const row = [
+                `"${(conv.user || 'Guest').replace(/"/g, '""')}"`,
+                `"${(conv.email || '').replace(/"/g, '""')}"`,
+                `"${(conv.message || '').replace(/"/g, '""')}"`,
+                `"${(conv.sender || 'unknown').replace(/"/g, '""')}"`,
+                `"${(conv.office || 'General').replace(/"/g, '""')}"`,
+                `"${formatDate(conv.date || conv.timestamp || conv.created_at)} ${formatTime(conv.date || conv.timestamp || conv.created_at)}"`
+            ];
+            csvRows.push(row.join(','));
+        });
+        
+        const csvContent = csvRows.join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
         a.download = `conversations_${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
         a.click();
+        document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
-        toast.success('Conversations exported successfully');
-    } else {
-        toast.error('Failed to export conversations');
+        
+        showToast(`Exported ${filteredConversations.length} conversations successfully`, 'success');
+    } catch (error) {
+        console.error('Error exporting conversations:', error);
+        showToast('Failed to export conversations', 'error');
     }
 }
 
-function updatePagination(totalItems) {
-    const startItem = (currentPage - 1) * itemsPerPage + 1;
-    const endItem = Math.min(currentPage * itemsPerPage, totalItems);
+function updatePagination(totalItems, startIndex, endIndex) {
+    const startItemEl = document.getElementById('start-item');
+    const endItemEl = document.getElementById('end-item');
+    const totalItemsEl = document.getElementById('total-items');
+    const prevBtn = document.getElementById('prev-btn');
+    const nextBtn = document.getElementById('next-btn');
+    const pageNumbersContainer = document.querySelector('.page-numbers');
     
-    document.getElementById('start-item').textContent = startItem;
-    document.getElementById('end-item').textContent = endItem;
-    document.getElementById('total-items').textContent = totalItems;
+    const totalPages = Math.ceil(totalItems / itemsPerPage);
+    const startItem = totalItems > 0 ? startIndex + 1 : 0;
+    const endItem = endIndex;
+    
+    if (startItemEl) startItemEl.textContent = startItem;
+    if (endItemEl) endItemEl.textContent = endItem;
+    if (totalItemsEl) totalItemsEl.textContent = totalItems;
     
     // Update button states
-    document.getElementById('prev-btn').disabled = currentPage === 1;
-    document.getElementById('next-btn').disabled = endItem >= totalItems;
+    if (prevBtn) {
+        prevBtn.disabled = currentPage === 1;
+        prevBtn.style.opacity = currentPage === 1 ? '0.5' : '1';
+        prevBtn.style.cursor = currentPage === 1 ? 'not-allowed' : 'pointer';
+    }
+    if (nextBtn) {
+        nextBtn.disabled = currentPage >= totalPages;
+        nextBtn.style.opacity = currentPage >= totalPages ? '0.5' : '1';
+        nextBtn.style.cursor = currentPage >= totalPages ? 'not-allowed' : 'pointer';
+    }
+    
+    // Update page numbers
+    if (pageNumbersContainer) {
+        pageNumbersContainer.innerHTML = '';
+        
+        // Calculate which page numbers to show
+        let startPage = Math.max(1, currentPage - 2);
+        let endPage = Math.min(totalPages, currentPage + 2);
+        
+        // Adjust if we're near the start
+        if (currentPage <= 3) {
+            endPage = Math.min(5, totalPages);
+        }
+        
+        // Adjust if we're near the end
+        if (currentPage > totalPages - 3) {
+            startPage = Math.max(1, totalPages - 4);
+        }
+        
+        // Add first page and ellipsis if needed
+        if (startPage > 1) {
+            addPageButton(pageNumbersContainer, 1);
+            if (startPage > 2) {
+                pageNumbersContainer.innerHTML += '<span style="padding: 0.5rem;">...</span>';
+            }
+        }
+        
+        // Add page numbers
+        for (let i = startPage; i <= endPage; i++) {
+            addPageButton(pageNumbersContainer, i);
+        }
+        
+        // Add ellipsis and last page if needed
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) {
+                pageNumbersContainer.innerHTML += '<span style="padding: 0.5rem;">...</span>';
+            }
+            addPageButton(pageNumbersContainer, totalPages);
+        }
+    }
+}
+
+function addPageButton(container, pageNum) {
+    const button = document.createElement('button');
+    button.className = currentPage === pageNum ? 'btn btn-primary' : 'btn btn-outline-secondary';
+    button.textContent = pageNum;
+    button.onclick = () => goToPage(pageNum);
+    container.appendChild(button);
+}
+
+function goToPage(pageNum) {
+    currentPage = pageNum;
+    renderConversationsWithPagination();
 }
 
 function previousPage() {
     if (currentPage > 1) {
         currentPage--;
-        loadConversations();
+        renderConversationsWithPagination();
+        
+        // Scroll to top of table
+        const tableContainer = document.querySelector('.table-container');
+        if (tableContainer) {
+            tableContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
     }
 }
 
 function nextPage() {
-    const totalItems = conversationManager.getAll().length;
-    const maxPage = Math.ceil(totalItems / itemsPerPage);
+    const totalPages = Math.ceil(filteredConversations.length / itemsPerPage);
     
-    if (currentPage < maxPage) {
+    if (currentPage < totalPages) {
         currentPage++;
-        loadConversations();
+        renderConversationsWithPagination();
+        
+        // Scroll to top of table
+        const tableContainer = document.querySelector('.table-container');
+        if (tableContainer) {
+            tableContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
     }
 }
 
 function closeModal(modalId) {
-    document.getElementById(modalId).style.display = 'none';
+    const modal = document.getElementById(modalId);
+    if (modal) modal.style.display = 'none';
 }
 
-function logout() {
-    const authManager = new AuthManager();
-    authManager.logout();
-    window.location.href = '../index.html';
-}
+// Close dropdown when clicking outside
+document.addEventListener('click', function(event) {
+    const dropdown = document.querySelector('.user-info-dropdown');
+    const dropdownMenu = document.getElementById('userDropdownMenu');
+    
+    if (dropdown && !dropdown.contains(event.target)) {
+        dropdownMenu.classList.remove('show');
+        dropdown.classList.remove('active');
+    }
+});
+
+// Handle change password form submission
+document.addEventListener('DOMContentLoaded', function() {
+    const changePasswordForm = document.getElementById('changePasswordForm');
+    if (changePasswordForm) {
+        changePasswordForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            
+            if (newPassword.length < 8) {
+                showToast('Password must be at least 8 characters long', 'error');
+                return;
+            }
+            
+            if (newPassword !== confirmPassword) {
+                showToast('New passwords do not match', 'error');
+                return;
+            }
+            
+            if (currentPassword === newPassword) {
+                showToast('New password must be different from current password', 'error');
+                return;
+            }
+            
+            try {
+                // Get the auth token
+                const token = authManager.getToken();
+                if (!token) {
+                    showToast('Please login again', 'error');
+                    return;
+                }
+
+                const response = await fetch('/api/auth/change-password', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        currentPassword: currentPassword,
+                        newPassword: newPassword
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showToast('Password changed successfully!', 'success');
+                    closeChangePasswordModal();
+                } else {
+                    showToast(data.message || 'Failed to change password', 'error');
+                }
+            } catch (error) {
+                console.error('Error changing password:', error);
+                showToast('An error occurred while changing password', 'error');
+            }
+        });
+    }
+});
+
+window.addEventListener('click', function(event) {
+    const modal = document.getElementById('changePasswordModal');
+    if (event.target === modal) {
+        closeChangePasswordModal();
+    }
+});
+
+// Note: logout and showToast functions are defined in HEAD section
 
 // Load conversations when page loads (in addition to DOMContentLoaded)
-window.onload = loadConversations;
+window.onload = function() {
+    loadConversations();
+    loadAdminInfo(); // ✅ Also load admin info on window load
+};
 
 // Global functions
+window.loadConversations = loadConversations;
 window.showFilters = showFilters;
 window.applyFilters = applyFilters;
 window.clearFilters = clearFilters;
 window.viewConversation = viewConversation;
 window.escalateConversation = escalateConversation;
+window.resolveConversation = resolveConversation;
 window.deleteConversation = deleteConversation;
 window.exportConversations = exportConversations;
 window.previousPage = previousPage;
 window.nextPage = nextPage;
+window.goToPage = goToPage;
+window.addPageButton = addPageButton;
+window.performConversationSearch = performConversationSearch;
 window.closeModal = closeModal;
-window.logout = logout;
+window.loadAdminInfo = loadAdminInfo;
+// Note: logout, showToast, toggleUserDropdown, openChangePasswordModal, 
+// closeChangePasswordModal, and togglePasswordVisibility are defined in HEAD section
+
+// Mobile menu toggle
+function toggleMobileMenu() {
+    const sidebar = document.querySelector('.sidebar');
+    const overlay = document.querySelector('.sidebar-overlay');
+    
+    sidebar.classList.toggle('active');
+    
+    if (!overlay) {
+        const newOverlay = document.createElement('div');
+        newOverlay.className = 'sidebar-overlay';
+        newOverlay.onclick = toggleMobileMenu;
+        document.body.appendChild(newOverlay);
+        setTimeout(() => newOverlay.classList.add('active'), 10);
+    } else {
+        overlay.classList.toggle('active');
+        if (!overlay.classList.contains('active')) {
+            setTimeout(() => overlay.remove(), 300);
+        }
+    }
+}
+
+window.toggleMobileMenu = toggleMobileMenu;
     </script>
 
     <style>
+        /* Enhanced Search Styles */
+        .search-bar {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        
+        .search-bar i {
+            position: absolute;
+            left: 1rem;
+            color: #64748b;
+            z-index: 1;
+            pointer-events: none;
+        }
+        
+        .search-input {
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 0.75rem 1rem 0.75rem 2.5rem;
+            background: white;
+            font-size: 0.875rem;
+            min-width: 400px;
+            transition: all 0.3s ease;
+        }
+        
+        .search-input:focus {
+            outline: none;
+            min-width: 450px;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        .search-results-info {
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 0;
+            background: white;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            font-size: 0.875rem;
+            font-weight: 500;
+            z-index: 100;
+            animation: slideDown 0.2s ease;
+            white-space: nowrap;
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-5px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .results-count {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .results-count::before {
+            content: '\f002';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            opacity: 0.5;
+        }
+    
         .sidebar-user-profile {
             position: absolute;
             bottom: 1.5rem;
@@ -656,6 +1530,14 @@ window.logout = logout;
             display: flex;
             align-items: center;
             gap: 0.75rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 8px;
+            transition: background-color 0.2s;
+        }
+
+        .header .user-info:hover {
+            background-color: #f1f5f9;
         }
 
         .header .user-details {
@@ -674,6 +1556,254 @@ window.logout = logout;
             font-size: 0.75rem;
             color: #64748b;
             margin: 0;
+        }
+
+        .user-info-dropdown {
+            position: relative;
+        }
+
+        .dropdown-arrow {
+            font-size: 0.75rem;
+            color: #64748b;
+            transition: transform 0.3s;
+        }
+
+        .user-info-dropdown.active .dropdown-arrow {
+            transform: rotate(180deg);
+        }
+
+        .user-dropdown-menu {
+            position: absolute;
+            top: calc(100% + 0.5rem);
+            right: 0;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            min-width: 200px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+            z-index: 1000;
+            overflow: hidden;
+        }
+
+        .user-dropdown-menu.show {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .user-dropdown-menu .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            color: #1e293b;
+            text-decoration: none;
+            transition: background-color 0.2s;
+            font-size: 0.875rem;
+        }
+
+        .user-dropdown-menu .dropdown-item:hover {
+            background-color: #f1f5f9;
+        }
+
+        .user-dropdown-menu .dropdown-item i {
+            font-size: 0.875rem;
+            width: 16px;
+            text-align: center;
+            color: #64748b;
+        }
+
+        /* Change Password Modal Styles */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-container {
+            background: white;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .modal-header h3 i {
+            color: #3b82f6;
+        }
+
+        .close-modal-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: #64748b;
+            cursor: pointer;
+            padding: 0.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .close-modal-btn:hover {
+            background-color: #f1f5f9;
+            color: #1e293b;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #1e293b;
+            font-size: 0.875rem;
+        }
+
+        .password-input-group {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .password-input-group .form-control {
+            flex: 1;
+            padding-right: 3rem;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.625rem 0.875rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .toggle-password {
+            position: absolute;
+            right: 0.75rem;
+            background: none;
+            border: none;
+            color: #64748b;
+            cursor: pointer;
+            padding: 0.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.2s;
+        }
+
+        .toggle-password:hover {
+            color: #1e293b;
+        }
+
+        .form-text {
+            display: block;
+            margin-top: 0.375rem;
+            font-size: 0.75rem;
+            color: #64748b;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75rem;
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .btn {
+            padding: 0.625rem 1.25rem;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-secondary {
+            background-color: #f1f5f9;
+            color: #475569;
+        }
+
+        .btn-secondary:hover {
+            background-color: #e2e8f0;
+        }
+
+        .btn-primary {
+            background-color: #3b82f6;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #2563eb;
         }
 
         .header-actions {
@@ -928,14 +2058,499 @@ window.logout = logout;
             gap: 0.25rem;
         }
 
+        /* =============================================
+           ENHANCED TABLE VISUAL DESIGN
+           ============================================= */
+        
+        /* Table Enhancements */
+        .table-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+            overflow: visible;
+            margin-bottom: 2rem;
+            width: 100%;
+            display: block;
+        }
+        
+        .table {
+            width: 100%;
+            margin-bottom: 0;
+            border-collapse: collapse;
+            table-layout: auto;
+            display: table;
+        }
+        
+        .table thead {
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+            display: table-header-group;
+        }
+        
+        .table thead tr {
+            display: table-row;
+        }
+        
+        .table thead th {
+            color: rgb(184, 2, 2) !important;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+            padding: 1.25rem 1rem;
+            border: none;
+            vertical-align: middle;
+            display: table-cell;
+            text-align: left;
+        }
+        
+        .table tbody {
+            display: table-row-group;
+        }
+        
+        .table tbody tr {
+            border-bottom: 1px solid #f1f5f9;
+            transition: all 0.2s ease;
+            display: table-row;
+        }
+        
+        .table tbody tr:hover {
+            background-color: #f8fafc;
+            transform: translateX(4px);
+            box-shadow: -4px 0 0 #3b82f6;
+        }
+        
+        .table tbody tr:last-child {
+            border-bottom: none;
+        }
+        
+        .table tbody td {
+            padding: 1.25rem 1rem;
+            vertical-align: middle;
+            display: table-cell;
+        }
+        
+        /* Row Fade-in Animation */
+        .conversation-row {
+            opacity: 0;
+            animation: fadeInRow 0.4s ease forwards;
+        }
+        
+        @keyframes fadeInRow {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* User Info Cell */
+        .user-info-cell {
+            display: flex;
+            align-items: center;
+            gap: 0.875rem;
+        }
+        
+        .user-info-cell .user-avatar {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 1rem;
+            flex-shrink: 0;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Avatar Color Variations */
+        .user-avatar-blue {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+        }
+        
+        .user-avatar-green {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+        
+        .user-avatar-purple {
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+        }
+        
+        .user-avatar-orange {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+        }
+        
+        .user-avatar-pink {
+            background: linear-gradient(135deg, #ec4899, #db2777);
+        }
+        
+        .user-avatar-teal {
+            background: linear-gradient(135deg, #14b8a6, #0d9488);
+        }
+        
+        .user-avatar-indigo {
+            background: linear-gradient(135deg, #6366f1, #4f46e5);
+        }
+        
+        .user-info-cell .user-name {
+            font-size: 0.9375rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 0.125rem;
+        }
+        
+        .user-info-cell .user-email {
+            font-size: 0.8125rem;
+            color: #64748b;
+        }
+        
+        /* Message Cell Enhancements */
+        .message-cell {
+            max-width: 380px;
+        }
+        
+        .message-preview {
+            font-size: 0.875rem;
+            line-height: 1.6;
+            color: #334155;
+            margin-bottom: 0.375rem;
+        }
+        
+        .message-hint {
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+            font-size: 0.75rem;
+            color: #94a3b8;
+            margin-top: 0.25rem;
+        }
+        
+        .message-hint i {
+            font-size: 0.7rem;
+        }
+        
+        /* Sender Badge Enhanced */
+        .sender-badge {
+            padding: 0.5rem 0.875rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .sender-badge.sender-user {
+            background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+            color: #166534;
+            border: 2px solid #86efac;
+        }
+        
+        .sender-badge.sender-bot {
+            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+            color: #1e40af;
+            border: 2px solid #93c5fd;
+        }
+        
+        .sender-badge.sender-unknown {
+            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+            color: #4b5563;
+            border: 2px solid #d1d5db;
+        }
+        
+        /* Office Badge Enhanced */
+        .office-badge {
+            padding: 0.5rem 0.875rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .office-badge i {
+            font-size: 0.8rem;
+        }
+        
+        .office-badge.office-admission {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            color: #92400e;
+            border: 2px solid #fde047;
+        }
+        
+        .office-badge.office-registrar {
+            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+            color: #1e40af;
+            border: 2px solid #93c5fd;
+        }
+        
+        .office-badge.office-guidance {
+            background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%);
+            color: #9f1239;
+            border: 2px solid #f9a8d4;
+        }
+        
+        .office-badge.office-ict {
+            background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+            color: #3730a3;
+            border: 2px solid #a5b4fc;
+        }
+        
+        .office-badge.office-osa {
+            background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+            color: #166534;
+            border: 2px solid #86efac;
+        }
+        
+        .office-badge.office-general {
+            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+            color: #374151;
+            border: 2px solid #d1d5db;
+        }
+        
+        /* Date Info Enhanced */
+        .date-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.375rem;
+        }
+        
+        .date-main {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .date-main i {
+            color: #3b82f6;
+            font-size: 0.8rem;
+        }
+        
+        .time-sub {
+            font-size: 0.75rem;
+            color: #64748b;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .time-sub i {
+            color: #94a3b8;
+            font-size: 0.7rem;
+        }
+        
+        /* Action Buttons Redesigned */
+        .action-buttons {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: flex-start;
+        }
+        
+        .btn-action {
+            width: 36px;
+            height: 36px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            border: 2px solid;
+            background: white;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            font-size: 0.875rem;
+        }
+        
+        .btn-view {
+            border-color: #3b82f6;
+            color: #3b82f6;
+        }
+        
+        .btn-view:hover {
+            background: #3b82f6;
+            color: white;
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(59, 130, 246, 0.4);
+        }
+        
+        .btn-resolve {
+            border-color: #10b981;
+            color: #10b981;
+        }
+        
+        .btn-resolve:hover {
+            background: #10b981;
+            color: white;
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(16, 185, 129, 0.4);
+        }
+        
+        .btn-escalate {
+            border-color: #f59e0b;
+            color: #f59e0b;
+        }
+        
+        .btn-escalate:hover {
+            background: #f59e0b;
+            color: white;
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(245, 158, 11, 0.4);
+        }
+        
+        .btn-delete {
+            border-color: #ef4444;
+            color: #ef4444;
+        }
+        
+        .btn-delete:hover {
+            background: #ef4444;
+            color: white;
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(239, 68, 68, 0.4);
+        }
+        
+        /* Empty State Enhanced */
+        .empty-state-cell {
+            padding: 5rem 2rem !important;
+            text-align: center;
+            background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+        }
+        
+        .empty-state-content i {
+            font-size: 5rem;
+            color: #cbd5e1;
+            margin-bottom: 1.5rem;
+            display: block;
+            animation: floatIcon 3s ease-in-out infinite;
+        }
+        
+        @keyframes floatIcon {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+        
+        .empty-state-content h4 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #475569;
+            margin-bottom: 0.75rem;
+        }
+        
+        .empty-state-content p {
+            font-size: 1rem;
+            color: #94a3b8;
+            margin: 0;
+        }
+
+        /* Mobile Menu Toggle Button */
+        .mobile-menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: #1e293b;
+            cursor: pointer;
+            padding: 0.5rem;
+            margin-right: 1rem;
+            border-radius: 8px;
+            transition: background-color 0.2s;
+        }
+        
+        .mobile-menu-toggle:hover {
+            background-color: #f1f5f9;
+        }
+        
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .sidebar-overlay.active {
+            opacity: 1;
+        }
+        
+        /* Mobile Responsive Styles */
+        @media (max-width: 1024px) {
+            .mobile-menu-toggle {
+                display: block;
+            }
+            
+            .sidebar-overlay {
+                display: block;
+            }
+            
+            .sidebar {
+                transform: translateX(-100%);
+                position: fixed;
+                z-index: 1000;
+                transition: transform 0.3s ease;
+                height: 100vh;
+                overflow-y: auto;
+            }
+            
+            .sidebar.active {
+                transform: translateX(0);
+            }
+            
+            .main-content {
+                margin-left: 0;
+                width: 100%;
+            }
+            
+            .search-input {
+                min-width: 250px !important;
+            }
+            
+            .search-input:focus {
+                min-width: 280px !important;
+            }
+        }
+        
         @media (max-width: 768px) {
             .header-actions {
                 flex-direction: column;
+                width: 100%;
+            }
+            
+            .header-actions .btn {
+                width: 100%;
             }
 
             .pagination-container {
                 flex-direction: column;
                 gap: 1rem;
+            }
+            
+            .page-numbers {
+                justify-content: center;
             }
 
             .conversation-header {
@@ -950,10 +2565,99 @@ window.logout = logout;
 
             .table-container {
                 overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            
+            .table {
+                min-width: 800px;
             }
 
             .message-preview {
-                max-width: 200px;
+                max-width: 150px;
+            }
+            
+            .search-input {
+                min-width: 100% !important;
+                width: 100%;
+            }
+            
+            .search-input:focus {
+                min-width: 100% !important;
+            }
+            
+            .header .user-info .user-details {
+                display: none;
+            }
+            
+            .filters-section .row {
+                gap: 0.5rem;
+            }
+            
+            .filters-section .col-md-3 {
+                width: 100%;
+                margin-bottom: 0.5rem;
+            }
+            
+            .filter-actions {
+                flex-direction: column;
+            }
+            
+            .filter-actions .btn {
+                width: 100%;
+            }
+            
+            .page-header {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .page-content {
+                padding: 1rem;
+            }
+            
+            .page-title {
+                font-size: 1.5rem;
+            }
+            
+            .action-buttons {
+                flex-wrap: wrap;
+            }
+            
+            .btn-action {
+                width: 32px;
+                height: 32px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .page-numbers .btn {
+                min-width: 32px;
+                height: 32px;
+                padding: 0.25rem;
+                font-size: 0.75rem;
+            }
+            
+            .pagination-controls .btn {
+                padding: 0.5rem 0.75rem;
+                font-size: 0.75rem;
+            }
+            
+            .modal-container {
+                width: 95%;
+            }
+            
+            .user-info-cell {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .sender-badge, .office-badge {
+                font-size: 0.65rem;
+                padding: 0.25rem 0.5rem;
+            }
+            
+            .date-info {
+                font-size: 0.75rem;
             }
         }
     </style>

@@ -1,25 +1,66 @@
-from flask import Flask, render_template, request, jsonify, session
+#(app.py)
+from collections import UserDict
+from flask import Flask, render_template, request, jsonify, session, current_app, redirect, url_for
 from flask_cors import CORS
 from chat import (get_response, reset_user_context, clear_chat_history, 
                   get_active_announcements, add_announcement, get_announcement_by_id,
-                  vector_store)
+                  vector_store, get_chatbot_response, save_message,
+                  user_contexts, office_tags, detect_office_from_message as chat_detect_office)
+import requests
 from pymongo import MongoClient
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta, date
 from conversations import conversations_bp
 from dashboard import init_app
-from users import users_bp
+from users import users_bp, authenticate_user
+from roles import roles_bp
+from sub_conversations import sub_conversations_bp
+from sub_dashboard import sub_dashboard_bp
+from sub_usage import sub_usage_bp
+from sub_feedback import sub_feedback_bp
+from sub_faq import sub_faq_bp
+from sub_announcements import sub_announcements_bp
+from usage import usage_bp
+from feedback import save_feedback, get_feedback_stats, get_recent_feedback, get_feedback_analytics
+from vector_store import VectorStore
+from flask_moment import Moment
+from settings import (
+    get_settings as get_bot_settings,
+    update_settings as update_bot_settings,
+    reset_settings as reset_bot_settings,
+)
+from faq import add_faq, get_faqs, update_faq, delete_faq, search_faqs, get_faq_by_id, get_faq_versions, rollback_faq
 import jwt
 import os
 import time
 from functools import wraps
 from bson import ObjectId
 import re
+import traceback
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+# Google Translate API integration (using deep-translator for stability)
+from deep_translator import GoogleTranslator
+from deep_translator.exceptions import LanguageNotSupportedException
+from langdetect import detect, DetectorFactory
+# Ensure consistent language detection results
+DetectorFactory.seed = 0
 # In-memory cache for user conversations
 
 app = Flask(__name__)
+moment = Moment(app)
+vs = VectorStore()
 app.register_blueprint(conversations_bp)
 app.register_blueprint(users_bp)
+app.register_blueprint(roles_bp)
+app.register_blueprint(sub_conversations_bp)
+app.register_blueprint(sub_dashboard_bp)
+app.register_blueprint(sub_usage_bp)
+app.register_blueprint(sub_feedback_bp)
+app.register_blueprint(sub_faq_bp)
+app.register_blueprint(sub_announcements_bp)
+app.register_blueprint(usage_bp)
 CORS(app)
 app.config['SECRET_KEY'] = 'your-secret-key-change-this-in-production'  # Change this in production
 
@@ -30,10 +71,264 @@ db = client["chatbot_db"]
 conversations_collection = db["conversations"]  # Changed name here
 users_collection = db["users"]
 sessions_collection = db["sessions"]
+sub_users = db["sub_users"]
 init_app(app)
 
 # JWT token expiration time
 TOKEN_EXPIRATION_HOURS = 24
+
+# ===========================
+# EMAIL CONFIGURATION
+# ===========================
+# Use environment variables for production, fallback to config for development
+EMAIL_CONFIG = {
+    'SMTP_SERVER': os.getenv('SMTP_SERVER', 'smtp.gmail.com'),
+    'SMTP_PORT': int(os.getenv('SMTP_PORT', 587)),
+    'SENDER_EMAIL': os.getenv('SENDER_EMAIL', 'dxtrzpc26@gmail.com'),
+    'SENDER_PASSWORD': os.getenv('SENDER_PASSWORD', ''),  # Set via environment variable or below
+    'SENDER_NAME': os.getenv('SENDER_NAME', 'EduChat Admin System'),
+    'ENABLE_EMAIL': os.getenv('ENABLE_EMAIL', 'False').lower() == 'true'  # Toggle email on/off
+}
+
+# ===========================
+# 🔧 GMAIL APP PASSWORD SETUP INSTRUCTIONS
+# ===========================
+# STEP 1: Go to https://myaccount.google.com/security
+# STEP 2: Enable 2-Factor Authentication (2FA)
+# STEP 3: Go to https://myaccount.google.com/apppasswords
+# STEP 4: Select "Mail" and "Other (Custom name)"
+# STEP 5: Name it "EduChat Admin" and click Generate
+# STEP 6: Copy the 16-character password (e.g., "abcd efgh ijkl mnop")
+# STEP 7: Paste it in the line below (remove spaces: "abcdefghijklmnop")
+# ===========================
+
+# Set your Gmail App Password here
+if not EMAIL_CONFIG['SENDER_PASSWORD']:
+    # ⚠️ REPLACE THE PLACEHOLDER BELOW WITH YOUR ACTUAL GMAIL APP PASSWORD
+    EMAIL_CONFIG['SENDER_PASSWORD'] = 'nyvxkulmdzxhybhk'
+    
+    # Enable email notifications (set to True after adding your password above)
+    EMAIL_CONFIG['ENABLE_EMAIL'] = True  # Change to True after setting password above
+
+# Auto-enable if password is set and not placeholder
+if EMAIL_CONFIG['SENDER_PASSWORD'] and EMAIL_CONFIG['SENDER_PASSWORD'] not in ['', 'PASTE_YOUR_16_CHAR_APP_PASSWORD_HERE', 'your-app-password-here']:
+    EMAIL_CONFIG['ENABLE_EMAIL'] = True
+    print(f"✅ Email notifications ENABLED - Emails will be sent from {EMAIL_CONFIG['SENDER_EMAIL']}")
+else:
+    EMAIL_CONFIG['ENABLE_EMAIL'] = False
+    print(f"⚠️ Email notifications DISABLED - Set SENDER_PASSWORD in app.py to enable")
+
+def send_password_change_email(user_email, user_name):
+    """Send email notification when password is changed"""
+    # Check if email is enabled
+    if not EMAIL_CONFIG.get('ENABLE_EMAIL', False):
+        print("Email notifications are disabled. Set ENABLE_EMAIL=True to enable.")
+        return False
+    
+    # Validate email configuration
+    if not EMAIL_CONFIG.get('SENDER_PASSWORD') or EMAIL_CONFIG['SENDER_PASSWORD'] == 'your-app-password-here':
+        print("⚠️ WARNING: Email password not configured! Please set SENDER_PASSWORD in EMAIL_CONFIG.")
+        return False
+    
+    if not user_email or not validate_email(user_email):
+        print(f"Invalid recipient email: {user_email}")
+        return False
+    
+    try:
+        print(f"📧 Attempting to send password change notification to {user_email}...")
+        
+        # Create message
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = 'Password Changed Successfully - EduChat Admin'
+        msg['From'] = f"{EMAIL_CONFIG['SENDER_NAME']} <{EMAIL_CONFIG['SENDER_EMAIL']}>"
+        msg['To'] = user_email
+
+        # Create HTML email content
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                body {{
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                    line-height: 1.6;
+                    color: #333;
+                    max-width: 600px;
+                    margin: 0 auto;
+                    padding: 20px;
+                }}
+                .email-container {{
+                    background-color: #f8f9fa;
+                    border-radius: 10px;
+                    padding: 30px;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                }}
+                .header {{
+                    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+                    color: white;
+                    padding: 20px;
+                    border-radius: 8px;
+                    text-align: center;
+                    margin-bottom: 30px;
+                }}
+                .header h1 {{
+                    margin: 0;
+                    font-size: 24px;
+                }}
+                .content {{
+                    background: white;
+                    padding: 25px;
+                    border-radius: 8px;
+                    margin-bottom: 20px;
+                }}
+                .icon {{
+                    font-size: 48px;
+                    text-align: center;
+                    margin-bottom: 20px;
+                }}
+                .alert-box {{
+                    background-color: #fff3cd;
+                    border-left: 4px solid #ffc107;
+                    padding: 15px;
+                    margin: 20px 0;
+                    border-radius: 4px;
+                }}
+                .info-box {{
+                    background-color: #d1ecf1;
+                    border-left: 4px solid #0dcaf0;
+                    padding: 15px;
+                    margin: 20px 0;
+                    border-radius: 4px;
+                }}
+                .footer {{
+                    text-align: center;
+                    color: #6c757d;
+                    font-size: 12px;
+                    margin-top: 30px;
+                    padding-top: 20px;
+                    border-top: 1px solid #dee2e6;
+                }}
+                .button {{
+                    display: inline-block;
+                    padding: 12px 30px;
+                    background-color: #3b82f6;
+                    color: white;
+                    text-decoration: none;
+                    border-radius: 6px;
+                    margin: 20px 0;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="email-container">
+                <div class="header">
+                    <h1>🔐 Password Changed Successfully</h1>
+                </div>
+                
+                <div class="content">
+                    <div class="icon">✅</div>
+                    
+                    <p>Hello <strong>{user_name}</strong>,</p>
+                    
+                    <p>This is to confirm that your password for your EduChat Admin account has been successfully changed.</p>
+                    
+                    <div class="info-box">
+                        <strong>Account Details:</strong><br>
+                        Email: {user_email}<br>
+                        Date: {datetime.utcnow().strftime('%B %d, %Y at %I:%M %p UTC')}
+                    </div>
+                    
+                    <div class="alert-box">
+                        <strong>⚠️ Security Notice:</strong><br>
+                        If you did not make this change, please contact your system administrator immediately and secure your account.
+                    </div>
+                    
+                    <p>For security reasons, we recommend:</p>
+                    <ul>
+                        <li>Using a strong, unique password</li>
+                        <li>Not sharing your password with anyone</li>
+                        <li>Changing your password regularly</li>
+                        <li>Logging out from shared devices</li>
+                    </ul>
+                    
+                    <p>If you have any questions or concerns, please don't hesitate to contact the system administrator.</p>
+                    
+                    <p>Best regards,<br>
+                    <strong>EduChat Admin Team</strong></p>
+                </div>
+                
+                <div class="footer">
+                    <p>This is an automated message. Please do not reply to this email.</p>
+                    <p>© 2024 EduChat Admin System. All rights reserved.</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+
+        # Create plain text version as fallback
+        text_content = f"""
+        Password Changed Successfully
+        
+        Hello {user_name},
+        
+        This is to confirm that your password for your EduChat Admin account has been successfully changed.
+        
+        Account Details:
+        Email: {user_email}
+        Date: {datetime.utcnow().strftime('%B %d, %Y at %I:%M %p UTC')}
+        
+        SECURITY NOTICE:
+        If you did not make this change, please contact your system administrator immediately.
+        
+        Best regards,
+        EduChat Admin Team
+        """
+
+        # Attach both versions
+        part1 = MIMEText(text_content, 'plain')
+        part2 = MIMEText(html_content, 'html')
+        msg.attach(part1)
+        msg.attach(part2)
+
+        # Send email with detailed error handling
+        try:
+            print(f"Connecting to {EMAIL_CONFIG['SMTP_SERVER']}:{EMAIL_CONFIG['SMTP_PORT']}...")
+            server = smtplib.SMTP(EMAIL_CONFIG['SMTP_SERVER'], EMAIL_CONFIG['SMTP_PORT'], timeout=10)
+            print("✓ Connected to SMTP server")
+            
+            server.starttls()
+            print("✓ TLS enabled")
+            
+            server.login(EMAIL_CONFIG['SENDER_EMAIL'], EMAIL_CONFIG['SENDER_PASSWORD'])
+            print("✓ Authenticated with email server")
+            
+            server.send_message(msg)
+            print(f"✓ Email sent successfully to {user_email}")
+            
+            server.quit()
+            return True
+            
+        except smtplib.SMTPAuthenticationError as e:
+            print(f"❌ SMTP Authentication Error: {e}")
+            print("⚠️ Check your email and App Password in EMAIL_CONFIG")
+            print("⚠️ Make sure 2FA is enabled and you're using an App Password, not your regular Gmail password")
+            return False
+        except smtplib.SMTPException as e:
+            print(f"❌ SMTP Error: {e}")
+            return False
+        except Exception as e:
+            print(f"❌ Unexpected error sending email: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+    
+    except Exception as e:
+        print(f"❌ Error preparing email notification: {e}")
+        import traceback
+        traceback.print_exc()
+        # Don't fail the password change if email fails
+        return False
 
 # ===========================
 # AUTHENTICATION FUNCTIONS
@@ -55,6 +350,68 @@ def create_default_admin():
         }
         users_collection.insert_one(admin_data)
         print("Default admin user created")
+
+def create_default_sub_admins():
+    """Create default sub-admin users for each office"""
+    sub_admin_users = [
+        {
+            "email": "admissions@tcc.edu",
+            "password": generate_password_hash("admissions123"),
+            "name": "Admissions Office Admin",
+            "role": "sub-admin",
+            "office": "Admission Office",
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow(),
+            "is_active": True
+        },
+        {
+            "email": "registrar@tcc.edu",
+            "password": generate_password_hash("registrar123"),
+            "name": "Registrar Office Admin",
+            "role": "sub-admin",
+            "office": "Registrar's Office",
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow(),
+            "is_active": True
+        },
+        {
+            "email": "ict@tcc.edu",
+            "password": generate_password_hash("ict123"),
+            "name": "ICT Office Admin",
+            "role": "sub-admin",
+            "office": "ICT Office",
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow(),
+            "is_active": True
+        },
+        {
+            "email": "guidance@tcc.edu",
+            "password": generate_password_hash("guidance123"),
+            "name": "Guidance Office Admin",
+            "role": "sub-admin",
+            "office": "Guidance Office",
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow(),
+            "is_active": True
+        },
+        {
+            "email": "osa@tcc.edu",
+            "password": generate_password_hash("osa123"),
+            "name": "OSA Office Admin",
+            "role": "sub-admin",
+            "office": "Office of Student Affairs",
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow(),
+            "is_active": True
+        }
+    ]
+    
+    for user_data in sub_admin_users:
+        existing_user = users_collection.find_one({"email": user_data["email"]})
+        if not existing_user:
+            users_collection.insert_one(user_data)
+            print(f"Default sub-admin user created: {user_data['name']}")
+
 
 def token_required(f):
     """Decorator to require valid JWT token"""
@@ -105,8 +462,8 @@ def validate_email(email):
 
 def validate_password(password):
     """Validate password strength"""
-    if len(password) < 6:
-        return False, "Password must be at least 6 characters long"
+    if len(password) < 8:
+        return False, "Password must be at least 8 characters long"
     return True, "Password is valid"
 
 def serialize_user(user):
@@ -116,6 +473,54 @@ def serialize_user(user):
         user.pop('password', None)  # Remove password from response
         return user
     return None
+
+# ===========================
+# BOT SETTINGS API ROUTES
+# ===========================
+
+@app.route("/api/bot/settings", methods=["GET"])
+def api_get_bot_settings():
+    return get_bot_settings()
+
+
+@app.route("/api/bot/settings/update", methods=["POST"])
+def api_update_bot_settings():
+    return update_bot_settings()
+
+
+@app.route("/api/bot/settings/reset", methods=["POST"])
+def api_reset_bot_settings():
+    return reset_bot_settings()
+
+
+@app.route('/api/bot/settings/upload_avatar', methods=['POST'])
+def api_upload_bot_avatar():
+    try:
+        if 'avatar' not in request.files:
+            return jsonify({"success": False, "message": "No file uploaded (avatar)."}), 400
+
+        file = request.files['avatar']
+        if file.filename == '':
+            return jsonify({"success": False, "message": "Empty filename."}), 400
+
+        # Create upload directory under static if not exists
+        upload_dir = os.path.join(current_app.root_path, 'static', 'images', 'avatars')
+        os.makedirs(upload_dir, exist_ok=True)
+
+        # Sanitize filename
+        safe_name = re.sub(r'[^a-zA-Z0-9_.-]', '_', file.filename)
+        # Ensure uniqueness
+        timestamp = int(time.time())
+        filename = f"{timestamp}_{safe_name}"
+        save_path = os.path.join(upload_dir, filename)
+        file.save(save_path)
+
+        # Public URL
+        public_url = f"/static/images/avatars/{filename}"
+        return jsonify({"success": True, "url": public_url, "message": "Avatar uploaded successfully."})
+    except Exception as e:
+        print('Avatar upload error:', e)
+        return jsonify({"success": False, "message": "Upload failed."}), 500
 
 # ===========================
 # AUTHENTICATION API ROUTES
@@ -377,9 +782,40 @@ def change_password(current_user):
             }}
         )
 
+        # Send email notification
+        user_email = current_user.get('email', '')
+        user_name = current_user.get('name', 'User')
+        email_sent = False
+        
+        print(f"🔐 Password changed successfully for user: {user_email}")
+        
+        if user_email:
+            # Send email notification
+            try:
+                email_sent = send_password_change_email(user_email, user_name)
+                if email_sent:
+                    print(f"✅ Email notification sent to {user_email}")
+                else:
+                    print(f"⚠️ Email notification failed for {user_email}")
+            except Exception as email_error:
+                # Log error but don't fail the password change
+                print(f"❌ Exception sending email notification: {email_error}")
+                import traceback
+                traceback.print_exc()
+        else:
+            print("⚠️ No email address found for user, skipping email notification")
+
+        # Return success with email status
+        response_message = 'Password changed successfully'
+        if email_sent:
+            response_message += '. A confirmation email has been sent.'
+        elif EMAIL_CONFIG.get('ENABLE_EMAIL', False):
+            response_message += '. (Email notification could not be sent)'
+        
         return jsonify({
             'success': True,
-            'message': 'Password changed successfully'
+            'message': response_message,
+            'email_sent': email_sent
         })
 
     except Exception as e:
@@ -387,6 +823,55 @@ def change_password(current_user):
         return jsonify({
             'success': False,
             'message': 'Internal server error'
+        }), 500
+
+@app.route('/api/auth/test-email', methods=['POST'])
+@token_required
+def test_email_notification(current_user):
+    """Test endpoint to verify email configuration"""
+    try:
+        user_email = current_user.get('email', '')
+        user_name = current_user.get('name', 'Test User')
+        
+        if not user_email:
+            return jsonify({
+                'success': False,
+                'message': 'No email address found for current user'
+            }), 400
+        
+        print(f"\n{'='*60}")
+        print(f"TESTING EMAIL CONFIGURATION")
+        print(f"{'='*60}")
+        print(f"SMTP Server: {EMAIL_CONFIG['SMTP_SERVER']}")
+        print(f"SMTP Port: {EMAIL_CONFIG['SMTP_PORT']}")
+        print(f"Sender Email: {EMAIL_CONFIG['SENDER_EMAIL']}")
+        print(f"Email Enabled: {EMAIL_CONFIG.get('ENABLE_EMAIL', False)}")
+        print(f"Recipient: {user_email}")
+        print(f"{'='*60}\n")
+        
+        # Send test email
+        result = send_password_change_email(user_email, user_name)
+        
+        if result:
+            return jsonify({
+                'success': True,
+                'message': f'Test email sent successfully to {user_email}',
+                'email_sent': True
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': 'Failed to send test email. Check server logs for details.',
+                'email_sent': False
+            }), 500
+    
+    except Exception as e:
+        print(f"Test email error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'message': f'Error testing email: {str(e)}'
         }), 500
 
 @app.route('/api/auth/profile', methods=['PUT'])
@@ -577,7 +1062,311 @@ def cleanup_expired_sessions():
             'success': False,
             'message': 'Internal server error'
         }), 500
+def get_sub_admin_permissions(user_id):
+    """Get permissions for a sub-admin user"""
+    try:
+        print(f"DEBUG: Getting permissions for user_id: {user_id}")
+        
+        # Get permissions from the sub_admin_permissions collection
+        permissions_collection = db["sub_admin_permissions"]
+        permissions_doc = permissions_collection.find_one({"sub_admin_id": str(user_id)})
+        
+        if permissions_doc:
+            permissions = permissions_doc.get("permissions", {})
+            print(f"DEBUG: Found permissions in DB: {permissions}")
+            return permissions
+        
+        # If no permissions found, get default permissions based on office
+        user = users_collection.find_one({"_id": ObjectId(user_id)})
+        if user:
+            office = user.get("office", "")
+            print(f"DEBUG: User office: {office}")
+            
+            # Return default permissions based on office
+            default_permissions = {
+                'Admission Office': {
+                    'dashboard': True,
+                    'conversations': True,
+                    'faq': True,
+                    'announcements': False,
+                    'usage': True,
+                    'feedback': True
+                },
+                "Registrar's Office": {
+                    'dashboard': True,
+                    'conversations': True,
+                    'faq': True,
+                    'announcements': False,
+                    'usage': True,
+                    'feedback': True
+                },
+                'ICT Office': {
+                    'dashboard': True,
+                    'conversations': True,
+                    'faq': True,
+                    'announcements': True,
+                    'usage': True,
+                    'feedback': True
+                },
+                'Guidance Office': {
+                    'dashboard': True,
+                    'conversations': True,
+                    'faq': True,
+                    'announcements': True,
+                    'usage': True,
+                    'feedback': True
+                },
+                'Office of the Student Affairs (OSA)': {
+                    'dashboard': True,
+                    'conversations': True,
+                    'faq': True,
+                    'announcements': True,
+                    'usage': True,
+                    'feedback': True
+                }
+            }
+            default_perms = default_permissions.get(office, {
+                'dashboard': True,
+                'conversations': False,
+                'faq': False,
+                'announcements': False,
+                'usage': False,
+                'feedback': False
+            })
+            print(f"DEBUG: Using default permissions: {default_perms}")
+            return default_perms
+        
+        print("DEBUG: No user found, returning empty permissions")
+        return {}
+    except Exception as e:
+        print(f"Error getting sub-admin permissions: {e}")
+        import traceback
+        traceback.print_exc()
+        return {}
 
+def require_sub_admin_permission(permission_name):
+    """Decorator to require sub-admin authentication and specific permission"""
+    def decorator(f):
+        @wraps(f)
+        def decorated(*args, **kwargs):
+            try:
+                print(f"DEBUG: Checking permission '{permission_name}' for route {request.endpoint}")
+                print(f"DEBUG: Session data: role={session.get('role')}, user_id={session.get('user_id')}")
+                
+                # Check if user is authenticated as sub-admin
+                if not (session.get("role") == "sub-admin" and session.get("user_id")):
+                    print("DEBUG: User not authenticated as sub-admin")
+                    return redirect("/sub-index?expired=true")
+                
+                # ✅ Check for 24-hour session expiration
+                login_time_str = session.get("login_time")
+                if login_time_str:
+                    login_time = datetime.fromisoformat(login_time_str)
+                    time_elapsed = datetime.utcnow() - login_time
+                    
+                    # If more than 24 hours have passed, expire the session
+                    if time_elapsed > timedelta(hours=24):
+                        print("DEBUG: Session expired after 24 hours")
+                        session.clear()
+                        return redirect("/sub-index?expired=true")
+                
+                # Get user permissions
+                user_id = session.get("user_id")
+                permissions = get_sub_admin_permissions(user_id)
+                
+                print(f"DEBUG: User permissions: {permissions}")
+                print(f"DEBUG: Required permission '{permission_name}': {permissions.get(permission_name, False)}")
+                
+                # Check if user has the required permission
+                if not permissions.get(permission_name, False):
+                    print(f"DEBUG: User {user_id} does not have permission for {permission_name}")
+                    return render_template("access_denied.html", 
+                                         permission=permission_name,
+                                         user_permissions=permissions)
+                
+                print(f"DEBUG: Permission '{permission_name}' granted for user {user_id}")
+                
+                # Add permissions to session for template access
+                session['user_permissions'] = permissions
+                
+                return f(*args, **kwargs)
+                
+            except Exception as e:
+                print(f"ERROR in require_sub_admin_permission decorator: {e}")
+                print(traceback.format_exc())
+                return redirect("/sub-index")
+        
+        return decorated
+    return decorator
+
+def require_sub_admin_office(f):
+    """Decorator to require sub-admin authentication and validate office access"""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        try:
+            # Check if user is authenticated as sub-admin
+            if not (session.get("role") == "sub-admin" and session.get("office")):
+                print("DEBUG: User not authenticated as sub-admin")
+                return redirect("/sub-index?expired=true")
+            
+            # ✅ Check for 24-hour session expiration
+            login_time_str = session.get("login_time")
+            if login_time_str:
+                login_time = datetime.fromisoformat(login_time_str)
+                time_elapsed = datetime.utcnow() - login_time
+                
+                # If more than 24 hours have passed, expire the session
+                if time_elapsed > timedelta(hours=24):
+                    print("DEBUG: Session expired after 24 hours")
+                    session.clear()
+                    return redirect("/sub-index?expired=true")
+            
+            # Get office from URL parameters
+            requested_office = request.args.get("office")
+            session_office = session.get("office")
+            
+            print(f"DEBUG: Requested office: {requested_office}")
+            print(f"DEBUG: Session office: {session_office}")
+            
+            # If office in URL doesn't match session office, redirect to correct office
+            if requested_office and requested_office != session_office:
+                print(f"DEBUG: Office mismatch, redirecting to {session_office}")
+                # Get the current endpoint name
+                current_endpoint = request.endpoint
+                if current_endpoint:
+                    # Convert endpoint back to URL path
+                    page_path = current_endpoint.replace('_', '-')
+                    redirect_url = f"/{page_path}?office={session_office}"
+                else:
+                    redirect_url = f"/Sub-dashboard?office={session_office}"
+                
+                print(f"DEBUG: Redirecting to: {redirect_url}")
+                return redirect(redirect_url)
+            
+            return f(*args, **kwargs)
+            
+        except Exception as e:
+            print(f"ERROR in require_sub_admin_office decorator: {e}")
+            print(traceback.format_exc())
+            return redirect("/sub-index")
+    
+    return decorated
+def verify_password(stored_password, input_password):
+    """Verify password against stored hash or plain text"""
+    try:
+        stored_str = str(stored_password)
+        
+        # If it looks like any kind of hash, try check_password_hash
+        if '$' in stored_str or ':' in stored_str:
+            return check_password_hash(stored_str, input_password)
+        else:
+            # Plain text fallback
+            return stored_str == input_password
+    except:
+        return False
+
+@app.route('/subadmin/login', methods=['POST'])
+def subadmin_login():
+    try:
+        data = request.get_json(force=True, silent=True)
+        if not data:
+            return jsonify({"success": False, "message": "No JSON payload received"}), 400
+
+        office = (data.get("office") or "").strip()
+        email = (data.get("email") or "").strip().lower()
+        password = data.get("password") or ""
+
+        if not email or not password or not office:
+            return jsonify({"success": False, "message": "Missing office, email, or password"}), 400
+
+        # 🔹 Find sub-admin
+        user = sub_users.find_one({"email": email})
+        if not user:
+            return jsonify({"success": False, "message": "Email not found"}), 401
+
+        stored_password = user.get("password", "")
+        
+        # 🔹 Use the verify_password function
+        password_ok = verify_password(stored_password, password)
+
+        if not password_ok:
+            return jsonify({"success": False, "message": "Invalid password"}), 401
+        
+        # 🔹 Update last_login timestamp in database (after password verification)
+        sub_users.update_one(
+            {"_id": user["_id"]},
+            {"$set": {"last_login": datetime.now()}}
+        )
+
+        # 🔹 Role check
+        role_val = str(user.get("role", "")).strip().lower()
+        if not ("sub" in role_val and "admin" in role_val):
+            return jsonify({"success": False, "message": "Not a Sub-Admin account"}), 401
+
+        # 🔹 Office check
+        saved_office = str(user.get("office", "")).strip()
+        if saved_office.lower() != office.lower():
+            return jsonify({"success": False, "message": "Invalid office"}), 401
+
+        # 🔹 Extract name from MongoDB document
+        user_name = str(user.get("name", "")).strip()
+        if not user_name:
+            # Fallback to email prefix if name is not available
+            user_name = email.split("@")[0].title()
+
+        # 🔹 Create session with both office and name
+        session["user_id"] = str(user["_id"])
+        session["email"] = user["email"]
+        session["role"] = "sub-admin"
+        session["office"] = saved_office
+        session["name"] = user_name  # ✅ Add name to session
+        session["login_time"] = datetime.utcnow().isoformat()  # ✅ Add login timestamp for 24hr expiration
+
+        return jsonify({
+            "success": True, 
+            "office": saved_office, 
+            "name": user_name,  # ✅ Return name in response
+            "message": "Login successful"
+        })
+
+    except Exception as e:
+        current_app.logger.error("ERROR in /subadmin/login: %s", e)
+        current_app.logger.error(traceback.format_exc())
+        return jsonify({"success": False, "message": "Server error during login"}), 500
+
+
+@app.route('/subadmin/session', methods=['GET'])
+def subadmin_session():
+    if "user_id" in session and session.get("role") == "sub-admin":
+        # ✅ Check for 24-hour session expiration
+        login_time_str = session.get("login_time")
+        if login_time_str:
+            login_time = datetime.fromisoformat(login_time_str)
+            time_elapsed = datetime.utcnow() - login_time
+            
+            # If more than 24 hours have passed, expire the session
+            if time_elapsed > timedelta(hours=24):
+                session.clear()
+                return jsonify({
+                    "authenticated": False,
+                    "expired": True,
+                    "message": "Session expired after 24 hours. Please login again."
+                })
+        
+        return jsonify({
+            "authenticated": True,
+            "email": session.get("email"),
+            "role": session.get("role"),
+            "office": session.get("office"),
+            "name": session.get("name")  # ✅ Include name in session response
+        })
+    return jsonify({"authenticated": False})
+
+
+@app.route('/subadmin/logout', methods=['POST'])
+def subadmin_logout():
+    session.clear()
+    return jsonify({"success": True, "message": "Logged out"})
 # ===========================
 # EXISTING ROUTES (Updated with auth where needed)
 # ===========================
@@ -591,31 +1380,95 @@ def index_page():
     """Render the main index page"""
     return render_template("index.html")
 
-user_contexts = {}  # Stores user_id → last detected office
-office_tags = {     # Example mapping of office tags
-   'admission_office': 'Admission Office',
-    'registrar_office': "Registrar's Office",
-    'ict_office': 'ICT Office',
-    'guidance_office': 'Guidance Office',
-    'osa_office': 'Office of Student Affairs',
-    "general": "General"
-}
+@app.get("/sub-index")
+def sub_index():
+    """Render the Sub Admin login page"""
+    return render_template("sub-index.html")
+
+
+# ✅ IMPORTANT: user_contexts and office_tags are now imported from chat.py (single source of truth)
+# This ensures reset_context works properly and context is shared across modules
 
 def detect_office_from_message(msg):
-    """Detect which office the user is asking about"""
+    """
+    Detect which office the user is asking about based on comprehensive keyword matching
+    Returns office tag (e.g., 'admission_office') or None
+    """
     msg_lower = msg.lower()
     
-    # Direct office mentions
-    if 'admission' in msg_lower or 'apply' in msg_lower or 'enroll' in msg_lower:
-        return 'admission_office'
-    elif 'registrar' in msg_lower or 'transcript' in msg_lower or 'grades' in msg_lower or 'academic records' in msg_lower:
-        return 'registrar_office'
-    elif 'ict' in msg_lower or 'password' in msg_lower or 'wifi' in msg_lower or 'internet' in msg_lower or 'student portal' in msg_lower:
-        return 'ict_office'
-    elif 'guidance' in msg_lower or 'counseling' in msg_lower or 'scholarship' in msg_lower or 'career advice' in msg_lower:
-        return 'guidance_office'
-    elif 'osa' in msg_lower or 'student affairs' in msg_lower or 'clubs' in msg_lower or 'activities' in msg_lower or 'events' in msg_lower:
-        return 'osa_office'
+    # ✅ ADMISSION OFFICE - Enhanced patterns
+    admission_keywords = [
+        'admission', 'apply', 'applying', 'enroll', 'enrollment', 'application',
+        'transferee', 'transferees', 'requirements', 'requirement', 'psa',
+        "voter's certificate", 'form 137', 'form 138', 'deadline', 'period',
+        'graduate programs', 'masteral', 'programs offered', 'courses available',
+        'offered courses', 'available programs', 'how to apply', 'how to enroll',
+        'incoming first-year', 'first year', 'freshmen'
+    ]
+    admission_score = sum(1 for keyword in admission_keywords if keyword in msg_lower)
+    
+    # ✅ REGISTRAR'S OFFICE - Enhanced patterns  
+    registrar_keywords = [
+        'registrar', 'transcript', 'tor', 'transcript of records', 'grades', 
+        'academic records', 'documents', 'document', 'claiming', 'claim',
+        'certificate', 'certification', 'certified copy', 'tuition fee',
+        'tuition', 'free tuition', 'slots', 'available slots', 'entrance exam',
+        'psychological test', 'student portal', 'form 137', 'good moral',
+        'valid id', 'authorization letter', 'drop', 'graduation'
+    ]
+    registrar_score = sum(1 for keyword in registrar_keywords if keyword in msg_lower)
+    
+    # ✅ ICT OFFICE - Enhanced patterns
+    ict_keywords = [
+        'ict', 'e-hub', 'ehub', 'tcc ehub', 'tcc e-hub', 'password', 'username',
+        'student id', 'login', 'login attempts', 'failed login', 'account locked',
+        'deactivated account', 'recovery email', 'forgot password', 'password reset',
+        'reset password', 'student portal', 'access', 'locked out', 'misu',
+        'qr code', 'web browser', 'update button', 'my account'
+    ]
+    ict_score = sum(1 for keyword in ict_keywords if keyword in msg_lower)
+    
+    # ✅ GUIDANCE OFFICE - Enhanced patterns
+    guidance_keywords = [
+        'guidance', 'counseling', 'counselor', 'scholarship', 'career advice',
+        'career guidance', 'personal counseling', 'academic counseling',
+        'financial aid', 'mental health', 'psychological', 'stress',
+        'study habits', 'time management', 'goal setting', 'resume',
+        'interview preparation', 'job placement', 'internship', 'career assessment',
+        'academic planning', 'course selection', 'career opportunities',
+        'job search', 'graduate school preparation', 'personal problems',
+        'peer counseling', 'academic difficulties'
+    ]
+    guidance_score = sum(1 for keyword in guidance_keywords if keyword in msg_lower)
+    
+    # ✅ OSA OFFICE - Enhanced patterns
+    osa_keywords = [
+        'osa', 'student affairs', 'office of student affairs', 'clubs', 
+        'organizations', 'student activities', 'activities', 'discipline',
+        'student government', 'extracurricular', 'sports', 'cultural events',
+        'leadership programs', 'student council', 'campus events',
+        'social activities', 'volunteer', 'community service', 'student handbook',
+        'code of conduct', 'disciplinary', 'student rights', 'campus policies',
+        'event planning', 'organization registration', 'club membership'
+    ]
+    osa_score = sum(1 for keyword in osa_keywords if keyword in msg_lower)
+    
+    # Find office with highest score (must have at least 1 match)
+    scores = {
+        'admission_office': admission_score,
+        'registrar_office': registrar_score,
+        'ict_office': ict_score,
+        'guidance_office': guidance_score,
+        'osa_office': osa_score
+    }
+    
+    max_score = max(scores.values())
+    if max_score > 0:
+        # Return the office with highest score
+        detected_office = max(scores, key=scores.get)
+        print(f"🎯 Office detected: {detected_office} (score: {max_score})")
+        return detected_office
+    
     return None
 
 def save_message(user, sender, message, detected_office=None, status=None):
@@ -632,14 +1485,32 @@ def save_message(user, sender, message, detected_office=None, status=None):
     if detected_office:
         office = office_tags.get(detected_office, detected_office)
     elif user in user_contexts:
-        office = office_tags.get(user_contexts[user], user_contexts[user])
+        # ✅ Handle both dict and string formats for backward compatibility
+        if isinstance(user_contexts[user], dict):
+            # New format: dict with 'current_office' and 'pending_switch'
+            current_office = user_contexts[user].get('current_office')
+            if current_office:
+                office = office_tags.get(current_office, current_office)
+        else:
+            # Old format: just a string with office tag
+            office = office_tags.get(user_contexts[user], user_contexts[user])
     elif sender == "user":
         detected_tag = detect_office_from_message(message)
         if detected_tag:
             office = office_tags.get(detected_tag, detected_tag)
-            user_contexts[user] = detected_tag
+            # ✅ Store as dict to support pending_switch
+            if user not in user_contexts:
+                user_contexts[user] = {}
+            if isinstance(user_contexts[user], dict):
+                user_contexts[user]['current_office'] = detected_tag
+            else:
+                # Convert old string format to new dict format
+                user_contexts[user] = {'current_office': detected_tag}
     if not office:
         office = "General"
+
+        # Use proper datetime object for timestamp
+    timestamp = datetime.today()
     
     document = {
         "user": user,
@@ -647,7 +1518,8 @@ def save_message(user, sender, message, detected_office=None, status=None):
         "message": message,
         "office": office,
         "status": status,  # ✅ new field
-        "date": datetime.now().isoformat()
+        "timestamp": timestamp,  # UPDATED: Use datetime object instead of string
+        "date": timestamp.isoformat()  # Keep ISO string for backward compatibility
     }
     
     try:
@@ -659,20 +1531,262 @@ def save_message(user, sender, message, detected_office=None, status=None):
     return office
   # ✅ Return for reuse in predict()
 
+
+def get_suggested_messages_from_settings():
+    """
+    Get suggested messages from bot settings in the database
+    """
+    try:
+        # Get settings from MongoDB
+        settings_doc = db["bot_settings"].find_one({}, {"_id": 0})
+        
+        if settings_doc and "suggested_messages" in settings_doc:
+            suggested_messages = settings_doc["suggested_messages"]
+            
+            # Handle different formats of suggested_messages
+            if isinstance(suggested_messages, list):
+                # If it's a simple list of strings
+                if suggested_messages and isinstance(suggested_messages[0], str):
+                    return suggested_messages[:4]  # Limit to 4 suggestions
+                # If it's a list of objects with categories
+                elif suggested_messages and isinstance(suggested_messages[0], dict):
+                    # Flatten all messages from all categories
+                    all_messages = []
+                    for category in suggested_messages:
+                        if "messages" in category and isinstance(category["messages"], list):
+                            all_messages.extend(category["messages"])
+                    return all_messages[:4]  # Limit to 4 suggestions
+        
+        # Fallback to default suggestions if none configured
+        return [
+            "How can I help you?",
+            "What services are available?",
+            "Office contact information",
+            "Office hours and location"
+        ]
+        
+    except Exception as e:
+        print(f"Error getting suggested messages from settings: {e}")
+        # Return default suggestions on error
+        return [
+            "How can I help you?",
+            "What services are available?",
+            "Office contact information", 
+            "Office hours and location"
+        ]
+
 @app.post("/predict")
 def predict():
     data = request.get_json()
     text = data.get("message")
     user = data.get("user", "guest")
+    user_language = data.get("language", "en")  # Get user's language preference
 
     if not text or not text.strip():
         return jsonify({"answer": "Please type something."})
 
     try:
+        original_message = text
+        detected_language = "en"
+        
+        # ✅ Google Translate Integration - Detect and translate user message (English and Filipino only)
+        try:
+            # ✅ Check for Filipino keywords first (more reliable than auto-detect)
+            filipino_keywords = [
+                'ako', 'ikaw', 'siya', 'kami', 'tayo', 'kayo', 'sila',
+                'ang', 'ng', 'mga', 'sa', 'na', 'ay', 'po', 'opo',
+                'magandang', 'salamat', 'paano', 'ano', 'saan', 'kailan',
+                'kumusta', 'mabuti', 'hindi', 'oo', 'wala', 'mayroon',
+                'naman', 'lang', 'din', 'rin', 'ba', 'kasi', 'pero',
+                'gusto', 'kailangan', 'pwede', 'paki'
+            ]
+            
+            text_lower = text.lower()
+            has_filipino = any(word in text_lower.split() for word in filipino_keywords)
+            
+            if has_filipino:
+                # Message contains Filipino keywords
+                detected_language = 'tl'
+                print(f"🌐 Detected Filipino keywords in message")
+            else:
+                # Try automatic language detection
+                detected_language = detect(text)
+                print(f"🌐 Auto-detected language: {detected_language}")
+                
+                # ✅ Restrict to English and Filipino only
+                ALLOWED_LANGUAGES = ['en', 'tl', 'fil']  # English, Tagalog, Filipino
+                
+                if detected_language not in ALLOWED_LANGUAGES:
+                    print(f"⚠️ Language '{detected_language}' not in supported list. Treating as English.")
+                    # Default to English if unsupported language detected
+                    detected_language = 'en'
+                elif detected_language == 'fil':
+                    # 'fil' is another code for Filipino, normalize to 'tl'
+                    detected_language = 'tl'
+            
+            # Translate Filipino to English if needed
+            if detected_language == 'tl':
+                translated = GoogleTranslator(source='tl', target='en').translate(text)
+                print(f"📝 Translated Filipino to English: '{original_message}' → '{translated}'")
+                text = translated
+            else:
+                print(f"✅ Message in English: {text}")
+                
+        except LanguageNotSupportedException as lang_error:
+            print(f"⚠️ Language not supported: {lang_error}, defaulting to English")
+            detected_language = "en"
+        except Exception as translate_error:
+            print(f"⚠️ Translation detection error: {translate_error}")
+            # Continue with original text if translation fails
+            detected_language = "en"
+        
         print(f"User {user} asked: {text}")
 
-        # Get chatbot response
-        response = get_response(text)
+        # ✅ CHECK FOR PENDING OFFICE SWITCH CONFIRMATION
+        pending_switch_office = None
+        if user in user_contexts:
+            # ✅ Handle both dict and string formats
+            if isinstance(user_contexts[user], dict):
+                pending_switch_office = user_contexts[user].get('pending_switch')
+            else:
+                # Old format (string) doesn't have pending_switch
+                pending_switch_office = None
+        
+        if pending_switch_office:
+            print(f"🔍 Found pending office switch for user '{user}': {pending_switch_office}")
+        
+        # Check if user is confirming the office switch
+        confirmation_keywords = ['yes', 'yeah', 'sure', 'okay', 'ok', 'yep', 'yup', 'please', 'switch', 'connect', 'go ahead', 'proceed']
+        confirmation_keywords_filipino = ['oo', 'sige', 'okay', 'opo', 'ge']
+        all_confirmation_keywords = confirmation_keywords + confirmation_keywords_filipino
+        
+        text_lower = text.lower().strip()
+        is_confirming = any(keyword == text_lower or text_lower.startswith(keyword + ' ') for keyword in all_confirmation_keywords)
+        
+        if is_confirming:
+            print(f"✅ User confirmation detected: '{text_lower}'")
+        
+        if pending_switch_office and is_confirming:
+            # ✅ AUTO-SWITCH: User confirmed the office switch
+            from chat import set_user_current_office
+            set_user_current_office(user, pending_switch_office)
+            
+            # Clear pending switch and update current office
+            if isinstance(user_contexts[user], dict):
+                user_contexts[user].pop('pending_switch', None)
+                user_contexts[user]['current_office'] = pending_switch_office
+            
+            office_name = office_tags.get(pending_switch_office, pending_switch_office)
+            switch_confirmation = f"Great! I've switched to help you with {office_name} information. How can I assist you?"
+            
+            # Translate confirmation if needed
+            if detected_language == 'tl':
+                try:
+                    switch_confirmation = GoogleTranslator(source='en', target='tl').translate(switch_confirmation)
+                except:
+                    pass  # Keep English if translation fails
+            
+            print(f"✅ Office switch confirmed: {office_name} for user '{user}'")
+            
+            # Save the confirmation exchange
+            save_message(user=user, sender="user", message=original_message, detected_office=pending_switch_office)
+            save_message(user=user, sender="bot", message=switch_confirmation, detected_office=pending_switch_office, status="resolved")
+            
+            return jsonify({
+                "answer": switch_confirmation,
+                "office": office_name,
+                "status": "resolved",
+                "detected_language": detected_language,
+                "office_switched": True,
+                "new_office": office_name,
+                "new_office_tag": pending_switch_office
+            })
+
+        # ✅ Detect office from the message FIRST (using improved detection)
+        detected_office_tag = detect_office_from_message(text)
+        detected_office = office_tags.get(detected_office_tag, "General") if detected_office_tag else "General"
+        print(f"🎯 Detected office: {detected_office}")
+
+        # ✅ OFFICE CONTEXT SWITCHING PROTECTION
+        # Check if user is trying to switch to a different office without resetting
+        current_office_tag = None
+        if user in user_contexts:
+            if isinstance(user_contexts[user], dict):
+                current_office_tag = user_contexts[user].get('current_office')
+            else:
+                # Old format: string is the office tag
+                current_office_tag = user_contexts[user] if isinstance(user_contexts[user], str) else None
+        
+        # Debug logging
+        print(f"🔍 Context Switch Check:")
+        print(f"   User: {user}")
+        print(f"   Current office in context: {current_office_tag}")
+        print(f"   Detected office from message: {detected_office_tag}")
+        print(f"   User contexts: {user_contexts.get(user, 'Not set')}")
+        
+        # If user has an active office context and is trying to switch to a different office
+        if current_office_tag and detected_office_tag and current_office_tag != detected_office_tag:
+            current_office_name = office_tags.get(current_office_tag, current_office_tag)
+            new_office_name = office_tags.get(detected_office_tag, detected_office_tag)
+            
+            print(f"⚠️ Office context switch detected: {current_office_name} → {new_office_name}")
+            
+            # Create warning message
+            warning_message = (
+                f"⚠️ **Context Switch Detected**\n\n"
+                f"You're currently in the **{current_office_name}** context. "
+                f"I noticed you're now asking about the **{new_office_name}**.\n\n"
+                f"To ensure clear and accurate responses, please **reset the {current_office_name} context** first before switching to the {new_office_name}.\n\n"
+                f"💡 **How to reset:**\n"
+                f"• Click the **'Reset Context'** button at the top of the chat\n"
+                f"• Or type **'reset context'** to clear the current office context\n\n"
+                f"This helps me provide you with the most relevant information for each office! 😊"
+            )
+            
+            # Translate warning if user's language is Filipino
+            if detected_language == 'tl':
+                try:
+                    warning_message = GoogleTranslator(source='en', target='tl').translate(warning_message)
+                except Exception as e:
+                    print(f"⚠️ Warning translation failed: {e}")
+                    # Keep English if translation fails
+            
+            # Save the exchange
+            save_message(user=user, sender="user", message=original_message, detected_office=current_office_tag)
+            save_message(user=user, sender="bot", message=warning_message, detected_office=current_office_tag, status="unresolved")
+            
+            return jsonify({
+                "answer": warning_message,
+                "office": current_office_name,
+                "status": "context_switch_warning",
+                "detected_language": detected_language,
+                "current_office": current_office_name,
+                "current_office_tag": current_office_tag,
+                "attempted_office": new_office_name,
+                "attempted_office_tag": detected_office_tag,
+                "requires_reset": True
+            })
+
+        # Search FAQs first for relevant answers
+        faq_response = None
+        try:
+            faq_search_result = search_faqs(text, top_k=3)
+            if faq_search_result['success'] and faq_search_result['results']:
+                # Check if any FAQ has high similarity score (above 0.8)
+                best_match = faq_search_result['results'][0]
+                if best_match['score'] > 0.8:
+                    faq_response = best_match['answer']
+                    print(f"FAQ match found with score: {best_match['score']}")
+        except Exception as e:
+            print(f"Error searching FAQs: {e}")
+
+        # Get chatbot response (in English)
+        if faq_response:
+            response = faq_response
+            print("Using FAQ response")
+        else:
+            response = get_response(text, user_id=user)
+            print("Using neural network response")
 
         # ✅ Common unresolved/fallback patterns
         unresolved_patterns = [
@@ -699,10 +1813,12 @@ def predict():
             "please reach out to guidance",
             "i'm forwarding this to ict",
             "i think you might be asking about",   # NEW
-            "would you like me to connect you"     # NEW
+            "would you like me to connect you",     # NEW
+            "Context Switch Detected",
+            "Click the **'Reset Context'** button at the top of the chat"
         ]
 
-        # Detect resolved/unresolved
+        # Detect resolved/unresolved/escalated status
         if response and any(p in response.lower() for p in escalation_patterns):
             status = "escalated"
         elif response and not any(p in response.lower() for p in unresolved_patterns):
@@ -710,49 +1826,234 @@ def predict():
         else:
             status = "unresolved"
 
-        # Save user query
-        office = save_message(
+        # ✅ AUTO-SWITCH: Detect office switch suggestions and extract suggested office
+        suggested_office = None
+        suggested_office_tag = None
+        if "i think you might be asking about" in response.lower() or "would you like me to connect you" in response.lower():
+            # Extract office name from response
+            for office_tag, office_name in office_tags.items():
+                if office_name.lower() in response.lower():
+                    suggested_office = office_name
+                    suggested_office_tag = office_tag
+                    print(f"🔄 Office switch suggested: {office_name} (tag: {office_tag})")
+                    break
+
+        # ✅ Translate response back to user's language (English or Filipino only)
+        translated_response = response
+        try:
+            if detected_language == 'tl':
+                # Only translate back to Filipino if user's language was Filipino
+                translated_response = GoogleTranslator(source='en', target='tl').translate(response)
+                print(f"🌐 Translated response back to Filipino: '{response}' → '{translated_response}'")
+            else:
+                print(f"✅ Response kept in English")
+        except LanguageNotSupportedException as lang_error:
+            print(f"⚠️ Language not supported for response: {lang_error}")
+            translated_response = response
+        except Exception as translate_error:
+            print(f"⚠️ Translation error for response: {translate_error}")
+            # Use English response if translation fails
+            translated_response = response
+
+        # ✅ Save user query (original message in user's language) with detected office
+        save_message(
             user=user,
             sender="user",
-            message=text
+            message=original_message,
+            detected_office=detected_office_tag  # Use the tag, not the display name
         )
 
-        # Save bot response with resolution status
+        # ✅ Save bot response (translated response in user's language) with resolution status and office
         save_message(
             user=user,
             sender="bot",
-            message=response,
-            detected_office=office,
+            message=translated_response,
+            detected_office=detected_office_tag,  # Use the tag, not the display name
             status=status
         )
 
+        # ✅ STORE OFFICE CONTEXT: Update user_contexts with the detected office
+        if detected_office_tag:
+            if user not in user_contexts:
+                user_contexts[user] = {}
+            elif not isinstance(user_contexts[user], dict):
+                # Convert old string format to new dict format
+                old_office = user_contexts[user]
+                user_contexts[user] = {'current_office': old_office}
+            
+            # Store the current office context
+            user_contexts[user]['current_office'] = detected_office_tag
+            print(f"✅ Stored office context for user '{user}': {detected_office} (tag: {detected_office_tag})")
+
+        # Get suggested messages from bot settings
+        suggested_messages = get_suggested_messages_from_settings()
+        
+        # ✅ Store suggested office in session for next message
+        if suggested_office_tag:
+            # Store pending office switch in user_contexts
+            if user not in user_contexts:
+                user_contexts[user] = {}
+            elif not isinstance(user_contexts[user], dict):
+                # Convert old string format to dict
+                old_office = user_contexts[user]
+                user_contexts[user] = {'current_office': old_office}
+            
+            user_contexts[user]['pending_switch'] = suggested_office_tag
+            print(f"📌 Stored pending office switch for user '{user}': {suggested_office} (tag: {suggested_office_tag})")
+        
         return jsonify({
-            "answer": response,
-            "office": office,
-            "status": status,  # ✅ shows on frontend/dashboard
+            "answer": translated_response,
+            "original_answer": response,  # English version for debugging
+            "office": detected_office,  # Return the display name for frontend
+            "status": status,
+            "detected_language": detected_language,
+            "original_message": original_message,
+            "translated_message": text if detected_language != 'en' else None,
             "context_in_memory": user_contexts.get(user),
             "vector_enabled": vector_store.index is not None,
-            "vector_stats": vector_store.get_stats()
+            "vector_stats": vector_store.get_stats(),
+            "suggested_messages": suggested_messages,
+            "suggested_office": suggested_office,  # ✅ Office name for display
+            "suggested_office_tag": suggested_office_tag  # ✅ Office tag for switching
         })
 
     except Exception as e:
         print(f"Error in predict: {e}")
+        traceback.print_exc()
         return jsonify({
             "answer": "Sorry, I encountered an error processing your request. Please try again.",
             "error": str(e)
         }), 500
 
 
+# ===========================
+# TRANSLATION CHATBOT ROUTES
+# ===========================
+
+@app.route("/chat", methods=["POST"])
+def chat():
+    """
+    Simple rules-based chatbot endpoint for translation system.
+    Receives message in English (already translated by frontend) and returns response.
+    Now saves conversations to MongoDB with status tracking.
+    """
+    try:
+        data = request.get_json()
+        user_message = data.get("message", "")
+        original_message = data.get("original_message", user_message)  # Original user message (before translation)
+        user = data.get("user", "guest") # Support both user_id and user
+        
+        if not user_message or not user_message.strip():
+            return jsonify({"response": "Please type something."})
+        
+        # Get response from rules-based chatbot (in English)
+        # Returns dict with response, status, and office
+        chatbot_result = get_chatbot_response(user_message)
+        
+        # Extract response details
+        response_text = chatbot_result.get('response', '')
+        status = chatbot_result.get('status', 'resolved')
+        office = chatbot_result.get('office', 'General')
+        
+        # Save original user message to MongoDB (in user's language) with status
+        save_message(
+            user=user,
+            sender="user",
+            message=original_message,
+            detected_office=office,
+            status=status
+        )
+        
+        # Note: Frontend will translate the response back to user's language
+        # The translated version will be saved by frontend via /save_bot_message
+        
+        return jsonify({
+            "response": response_text,
+            "user": user,
+            "status": status,
+            "office": office
+        })
+    
+    except Exception as e:
+        print(f"Error in chat endpoint: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            "response": "Sorry, I encountered an error. Please try again.",
+            "status": "unresolved"
+        }), 500
+
+
+@app.route("/translate", methods=["POST"])
+def translate():
+    """
+    Optional backend translation endpoint using Google Translate API.
+    Note: The frontend handles translation directly, but this can be used as backup.
+    """
+    try:
+        data = request.get_json()
+        text = data.get("text", "")
+        target_lang = data.get("target", "en")
+        
+        if not text:
+            return jsonify({"translated": ""})
+        
+        # Use Google Translate API (free, no key needed)
+        url = f"https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl={target_lang}&dt=t&q={text}"
+        result = requests.get(url).json()
+        translated = result[0][0][0]
+        
+        return jsonify({"translated": translated})
+    
+    except Exception as e:
+        print(f"Error in translate endpoint: {e}")
+        return jsonify({
+            "translated": text,  # Return original text on error
+            "error": str(e)
+        }), 500
+
+
+@app.route("/save_bot_message", methods=["POST"])
+def save_bot_message():
+    """
+    Save bot response message to MongoDB with status tracking.
+    Called by frontend after translation is complete.
+    """
+    try:
+        data = request.get_json()
+        user = data.get("user", "guest")  # Support both user_id and user
+        message = data.get("message", "")
+        status = data.get("status", "resolved")
+        office = data.get("office", "General")
+        
+        if message:
+            # Save bot message to MongoDB with status
+            save_message(
+                user=user,
+                sender="bot",
+                message=message,
+                detected_office=office,
+                status=status
+            )
+            return jsonify({"success": True})
+        else:
+            return jsonify({"success": False, "error": "No message provided"}), 400
+    
+    except Exception as e:
+        print(f"Error saving bot message: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 cleared_users = set()
 
 @app.post("/clear_history")
 def clear_history():
-    """Clear user's chat history from both in-memory and MongoDB with detailed feedback"""
+    """Clear user's chat history from frontend display only (keeps MongoDB data for records)"""
     data = request.get_json()
     user = data.get("user") or "guest"
-    clear_mongodb = data.get("clear_mongodb", True)  # Optional parameter
+    clear_mongodb = data.get("clear_mongodb", False)  # ✅ Changed to False - keep MongoDB data by default
 
     try:
         global conversations
@@ -796,13 +2097,19 @@ def clear_history():
         # Simulate brief processing time for better UX
         time.sleep(0.2)
 
+        # ✅ Updated message to reflect MongoDB data is preserved
+        if clear_mongodb:
+            message = f"Chat history cleared from display and database"
+        else:
+            message = f"Chat history cleared from display (database records preserved)"
+
         return jsonify({
             "status": "success",
-            "message": f"History cleared successfully",
+            "message": message,
             "details": {
-                "memory_cleared": memory_count,
+                "display_cleared": memory_count,
                 "mongodb_cleared": mongo_deleted,
-                "total_cleared": memory_count + mongo_deleted,
+                "mongodb_preserved": not clear_mongodb,
                 "user": user,
                 "timestamp": time.time()
             }
@@ -930,35 +2237,46 @@ def cleanup_cleared_users():
 
 # Global dictionary to store user contexts
 # --- Context store ---
-user_contexts = {}
-
-def reset_user_context(user):
-    """
-    Clear stored office/context for a specific user
-    without touching MongoDB history.
-    """
-    if user in user_contexts:
-        last_office = user_contexts[user]
-        del user_contexts[user]
-        print(f"Context reset for user: {user} (last office was {last_office})")
-    else:
-        print(f"No context found for user: {user}")
+# Note: user_contexts is managed by chat.py module
 
 @app.post("/reset_context")
 def reset_context():
-    """Reset user's conversation context"""
+    """
+    Reset user's conversation context (optionally per office)
+    Clears the shared user_contexts dictionary from chat.py
+    """
     data = request.get_json()
     user = data.get("user", "guest")
+    office = data.get("office", None)  # Optional office parameter (office tag like 'admission_office')
     
     try:
-        reset_user_context(user)
+        print(f"🔄 Reset request - User: {user}, Office: {office}")
+        print(f"🔍 Context before reset: {user_contexts.get(user, 'Not set')}")
+        
+        # ✅ Reset using the chat.py function (which modifies the shared user_contexts)
+        reset_user_context(user, office)
+        
+        print(f"🔍 Context after reset: {user_contexts.get(user, 'Not set')}")
+        
+        if office:
+            office_name = office_tags.get(office, office)
+            status_msg = f"Context reset successfully for {office_name}"
+            print(f"✅ Context reset for user '{user}' - Office: {office_name}")
+        else:
+            status_msg = "All contexts reset successfully"
+            print(f"✅ All contexts reset for user '{user}'")
+            
         return jsonify({
-            "status": "Context reset successfully",
+            "status": "success",
+            "message": status_msg,
             "user": user,
+            "office": office,
             "context_cleared": True  # ✅ frontend can use this flag
         })
     except Exception as e:
-        print(f"Error resetting context: {e}")
+        print(f"❌ Error resetting context: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
 
@@ -970,13 +2288,42 @@ def reset_context():
 
 @app.get("/announcements")
 def get_announcements():
-    """Get all active announcements"""
+    """Get all active announcements from MongoDB only (Pinecone for search)"""
     try:
+        # Get announcements from MongoDB only
         announcements = get_active_announcements()
-        return jsonify({"announcements": announcements})
+        
+        # Format announcements for frontend display
+        formatted_announcements = []
+        for ann in announcements:
+            formatted_announcements.append({
+                "id": ann.get("id", ""),
+                "title": ann.get("title", ""),
+                "message": ann.get("message", ""),
+                "date": ann.get("date", ""),
+                "priority": ann.get("priority", "medium"),
+                "category": ann.get("category", "general"),
+                "office": ann.get("office", ann.get("category", "General")),
+                "source": ann.get("source", "mongodb"),
+                "active": ann.get("active", True),
+                "created_by": ann.get("created_by", "")
+            })
+        
+        print(f"API: Returning {len(formatted_announcements)} announcements from MongoDB")
+        return jsonify({
+            "announcements": formatted_announcements, 
+            "count": len(formatted_announcements),
+            "source": "mongodb_only"
+        })
     except Exception as e:
         print(f"Error getting announcements: {e}")
-        return jsonify({"announcements": []}), 500
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            "announcements": [], 
+            "count": 0,
+            "error": str(e)
+        }), 500
 
 @app.get("/announcements/<int:announcement_id>")
 def get_announcement(announcement_id):
@@ -1138,7 +2485,47 @@ def health_check():
             "status": "unhealthy",
             "error": str(e)
         }), 500
+@app.route('/api/auth/check', methods=['GET'])
+def check_auth_status():
+    """Check if user is authenticated (for frontend use)"""
+    try:
+        auth_header = request.headers.get('Authorization')
+        if not auth_header:
+            return jsonify({'authenticated': False, 'message': 'No token provided'}), 401
+        
+        try:
+            token = auth_header.split(" ")[1]  # Bearer <token>
+        except IndexError:
+            return jsonify({'authenticated': False, 'message': 'Invalid token format'}), 401
 
+        try:
+            # Decode and verify token
+            data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
+            user_id = data['user_id']
+            
+            # Get user from database
+            user = users_collection.find_one({"_id": ObjectId(user_id), "is_active": True})
+            
+            if not user:
+                return jsonify({'authenticated': False, 'message': 'User not found'}), 401
+            
+            if user.get('role') != 'admin':
+                return jsonify({'authenticated': False, 'message': 'Admin access required'}), 403
+                
+            return jsonify({
+                'authenticated': True,
+                'user': serialize_user(user),
+                'message': 'Authentication valid'
+            })
+            
+        except jwt.ExpiredSignatureError:
+            return jsonify({'authenticated': False, 'message': 'Token has expired'}), 401
+        except jwt.InvalidTokenError:
+            return jsonify({'authenticated': False, 'message': 'Invalid token'}), 401
+            
+    except Exception as e:
+        print(f"Auth check error: {e}")
+        return jsonify({'authenticated': False, 'message': 'Authentication error'}), 500
 @app.get("/admin")
 def admin_panel():
     """Admin panel for managing announcements and vector database"""
@@ -1149,14 +2536,24 @@ def admin_index():
     """Alternative admin index route"""
     return render_template("index.html")
 
+@app.get("/dashboard")
+def dashboard():
+    """Dashboard route with authentication check"""
+    # Check if there's a valid admin session
+    # This is a simple check - for production you might want more robust session management
+    
+    # For now, we'll let the frontend handle authentication checks via JavaScript
+    # The frontend will redirect to login if no valid token is found
+    return render_template("dashboard.html", active_page="dashboard")
+
 @app.get("/admin/dashboard")
 def admin_dashboard():
     """Admin dashboard for EduChat system analytics and management"""
-    return render_template("dashboard.html")
+    return render_template("dashboard.html", active_page="dashboard")
 
-@app.get("/dashboard")
-def dashboard():
-    """Direct dashboard route"""
+@app.get("/Super-dashboard")
+def super_dashboard():
+    """Super Admin dashboard route"""
     return render_template("dashboard.html", active_page="dashboard")
 
 @app.get("/admin/users")
@@ -1231,69 +2628,161 @@ def roles():
     return render_template("roles.html", active_page="roles")
 
 @app.get("/Sub-admin/Sub-dashboard")
+@require_sub_admin_permission("dashboard")
 def sub_admin_dashboard():
     """Sub-Admin dashboard for EduChat system analytics and management"""
     return render_template("Sub-dashboard.html")
 
-@app.get("/Sub-dashboard")
+@app.route("/Sub-dashboard")
+@require_sub_admin_permission("dashboard")
 def sub_dashboard():
-    office = request.args.get("office", "Sub Admin")  # default fallback
-    return render_template(
-        "Sub-dashboard.html",
-        active_page="sub_dashboard",
-        office=office
-    )
+    try:
+        office = session.get("office", "Sub Admin")
+        name = session.get("name", "Sub Admin")
+        
+        print(f"DEBUG: Rendering Sub-dashboard for {name} from {office}")
+        
+        return render_template(
+            "Sub-dashboard.html",
+            active_page="sub_dashboard",
+            office=office,
+            name=name
+        )
+    except Exception as e:
+        print(f"ERROR in sub_dashboard: {e}")
+        print(traceback.format_exc())
+        return f"Error loading dashboard: {str(e)}", 500
 
 @app.get("/Sub-admin/Sub-conversations")
+@require_sub_admin_permission("conversations")
 def sub_admin_conversations():
     """Sub-Admin conversations page"""
     return render_template("Sub-conversations.html")
 
-@app.get("/Sub-conversations")
+@app.route("/Sub-conversations")
+@require_sub_admin_permission("conversations")
 def sub_conversations():
-    """Direct sub-conversations route"""
-    return render_template("Sub-conversations.html", active_page="sub_conversations")
+    try:
+        office = session.get("office", "Sub Admin")
+        name = session.get("name", "Sub Admin")
+        
+        print(f"DEBUG: Rendering Sub-conversations for {name} from {office}")
+        
+        return render_template(
+            "Sub-conversations.html", 
+            active_page="sub_conversations",
+            office=office,
+            name=name
+        )
+    except Exception as e:
+        print(f"ERROR in sub_conversations: {e}")
+        print(traceback.format_exc())
+        return f"Error loading conversations: {str(e)}", 500
 
 @app.get("/Sub-admin/Sub-faq")
+@require_sub_admin_permission("faq")
 def sub_admin_faq():
     """Sub-Admin faq page"""
     return render_template("Sub-faq.html")
 
-@app.get("/Sub-faq")
+@app.route("/Sub-faq")
+@require_sub_admin_permission("faq")
 def sub_faq():
-    """Direct sub-faq route"""
-    return render_template("Sub-faq.html", active_page="sub_faq")
+    try:
+        office = session.get("office", "Sub Admin")
+        name = session.get("name", "Sub Admin")
+        
+        print(f"DEBUG: Rendering Sub-faq for {name} from {office}")
+        
+        return render_template(
+            "Sub-faq.html", 
+            active_page="sub_faq",
+            office=office,
+            name=name
+        )
+    except Exception as e:
+        print(f"ERROR in sub_faq: {e}")
+        print(traceback.format_exc())
+        return f"Error loading FAQ: {str(e)}", 500
 
 @app.get("/Sub-admin/Sub-announcements")
+@require_sub_admin_permission("announcements")
 def sub_admin_announcements():
     """Sub-Admin announcements page"""
     return render_template("Sub-announcements.html")
 
-@app.get("/Sub-announcements")
+@app.route("/Sub-announcements")
+@require_sub_admin_permission("announcements")
 def sub_announcements():
-    """Direct sub-announcements route"""
-    return render_template("Sub-announcements.html", active_page="sub_announcements")
+    try:
+        office = session.get("office", "Sub Admin")
+        name = session.get("name", "Sub Admin")
+        
+        print(f"DEBUG: Rendering Sub-announcements for {name} from {office}")
+        
+        return render_template(
+            "Sub-announcements.html", 
+            active_page="sub_announcements",
+            office=office,
+            name=name
+        )
+    except Exception as e:
+        print(f"ERROR in sub_announcements: {e}")
+        print(traceback.format_exc())
+        return f"Error loading announcements: {str(e)}", 500
 
 @app.get("/Sub-admin/Sub-usage_stats")
+@require_sub_admin_permission("usage")
 def sub_admin_usage_stats():
     """Sub-Admin usage_stats page"""
     return render_template("Sub-usage.html")
 
-@app.get("/Sub-usage_stats")
+@app.route("/Sub-usage_stats")
+@require_sub_admin_permission("usage")
 def sub_usage_stats():
-    """Direct sub-usage_stats route"""
-    return render_template("Sub-usage.html", active_page="sub_usage_stats")
+    try:
+        office = session.get("office", "Sub Admin")
+        name = session.get("name", "Sub Admin")
+        
+        print(f"DEBUG: Rendering Sub-usage_stats for {name} from {office}")
+        
+        return render_template(
+            "Sub-usage.html", 
+            active_page="sub_usage_stats",
+            office=office,
+            name=name
+        )
+    except Exception as e:
+        print(f"ERROR in sub_usage_stats: {e}")
+        print(traceback.format_exc())
+        return f"Error loading usage stats: {str(e)}", 500
+
 
 @app.get("/Sub-admin/Sub-feedback")
+@require_sub_admin_permission("feedback")
 def sub_admin_feedback():
     """Sub-Admin feedback page"""
     return render_template("Sub-feedback.html")
 
-@app.get("/Sub-feedback")
+@app.route("/Sub-feedback")
+@require_sub_admin_permission("feedback")
 def sub_feedback():
-    """Direct sub-feedback route"""
-    return render_template("Sub-feedback.html", active_page="sub_feedback")
-
+    try:
+        office = session.get("office", "Sub Admin")
+        name = session.get("name", "Sub Admin")
+        
+        print(f"DEBUG: Rendering Sub-feedback for {name} from {office}")
+        
+        return render_template(
+            "Sub-feedback.html", 
+            active_page="sub_feedback",
+            office=office,
+            name=name
+        )
+    except Exception as e:
+        print(f"ERROR in sub_feedback: {e}")
+        print(traceback.format_exc())
+        return f"Error loading feedback: {str(e)}", 500
 # API endpoints for dashboard data
 @app.get("/api/dashboard/stats")
 @token_required
@@ -1546,47 +3035,892 @@ def get_usage(period):
 # Get Department Distribution
 @app.route("/api/dashboard/departments")
 def get_departments():
+    # Define specific offices to display
+    specific_offices = [
+        "Admission Office",
+        "Registrar's Office",
+        "ICT Office",
+        "Guidance Office",
+        "Office of the Student Affairs (OSA)",
+        "General"
+    ]
+    
+    # Get all conversations grouped by office
     pipeline = [
-        {"$group": {"_id": "$detected_office", "count": {"$sum": 1}}},
-        {"$sort": {"count": -1}}
+        {"$group": {"_id": "$office", "count": {"$sum": 1}}}
     ]
     results = list(conversations.aggregate(pipeline))
-
-    labels = [r["_id"] if r["_id"] else "Unknown" for r in results]
-    data = [r["count"] for r in results]
+    
+    # Create a dictionary for easy lookup with all database values
+    office_counts = {}
+    for r in results:
+        if r["_id"]:
+            office_counts[r["_id"]] = r["count"]
+    
+    print(f"DEBUG: Raw office counts from database: {office_counts}")
+    
+    # Build the response with only specific offices
+    labels = []
+    data = []
+    
+    for office in specific_offices:
+        labels.append(office)
+        # Get count for this office, checking both exact match and variants
+        count = office_counts.get(office, 0)
+        
+        # Handle OSA office name variants
+        if office == "Office of the Student Affairs (OSA)" and count == 0:
+            # Check for alternate naming
+            count = office_counts.get("Office of Student Affairs", 0)
+        
+        data.append(count)
+    
+    print(f"Department Distribution - Labels: {labels}, Data: {data}")
 
     return jsonify({"labels": labels, "data": data})
 
 # Sub-admin specific API endpoints
-@app.get("/api/sub-admin/stats")
-@token_required
-def get_sub_admin_stats(current_user):
-    """Get statistics for sub-admin dashboard"""
+@app.route("/api/sub-admin/stats")
+def get_sub_admin_stats_session():
+    """Get statistics for sub-admin dashboard using Flask session"""
     try:
-        if current_user.get('role') != 'sub-admin':
-            return jsonify({'message': 'Sub-admin access required'}), 403
+        # Check if user is authenticated as sub-admin
+        if not (session.get("role") == "sub-admin" and session.get("office")):
+            print("DEBUG: Stats API - Sub-admin authentication required")
+            return jsonify({'success': False, 'message': 'Sub-admin authentication required'}), 401
         
-        office = current_user.get('office')
+        office = session.get("office")
+        name = session.get("name", "Sub Admin")
         
-        # Get office-specific statistics
-        # This is a placeholder - you might want to implement office-specific filtering
-        # Fix: Use the correct collection name
-        office_conversations = conversations_collection.count_documents({})
-        office_users = len(conversations_collection.distinct("user_id"))
+        print(f"DEBUG: Stats API - Loading stats for {office}")
+        
+        # Get office-specific statistics from conversations collection
+        # Filter by office field in conversation documents
+        office_conversations = conversations_collection.count_documents({"office": office})
+        office_users_list = conversations_collection.distinct("user", {"office": office})
+        office_users = len(office_users_list)
+        
+        # Calculate resolution metrics
+        resolved_queries = conversations_collection.count_documents({
+            "office": office, 
+            "status": "resolved"
+        })
+        escalated_issues = conversations_collection.count_documents({
+            "office": office, 
+            "status": "escalated"
+        })
+        
+        # Get last login from sub_users collection
+        last_login = None
+        try:
+            sub_user = sub_users.find_one({"name": name, "office": office})
+            if sub_user and 'last_login' in sub_user:
+                last_login = sub_user['last_login']
+                print(f"DEBUG: Found last_login for {name}: {last_login}")
+            else:
+                print(f"DEBUG: No last_login found for {name} in {office}")
+        except Exception as e:
+            print(f"ERROR fetching last_login: {e}")
         
         stats = {
             "office": office,
+            "name": name,
             "office_conversations": office_conversations,
             "office_users": office_users,
-            "office_resolved_queries": int(office_conversations * 0.86),
-            "office_escalated_issues": int(office_conversations * 0.14)
+            "office_resolved_queries": resolved_queries,
+            "office_escalated_issues": escalated_issues,
+            "last_login": last_login.isoformat() if last_login else None
         }
         
-        return jsonify({"stats": stats})
+        print(f"DEBUG: Stats API - Returning stats: {stats}")
+        return jsonify({"success": True, "stats": stats})
     
     except Exception as e:
-        print(f"Error getting sub-admin stats: {e}")
-        return jsonify({"error": str(e)}), 500
+        print(f"ERROR in get_sub_admin_stats_session API: {e}")
+        print(traceback.format_exc())
+        return jsonify({"success": False, "error": str(e)}), 500
+@app.route("/api/sub-admin/office-data")
+def get_office_data():
+    """Get office-specific data for Sub-Admin (with session validation)"""
+    try:
+        # Check if user is authenticated as sub-admin
+        if not (session.get("role") == "sub-admin" and session.get("office")):
+            print("DEBUG: API - Sub-admin authentication required")
+            return jsonify({'success': False, 'message': 'Sub-admin authentication required'}), 401
+        
+        office = session.get("office")
+        name = session.get("name", "Sub Admin")
+        
+        print(f"DEBUG: API - Loading office data for {office}")
+        
+        # Get office-specific statistics
+        office_conversations = conversations_collection.count_documents({"office": office})
+        office_users_list = conversations_collection.distinct("user", {"office": office})
+        office_users = len(office_users_list)
+        
+        print(f"DEBUG: API - Found {office_conversations} conversations, {office_users} users")
+        
+        # Calculate office-specific metrics
+        resolved_queries = conversations_collection.count_documents({
+            "office": office, 
+            "status": "resolved"
+        })
+        escalated_issues = conversations_collection.count_documents({
+            "office": office, 
+            "status": "escalated"
+        })
+        unresolved_queries = conversations_collection.count_documents({
+            "office": office, 
+            "status": "unresolved"
+        })
+        
+        # Get recent office conversations
+        recent_conversations = list(conversations_collection.find(
+            {"office": office}
+        ).sort("date", -1).limit(10))
+        
+        # Convert ObjectId to string for JSON serialization
+        for conv in recent_conversations:
+            if '_id' in conv:
+                conv['_id'] = str(conv['_id'])
+        
+        office_data = {
+            "office": office,
+            "name": name,
+            "stats": {
+                "office_conversations": office_conversations,
+                "office_users": office_users,
+                "office_resolved_queries": resolved_queries,
+                "office_escalated_issues": escalated_issues,
+                "office_unresolved_queries": unresolved_queries
+            },
+            "recent_conversations": recent_conversations,
+            "allowed_offices": [office]  # Only their own office
+        }
+        
+        print(f"DEBUG: API - Returning office data: {office_data['stats']}")
+        return jsonify({"success": True, "data": office_data})
+    
+    except Exception as e:
+        print(f"ERROR in get_office_data API: {e}")
+        print(traceback.format_exc())
+        return jsonify({"success": False, "error": str(e)}), 500
+@app.route("/api/sub-admin/conversations")
+def get_office_conversations():
+    """Get conversations for specific office only"""
+    try:
+        # Check authentication
+        if not (session.get("role") == "sub-admin" and session.get("office")):
+            return jsonify({'success': False, 'message': 'Sub-admin authentication required'}), 401
+        
+        office = session.get("office")
+        
+        print(f"DEBUG: API - Loading conversations for {office}")
+        
+        # Get only conversations for this office
+        conversations = list(conversations_collection.find(
+            {"office": office}
+        ).sort("date", -1).limit(100))
+        
+        # Convert ObjectId to string for JSON serialization
+        for conv in conversations:
+            if '_id' in conv:
+                conv['_id'] = str(conv['_id'])
+        
+        print(f"DEBUG: API - Found {len(conversations)} conversations for {office}")
+        return jsonify({"success": True, "conversations": conversations, "office": office})
+    
+    except Exception as e:
+        print(f"ERROR in get_office_conversations API: {e}")
+        print(traceback.format_exc())
+        return jsonify({"success": False, "error": str(e)}), 500
+@app.route("/api/sub-admin/feedback")
+def get_office_feedback():
+    """Get feedback for specific office only"""
+    try:
+        # Check authentication
+        if not (session.get("role") == "sub-admin" and session.get("office")):
+            return jsonify({'success': False, 'message': 'Sub-admin authentication required'}), 401
+        
+        office = session.get("office")
+        
+        print(f"DEBUG: API - Loading feedback for {office}")
+        
+        # Get office-specific feedback (you'll need to add office field to feedback collection)
+        # For now, we'll filter conversations that might contain feedback
+        feedback_conversations = list(conversations_collection.find({
+            "office": office,
+            "$or": [
+                {"message": {"$regex": "feedback|rating|review", "$options": "i"}},
+                {"sender": "user", "message": {"$regex": "thank|good|bad|poor|excellent", "$options": "i"}}
+            ]
+        }).sort("date", -1).limit(50))
+        
+        # Convert ObjectId to string for JSON serialization
+        for conv in feedback_conversations:
+            if '_id' in conv:
+                conv['_id'] = str(conv['_id'])
+        
+        print(f"DEBUG: API - Found {len(feedback_conversations)} feedback items for {office}")
+        return jsonify({"success": True, "feedback": feedback_conversations, "office": office})
+    
+    except Exception as e:
+        print(f"ERROR in get_office_feedback API: {e}")
+        print(traceback.format_exc())
+        return jsonify({"success": False, "error": str(e)}), 500
+@app.route('/api/feedback', methods=['POST'])
+def submit_feedback():
+    """Handle feedback submission from chatbot"""
+    try:
+        data = request.get_json()
+        rating = data.get('rating')
+        comment = data.get('comment', '')
+        user_id = data.get('user_id', 'guest')
+        session_id = data.get('session_id')
+        
+        # Validate required fields
+        if not rating:
+            return jsonify({
+                'success': False,
+                'message': 'Rating is required'
+            }), 400
+        
+        # Save feedback using the feedback module
+        result = save_feedback(
+            rating=rating,
+            comment=comment,
+            user_id=user_id,
+            session_id=session_id
+        )
+        
+        if result['success']:
+            return jsonify({
+                'success': True,
+                'message': 'Thank you for your feedback!'
+            }), 200
+        else:
+            return jsonify({
+                'success': False,
+                'message': result['message']
+            }), 400
+            
+    except Exception as e:
+        print(f"Error processing feedback: {e}")
+        return jsonify({
+            'success': False,
+            'message': 'Something went wrong, please try again.'
+        }), 500
+
+@app.route('/api/feedback/stats', methods=['GET'])
+@token_required
+def get_feedback_statistics(current_user):
+    """Get feedback statistics for admin dashboard"""
+    try:
+        stats = get_feedback_stats()
+        return jsonify({
+            'success': True,
+            'stats': stats
+        })
+    except Exception as e:
+        print(f"Error getting feedback stats: {e}")
+        return jsonify({
+            'success': False,
+            'message': 'Error retrieving feedback statistics'
+        }), 500
+
+@app.route('/api/feedback/recent', methods=['GET'])
+@token_required
+def get_recent_feedback_data(current_user):
+    """Get recent feedback for admin dashboard"""
+    try:
+        limit = request.args.get('limit', 20, type=int)
+        feedback = get_recent_feedback(limit)
+        return jsonify({
+            'success': True,
+            'feedback': feedback
+        })
+    except Exception as e:
+        print(f"Error getting recent feedback: {e}")
+        return jsonify({
+            'success': False,
+            'message': 'Error retrieving recent feedback'
+        }), 500
+
+@app.route('/api/admin/feedback', methods=['GET'])
+@token_required
+def get_admin_feedback_analytics(current_user):
+    """Get comprehensive feedback analytics for admin dashboard"""
+    try:
+        analytics = get_feedback_analytics()
+        return jsonify(analytics)
+    except Exception as e:
+        print(f"Error getting feedback analytics: {e}")
+        return jsonify({
+            'success': False,
+            'message': 'Error retrieving feedback analytics'
+        }), 500
+
+@app.route('/api/test/feedback', methods=['GET'])
+def test_feedback_route():
+    """Test route to verify server is working"""
+    return jsonify({
+        'success': True,
+        'message': 'Test route working',
+        'timestamp': datetime.utcnow().isoformat()
+    })
+
+@app.route("/search", methods=["POST"])
+def search_vectors():
+    data = request.json
+    query = data.get("query", "")
+    results = vs.search_similar(query, top_k=5)
+    return jsonify(results)
+
+# ===========================
+# FAQ API ROUTES
+# ===========================
+
+@app.route('/api/faqs', methods=['GET'])
+@token_required
+def get_faqs_route(current_user):
+    """Get all FAQs or filter by office"""
+    try:
+        office = request.args.get('office')
+        result = get_faqs(office)
+        return jsonify(result)
+    except Exception as e:
+        print(f"Error in get_faqs_route: {e}")
+        return jsonify({
+            'success': False,
+            'message': 'Internal server error',
+            'faqs': []
+        }), 500
+
+@app.route('/api/faqs', methods=['POST'])
+@token_required
+@admin_required
+def add_faq_route(current_user):
+    """Add a new FAQ"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({
+                'success': False,
+                'message': 'No data provided'
+            }), 400
+        
+        result = add_faq(data)
+        if result['success']:
+            return jsonify(result), 201
+        else:
+            return jsonify(result), 400
+            
+    except Exception as e:
+        print(f"Error in add_faq_route: {e}")
+        return jsonify({
+            'success': False,
+            'message': 'Internal server error'
+        }), 500
+
+@app.route('/api/faqs/<faq_id>', methods=['GET'])
+@token_required
+def get_faq_route(current_user, faq_id):
+    """Get a specific FAQ by ID"""
+    try:
+        result = get_faq_by_id(faq_id)
+        if result['success']:
+            return jsonify(result)
+        else:
+            return jsonify(result), 404
+            
+    except Exception as e:
+        print(f"Error in get_faq_route: {e}")
+        return jsonify({
+            'success': False,
+            'message': 'Internal server error'
+        }), 500
+
+@app.route('/api/faqs/<faq_id>', methods=['PUT'])
+@token_required
+@admin_required
+def update_faq_route(current_user, faq_id):
+    """Update an existing FAQ"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({
+                'success': False,
+                'message': 'No data provided'
+            }), 400
+        
+        # Pass the current user for version tracking
+        edited_by = current_user.get('username', 'admin')
+        result = update_faq(faq_id, data, edited_by)
+        if result['success']:
+            return jsonify(result)
+        else:
+            return jsonify(result), 400
+            
+    except Exception as e:
+        print(f"Error in update_faq_route: {e}")
+        return jsonify({
+            'success': False,
+            'message': 'Internal server error'
+        }), 500
+
+@app.route('/api/faqs/<faq_id>', methods=['DELETE'])
+@token_required
+@admin_required
+def delete_faq_route(current_user, faq_id):
+    """Delete an FAQ"""
+    try:
+        result = delete_faq(faq_id)
+        if result['success']:
+            return jsonify(result)
+        else:
+            return jsonify(result), 404
+            
+    except Exception as e:
+        print(f"Error in delete_faq_route: {e}")
+        return jsonify({
+            'success': False,
+            'message': 'Internal server error'
+        }), 500
+
+@app.route('/api/faqs/search', methods=['POST'])
+@token_required
+def search_faqs_route(current_user):
+    """Search FAQs using vector similarity"""
+    try:
+        data = request.get_json()
+        if not data or not data.get('query'):
+            return jsonify({
+                'success': False,
+                'message': 'Query is required'
+            }), 400
+        
+        query = data.get('query')
+        office = data.get('office')
+        top_k = data.get('top_k', 5)
+        
+        result = search_faqs(query, office, top_k)
+        return jsonify(result)
+        
+    except Exception as e:
+        print(f"Error in search_faqs_route: {e}")
+        return jsonify({
+            'success': False,
+            'message': 'Internal server error',
+            'results': []
+        }), 500
+
+@app.route('/api/faqs/<faq_id>/versions', methods=['GET'])
+@token_required
+@admin_required
+def get_faq_versions_route(current_user, faq_id):
+    """Get version history for a specific FAQ"""
+    try:
+        result = get_faq_versions(faq_id)
+        return jsonify(result)
+        
+    except Exception as e:
+        print(f"Error in get_faq_versions_route: {e}")
+        return jsonify({
+            'success': False,
+            'message': 'Internal server error',
+            'versions': []
+        }), 500
+
+@app.route('/api/faqs/<faq_id>/rollback/<int:version_number>', methods=['POST'])
+@token_required
+@admin_required
+def rollback_faq_route(current_user, faq_id, version_number):
+    """Rollback FAQ to a previous version"""
+    try:
+        admin_user = current_user.get('username', 'admin')
+        result = rollback_faq(faq_id, version_number, admin_user)
+        
+        if result['success']:
+            return jsonify(result)
+        else:
+            return jsonify(result), 400
+            
+    except Exception as e:
+        print(f"Error in rollback_faq_route: {e}")
+        return jsonify({
+            'success': False,
+            'message': 'Internal server error'
+        }), 500
+# Notification API Endpoint for Admin
+@app.route('/api/admin/notifications', methods=['GET'])
+@token_required
+@admin_required
+def get_admin_notifications(current_user):
+    """Aggregate notifications from all admin content areas"""
+    try:
+        from datetime import datetime, timedelta
+        
+        notifications = []
+        total_count = 0
+        
+        # Get current time for "recent" checks (last 24 hours)
+        recent_time = datetime.now() - timedelta(hours=24)
+        
+        # 1. NEW FEEDBACK - Check for unread or recent feedback
+        try:
+            feedback_collection = db['feedback']
+            new_feedback_count = feedback_collection.count_documents({
+                'created_at': {'$gte': recent_time}
+            })
+            
+            if new_feedback_count > 0:
+                recent_feedback = list(feedback_collection.find({
+                    'created_at': {'$gte': recent_time}
+                }).sort('created_at', -1).limit(3))
+                
+                for fb in recent_feedback:
+                    comment = fb.get('comment') or 'No comment'
+                    comment_preview = comment[:50] + '...' if len(comment) > 50 else comment
+                    notifications.append({
+                        'id': str(fb.get('_id', '')),
+                        'type': 'feedback',
+                        'title': f"New {fb.get('rating', 5)}-star feedback",
+                        'message': comment_preview,
+                        'time': fb.get('created_at', datetime.now()).strftime('%Y-%m-%d %H:%M'),
+                        'icon': 'fa-heart',
+                        'color': 'success' if fb.get('rating', 0) >= 4 else 'warning',
+                        'link': '/feedback'
+                    })
+                total_count += new_feedback_count
+        except Exception as e:
+            print(f"Error fetching feedback notifications: {e}")
+        
+        # 2. UNRESOLVED CONVERSATIONS - Recent conversations needing attention
+        try:
+            unresolved_count = conversations_collection.count_documents({
+                'status': {'$in': ['unresolved', 'escalated']},
+                'timestamp': {'$gte': recent_time}
+            })
+            
+            if unresolved_count > 0:
+                recent_unresolved = list(conversations_collection.find({
+                    'status': {'$in': ['unresolved', 'escalated']}
+                }).sort('timestamp', -1).limit(3))
+                
+                for conv in recent_unresolved:
+                    notifications.append({
+                        'id': str(conv.get('_id', '')),
+                        'type': 'conversation',
+                        'title': f"{conv.get('status', 'Unresolved').capitalize()} conversation",
+                        'message': f"User: {conv.get('user', 'Unknown')} - Office: {conv.get('office', 'General')}",
+                        'time': conv.get('timestamp', datetime.now()).strftime('%Y-%m-%d %H:%M'),
+                        'icon': 'fa-comments',
+                        'color': 'danger' if conv.get('status') == 'escalated' else 'warning',
+                        'link': '/conversations'
+                    })
+                total_count += unresolved_count
+        except Exception as e:
+            print(f"Error fetching conversation notifications: {e}")
+        
+        # 3. NEW USERS - Recently created sub-admin accounts
+        try:
+            new_users_count = sub_users.count_documents({
+                'created_at': {'$gte': recent_time}
+            })
+            
+            if new_users_count > 0:
+                recent_users = list(sub_users.find({
+                    'created_at': {'$gte': recent_time}
+                }).sort('created_at', -1).limit(3))
+                
+                for user in recent_users:
+                    notifications.append({
+                        'id': str(user.get('_id', '')),
+                        'type': 'user',
+                        'title': 'New sub-admin created',
+                        'message': f"{user.get('name', 'Unknown')} - {user.get('office', 'No office')}",
+                        'time': user.get('created_at', datetime.now()).strftime('%Y-%m-%d %H:%M'),
+                        'icon': 'fa-user-plus',
+                        'color': 'info',
+                        'link': '/users'
+                    })
+                total_count += new_users_count
+        except Exception as e:
+            print(f"Error fetching user notifications: {e}")
+        
+        # 4. FAQ UPDATES - Recently added or modified FAQs
+        try:
+            faqs_collection = db['faqs']
+            new_faqs_count = faqs_collection.count_documents({
+                'created_at': {'$gte': recent_time}
+            })
+            
+            if new_faqs_count > 0:
+                recent_faqs = list(faqs_collection.find({
+                    'created_at': {'$gte': recent_time}
+                }).sort('created_at', -1).limit(2))
+                
+                for faq in recent_faqs:
+                    question = faq.get('question') or 'No question'
+                    question_preview = question[:50] + '...' if len(question) > 50 else question
+                    notifications.append({
+                        'id': str(faq.get('_id', '')),
+                        'type': 'faq',
+                        'title': 'New FAQ added',
+                        'message': question_preview,
+                        'time': faq.get('created_at', datetime.now()).strftime('%Y-%m-%d %H:%M'),
+                        'icon': 'fa-question-circle',
+                        'color': 'primary',
+                        'link': '/faq'
+                    })
+                total_count += new_faqs_count
+        except Exception as e:
+            print(f"Error fetching FAQ notifications: {e}")
+        
+        # 5. HIGH USAGE ALERT - Check if usage spike in last hour
+        try:
+            one_hour_ago = datetime.now() - timedelta(hours=1)
+            recent_conversations_count = conversations_collection.count_documents({
+                'timestamp': {'$gte': one_hour_ago}
+            })
+            
+            # If more than 50 conversations in last hour, show alert
+            if recent_conversations_count > 50:
+                notifications.append({
+                    'id': 'usage_spike',
+                    'type': 'alert',
+                    'title': 'High usage detected',
+                    'message': f'{recent_conversations_count} conversations in the last hour',
+                    'time': datetime.now().strftime('%Y-%m-%d %H:%M'),
+                    'icon': 'fa-chart-line',
+                    'color': 'warning',
+                    'link': '/usage'
+                })
+                total_count += 1
+        except Exception as e:
+            print(f"Error checking usage spike: {e}")
+        
+        # Sort notifications by time (most recent first)
+        notifications.sort(key=lambda x: x['time'], reverse=True)
+        
+        # Limit to top 10 notifications
+        notifications = notifications[:10]
+        
+        return jsonify({
+            'success': True,
+            'notifications': notifications,
+            'total_count': total_count,
+            'unread_count': total_count  # All are considered unread for now
+        })
+        
+    except Exception as e:
+        print(f"Error fetching admin notifications: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'message': 'Error fetching notifications',
+            'notifications': [],
+            'total_count': 0,
+            'unread_count': 0
+        }), 500
+
+# Notification API Endpoint for Sub-Admin
+@app.route('/api/sub-admin/notifications', methods=['GET'])
+def get_sub_admin_notifications():
+    """Aggregate notifications from all sub-admin content areas"""
+    try:
+        # Check if user is authenticated as sub-admin
+        if not (session.get("role") == "sub-admin" and session.get("office")):
+            return jsonify({
+                'success': False,
+                'message': 'Sub-admin authentication required',
+                'notifications': [],
+                'total_count': 0,
+                'unread_count': 0
+            }), 401
+        
+        from datetime import datetime, timedelta
+        
+        office = session.get("office")
+        notifications = []
+        total_count = 0
+        
+        # Get current time for "recent" checks (last 24 hours)
+        recent_time = datetime.now() - timedelta(hours=24)
+        
+        # 1. NEW FEEDBACK - Office-specific feedback
+        try:
+            feedback_collection = db['feedback']
+            new_feedback_count = feedback_collection.count_documents({
+                'office': office,
+                'created_at': {'$gte': recent_time}
+            })
+            
+            if new_feedback_count > 0:
+                recent_feedback = list(feedback_collection.find({
+                    'office': office,
+                    'created_at': {'$gte': recent_time}
+                }).sort('created_at', -1).limit(3))
+                
+                for fb in recent_feedback:
+                    comment = fb.get('comment') or 'No comment'
+                    comment_preview = comment[:50] + '...' if len(comment) > 50 else comment
+                    notifications.append({
+                        'id': str(fb.get('_id', '')),
+                        'type': 'feedback',
+                        'title': f"New {fb.get('rating', 5)}-star feedback",
+                        'message': comment_preview,
+                        'time': fb.get('created_at', datetime.now()).strftime('%Y-%m-%d %H:%M'),
+                        'icon': 'fa-heart',
+                        'color': 'success' if fb.get('rating', 0) >= 4 else 'warning',
+                        'link': f'/Sub-feedback?office={office}'
+                    })
+                total_count += new_feedback_count
+        except Exception as e:
+            print(f"Error fetching feedback notifications: {e}")
+        
+        # 2. UNRESOLVED CONVERSATIONS - Office-specific
+        try:
+            unresolved_count = conversations_collection.count_documents({
+                'office': office,
+                'status': {'$in': ['unresolved', 'escalated']},
+                'timestamp': {'$gte': recent_time}
+            })
+            
+            if unresolved_count > 0:
+                recent_unresolved = list(conversations_collection.find({
+                    'office': office,
+                    'status': {'$in': ['unresolved', 'escalated']}
+                }).sort('timestamp', -1).limit(3))
+                
+                for conv in recent_unresolved:
+                    notifications.append({
+                        'id': str(conv.get('_id', '')),
+                        'type': 'conversation',
+                        'title': f"{conv.get('status', 'Unresolved').capitalize()} conversation",
+                        'message': f"User: {conv.get('user', 'Unknown')}",
+                        'time': conv.get('timestamp', datetime.now()).strftime('%Y-%m-%d %H:%M'),
+                        'icon': 'fa-comments',
+                        'color': 'danger' if conv.get('status') == 'escalated' else 'warning',
+                        'link': f'/Sub-conversations?office={office}'
+                    })
+                total_count += unresolved_count
+        except Exception as e:
+            print(f"Error fetching conversation notifications: {e}")
+        
+        # 3. NEW FAQs - Office-specific
+        try:
+            faqs_collection = db['faqs']
+            new_faqs_count = faqs_collection.count_documents({
+                'office': office,
+                'created_at': {'$gte': recent_time}
+            })
+            
+            if new_faqs_count > 0:
+                recent_faqs = list(faqs_collection.find({
+                    'office': office,
+                    'created_at': {'$gte': recent_time}
+                }).sort('created_at', -1).limit(2))
+                
+                for faq in recent_faqs:
+                    question = faq.get('question') or 'No question'
+                    question_preview = question[:50] + '...' if len(question) > 50 else question
+                    notifications.append({
+                        'id': str(faq.get('_id', '')),
+                        'type': 'faq',
+                        'title': 'New FAQ added',
+                        'message': question_preview,
+                        'time': faq.get('created_at', datetime.now()).strftime('%Y-%m-%d %H:%M'),
+                        'icon': 'fa-question-circle',
+                        'color': 'primary',
+                        'link': f'/Sub-faq?office={office}'
+                    })
+                total_count += new_faqs_count
+        except Exception as e:
+            print(f"Error fetching FAQ notifications: {e}")
+        
+        # 4. NEW ANNOUNCEMENTS - Office-specific
+        try:
+            announcements_collection = db['announcements']
+            new_announcements_count = announcements_collection.count_documents({
+                'office': office,
+                'created_at': {'$gte': recent_time},
+                'is_active': True
+            })
+            
+            if new_announcements_count > 0:
+                recent_announcements = list(announcements_collection.find({
+                    'office': office,
+                    'created_at': {'$gte': recent_time},
+                    'is_active': True
+                }).sort('created_at', -1).limit(2))
+                
+                for announcement in recent_announcements:
+                    title = announcement.get('title') or 'New announcement'
+                    title_preview = title[:50] + '...' if len(title) > 50 else title
+                    notifications.append({
+                        'id': str(announcement.get('_id', '')),
+                        'type': 'announcement',
+                        'title': 'New announcement',
+                        'message': title_preview,
+                        'time': announcement.get('created_at', datetime.now()).strftime('%Y-%m-%d %H:%M'),
+                        'icon': 'fa-bullhorn',
+                        'color': 'info',
+                        'link': f'/Sub-announcements?office={office}'
+                    })
+                total_count += new_announcements_count
+        except Exception as e:
+            print(f"Error fetching announcement notifications: {e}")
+        
+        # 5. HIGH USAGE ALERT - Office-specific
+        try:
+            one_hour_ago = datetime.now() - timedelta(hours=1)
+            recent_conversations_count = conversations_collection.count_documents({
+                'office': office,
+                'timestamp': {'$gte': one_hour_ago}
+            })
+            
+            # If more than 30 conversations in last hour for this office
+            if recent_conversations_count > 30:
+                notifications.append({
+                    'id': 'usage_spike',
+                    'type': 'alert',
+                    'title': 'High usage detected',
+                    'message': f'{recent_conversations_count} conversations in the last hour',
+                    'time': datetime.now().strftime('%Y-%m-%d %H:%M'),
+                    'icon': 'fa-chart-line',
+                    'color': 'warning',
+                    'link': f'/Sub-usage?office={office}'
+                })
+                total_count += 1
+        except Exception as e:
+            print(f"Error checking usage spike: {e}")
+        
+        # Sort notifications by time (most recent first)
+        notifications.sort(key=lambda x: x['time'], reverse=True)
+        
+        # Limit to top 10 notifications
+        notifications = notifications[:10]
+        
+        return jsonify({
+            'success': True,
+            'notifications': notifications,
+            'total_count': total_count,
+            'unread_count': total_count  # All are considered unread for now
+        })
+        
+    except Exception as e:
+        print(f"Error fetching sub-admin notifications: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'message': 'Error fetching notifications',
+            'notifications': [],
+            'total_count': 0,
+            'unread_count': 0
+        }), 500
 
 # Add some debugging information on startup
 def startup_info():
@@ -1598,6 +3932,9 @@ def startup_info():
 if __name__ == "__main__":
     # Create default admin user on startup
     create_default_admin()
+    
+    # Create default sub-admin users on startup
+    create_default_sub_admins()
     
     # Print startup information
     startup_info()
@@ -1612,7 +3949,28 @@ if __name__ == "__main__":
         print("2. Run: export PINECONE_API_KEY='your-api-key'")
         print("3. Install required packages: pip install pinecone-client sentence-transformers")
     
-    print("=========================================\n")
+    # Email configuration status
+    print("\n" + "="*60)
+    print("📧 EMAIL NOTIFICATION STATUS")
+    print("="*60)
+    if EMAIL_CONFIG.get('ENABLE_EMAIL', False):
+        print(f"✅ Status: ENABLED")
+        print(f"📤 Sender: {EMAIL_CONFIG['SENDER_EMAIL']}")
+        print(f"🌐 SMTP Server: {EMAIL_CONFIG['SMTP_SERVER']}:{EMAIL_CONFIG['SMTP_PORT']}")
+        print(f"📧 Password configured: {'Yes' if EMAIL_CONFIG.get('SENDER_PASSWORD') else 'No'}")
+        print("\n✅ Password change emails will be sent automatically!")
+    else:
+        print(f"⚠️  Status: DISABLED")
+        print(f"\n📝 To enable email notifications:")
+        print(f"   1. Go to: https://myaccount.google.com/apppasswords")
+        print(f"   2. Generate an App Password for 'Mail'")
+        print(f"   3. Open app.py and find line 101")
+        print(f"   4. Replace 'PASTE_YOUR_16_CHAR_APP_PASSWORD_HERE' with your password")
+        print(f"   5. Save and restart the app")
+        print(f"\n📖 Full guide: See EMAIL_SETUP_QUICK_START.md")
+    print("="*60)
+    
+    print("\n=========================================\n")
     print("Available routes:")
     print("- / : Main chatbot interface (base.html)")
     print("- /index : Index page (index.html)")
@@ -1635,4 +3993,4 @@ if __name__ == "__main__":
     print("- POST /api/auth/reset-password : Reset user password (admin only)")
     print("=========================================\n")
     
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=int(os.getenv("PORT", 5000)), debug=True)
