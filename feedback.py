@@ -175,6 +175,9 @@ def get_feedback_stats():
         dict: Feedback statistics
     """
     try:
+        # Test database connection first
+        feedback_collection.find_one()
+        
         # Get total feedback count
         total_feedback = feedback_collection.count_documents({})
         
@@ -183,7 +186,7 @@ def get_feedback_stats():
             {"$group": {"_id": None, "avg_rating": {"$avg": "$rating"}}}
         ]
         avg_result = list(feedback_collection.aggregate(pipeline))
-        avg_rating = avg_result[0]["avg_rating"] if avg_result else 0
+        avg_rating = avg_result[0]["avg_rating"] if avg_result and avg_result[0].get("avg_rating") is not None else 0
         
         # Get rating distribution
         rating_dist = {}
@@ -196,13 +199,15 @@ def get_feedback_stats():
         
         return {
             "total_feedback": total_feedback,
-            "average_rating": round(avg_rating, 2),
+            "average_rating": round(avg_rating, 2) if avg_rating else 0,
             "rating_distribution": rating_dist,
             "recent_feedback": recent_feedback
         }
         
     except Exception as e:
         print(f"Error getting feedback stats: {e}")
+        import traceback
+        print(traceback.format_exc())
         return {
             "total_feedback": 0,
             "average_rating": 0,
