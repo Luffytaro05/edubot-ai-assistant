@@ -9,7 +9,7 @@ import pymongo
 from dotenv import load_dotenv
 from model import NeuralNet, HybridChatModel
 from vector_store import VectorStore
-from nltk_utils import bag_of_words, tokenize, clean_text
+from nltk_utils import bag_of_words, tokenize, clean_text, enhanced_bag_of_words, fuzzy_match, expand_synonyms
 from pymongo import MongoClient
 from pymongo.errors import ServerSelectionTimeoutError, ConnectionFailure
 from datetime import datetime, UTC, date
@@ -680,9 +680,13 @@ def search_faq_database(query, office=None):
         return None
 
 def get_response(msg, user_id="guest"):
-    # Clean the message
+    # Enhanced text preprocessing
     cleaned_msg = clean_text(msg)
     sentence = tokenize(cleaned_msg)
+    
+    # Expand with synonyms for better matching
+    expanded_msg = expand_synonyms(cleaned_msg)
+    expanded_sentence = tokenize(expanded_msg)
     
     # Detect office from message for context
     detected_office = detect_office_from_message(msg)
@@ -750,14 +754,17 @@ def get_response(msg, user_id="guest"):
         return faq_answer
     # ============= END FAQ SEARCH =============
     
-    # Use hybrid model for prediction
+    # Use hybrid model for prediction with enhanced features
     if hybrid_model and all_words:
-        # Prepare input for neural network
-        X = bag_of_words(sentence, all_words)
+        # Prepare input for neural network with enhanced bag of words
+        X = enhanced_bag_of_words(expanded_sentence, all_words)
         X = torch.from_numpy(X).unsqueeze(0)
         
-        # Get hybrid prediction
-        hybrid_result = hybrid_model.get_hybrid_response(cleaned_msg, X)
+        # Get current context for better prediction
+        current_context = get_user_current_office(user_id)
+        
+        # Get hybrid prediction with context
+        hybrid_result = hybrid_model.get_hybrid_response(cleaned_msg, X, current_context)
         
         tag = hybrid_result['final_tag']
         confidence = hybrid_result['confidence']
@@ -870,12 +877,42 @@ def get_response(msg, user_id="guest"):
     except Exception as e:
         print(f"Last resort FAQ search error: {e}")
     
-    # Final fallback
+    # Enhanced fallback with fuzzy matching
     if current_context:
         office_name = office_tags[current_context]
+        
+        # Try fuzzy matching with current context patterns
+        context_patterns = []
+        for intent in intents["intents"]:
+            if intent["tag"] == current_context:
+                context_patterns.extend(intent["patterns"])
+                break
+        
+        if context_patterns:
+            fuzzy_matches = fuzzy_match(cleaned_msg, context_patterns, threshold=0.4)
+            if fuzzy_matches:
+                best_match = fuzzy_matches[0]
+                print(f"Fuzzy match found: {best_match[0]} (similarity: {best_match[1]:.3f})")
+                bot_response = f"I think you're asking about something related to {office_name}. Could you provide more details about: {best_match[0]}?"
+                save_message(user_id, "bot", bot_response, current_context)
+                return bot_response
+        
         bot_response = f"I'm currently helping you with {office_name} information. Could you rephrase your question about this office, or would you like to switch to a different topic?"
         save_message(user_id, "bot", bot_response, current_context)
     else:
+        # Try fuzzy matching across all patterns
+        all_patterns = []
+        for intent in intents["intents"]:
+            all_patterns.extend(intent["patterns"])
+        
+        fuzzy_matches = fuzzy_match(cleaned_msg, all_patterns, threshold=0.3)
+        if fuzzy_matches:
+            best_match = fuzzy_matches[0]
+            print(f"Global fuzzy match found: {best_match[0]} (similarity: {best_match[1]:.3f})")
+            bot_response = f"I think you might be asking about: {best_match[0]}. Could you provide more details?"
+            save_message(user_id, "bot", bot_response, None)
+            return bot_response
+        
         bot_response = "I'm not sure how to respond to that. Please try one of the suggested topics or rephrase your question."
         save_message(user_id, "bot", bot_response, None)
     

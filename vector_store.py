@@ -14,7 +14,8 @@ class VectorStore:
     def __init__(self, 
                  index_name: str = "chatbot-vectors",
                  model_name: str = "all-MiniLM-L6-v2",
-                 dimension: int = 384):
+                 dimension: int = 384,
+                 enhanced_embeddings: bool = True):
         """
         Initialize Pinecone vector store
         
@@ -26,10 +27,18 @@ class VectorStore:
         self.index_name = index_name
         self.model_name = model_name
         self.dimension = dimension
+        self.enhanced_embeddings = enhanced_embeddings
         
         # Initialize embedding model
         print(f"Loading embedding model: {model_name}")
         self.embedding_model = SentenceTransformer(model_name)
+        
+        # Enhanced similarity thresholds
+        self.similarity_thresholds = {
+            'high': 0.8,
+            'medium': 0.6,
+            'low': 0.4
+        }
         
         # Initialize Pinecone
         self.pc = None
@@ -76,10 +85,28 @@ class VectorStore:
             print("Running in offline mode - vector search will be disabled")
     
     def generate_embedding(self, text: str) -> List[float]:
-        """Generate embedding for text using SentenceTransformers"""
+        """Generate enhanced embedding for text using SentenceTransformers"""
         try:
-            embedding = self.embedding_model.encode(text, convert_to_tensor=False)
-            return embedding.tolist()
+            if self.enhanced_embeddings:
+                # Enhanced embedding with multiple strategies
+                # 1. Original text
+                embedding1 = self.embedding_model.encode(text, convert_to_tensor=False)
+                
+                # 2. Lowercased text
+                embedding2 = self.embedding_model.encode(text.lower(), convert_to_tensor=False)
+                
+                # 3. Cleaned text (remove punctuation)
+                import re
+                cleaned_text = re.sub(r'[^\w\s]', '', text.lower())
+                embedding3 = self.embedding_model.encode(cleaned_text, convert_to_tensor=False)
+                
+                # Average the embeddings for better representation
+                combined_embedding = (embedding1 + embedding2 + embedding3) / 3
+                return combined_embedding.tolist()
+            else:
+                # Standard embedding
+                embedding = self.embedding_model.encode(text, convert_to_tensor=False)
+                return embedding.tolist()
         except Exception as e:
             print(f"Error generating embedding: {e}")
             return [0.0] * self.dimension
@@ -128,15 +155,17 @@ class VectorStore:
                       query: str, 
                       top_k: int = 5, 
                       filter_dict: Dict = None,
-                      score_threshold: float = 0.7) -> List[Dict]:
+                      score_threshold: float = 0.7,
+                      similarity_level: str = 'medium') -> List[Dict]:
         """
-        Search for similar texts
+        Enhanced search for similar texts with adaptive thresholds
         
         Args:
             query: Query text
             top_k: Number of results to return
             filter_dict: Metadata filter
             score_threshold: Minimum similarity score
+            similarity_level: 'high', 'medium', or 'low' for adaptive thresholds
             
         Returns:
             List of similar texts with scores and metadata
@@ -146,35 +175,72 @@ class VectorStore:
             return []
         
         try:
+            # Use adaptive threshold based on similarity level
+            adaptive_threshold = self.similarity_thresholds.get(similarity_level, score_threshold)
+            final_threshold = max(score_threshold, adaptive_threshold)
+            
             # Generate query embedding
             query_embedding = self.generate_embedding(query)
             
-            # Search in Pinecone
+            # Search in Pinecone with enhanced parameters
             search_results = self.index.query(
                 vector=query_embedding,
-                top_k=top_k,
+                top_k=top_k * 2,  # Get more results for better filtering
                 filter=filter_dict,
                 include_metadata=True,
                 include_values=False
             )
             
-            # Process results
+            # Process results with enhanced scoring
             results = []
             for match in search_results.matches:
-                if match.score >= score_threshold:
+                if match.score >= final_threshold:
+                    # Calculate enhanced score with metadata weighting
+                    enhanced_score = self.calculate_enhanced_score(match, query)
+                    
                     result = {
                         'id': match.id,
-                        'score': float(match.score),
+                        'score': float(enhanced_score),
+                        'original_score': float(match.score),
                         'text': match.metadata.get('text', ''),
                         'metadata': match.metadata
                     }
                     results.append(result)
             
-            return results
+            # Sort by enhanced score and return top_k
+            results.sort(key=lambda x: x['score'], reverse=True)
+            return results[:top_k]
             
         except Exception as e:
             print(f"Error searching vectors: {e}")
             return []
+    
+    def calculate_enhanced_score(self, match, query):
+        """Calculate enhanced similarity score with metadata weighting"""
+        base_score = match.score
+        
+        # Metadata weighting
+        metadata = match.metadata
+        weight_multiplier = 1.0
+        
+        # Boost score for exact tag matches
+        if metadata.get('tag'):
+            weight_multiplier += 0.1
+        
+        # Boost score for recent content
+        if metadata.get('timestamp'):
+            import time
+            age_days = (time.time() - metadata['timestamp']) / (24 * 3600)
+            if age_days < 30:  # Recent content gets slight boost
+                weight_multiplier += 0.05
+        
+        # Boost score for high-priority content
+        if metadata.get('priority') == 'high':
+            weight_multiplier += 0.15
+        elif metadata.get('priority') == 'medium':
+            weight_multiplier += 0.05
+        
+        return min(base_score * weight_multiplier, 1.0)
     
     def search_by_tag(self, 
                      query: str, 

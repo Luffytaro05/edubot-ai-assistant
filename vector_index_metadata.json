@@ -4,7 +4,7 @@
   "dimension": 384,
   "stats": {
     "status": "online",
-    "total_vectors": 3672,
+    "total_vectors": 19680,
     "dimension": 384,
     "index_fullness": 0.0
   }

@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 
-from nltk_utils import bag_of_words, tokenize, stem
+from nltk_utils import bag_of_words, tokenize, stem, enhanced_bag_of_words
 from model import NeuralNet
 from vector_store import VectorStore
 
@@ -57,11 +57,15 @@ all_words = [stem(w) for w in all_words if w not in ignore_words]
 all_words = sorted(set(all_words))
 tags = sorted(set(tags))
 
-# Training data
+# Training data with enhanced bag of words
 X_train = []
 y_train = []
 for (pattern_sentence, tag) in xy:
-    bag = bag_of_words(pattern_sentence, all_words)
+    # Use enhanced bag of words if available, otherwise fallback to standard
+    try:
+        bag = enhanced_bag_of_words(pattern_sentence, all_words)
+    except:
+        bag = bag_of_words(pattern_sentence, all_words)
     X_train.append(bag)
     label = tags.index(tag)
     y_train.append(label)
@@ -69,13 +73,14 @@ for (pattern_sentence, tag) in xy:
 X_train = np.array(X_train)
 y_train = np.array(y_train)
 
-# Hyperparameters
-num_epochs = 1000
-batch_size = 8
-learning_rate = 0.001
+# Enhanced hyperparameters for better training
+num_epochs = 2000  # Increased epochs for better convergence
+batch_size = 16     # Increased batch size for stability
+learning_rate = 0.0005  # Reduced learning rate for better convergence
 input_size = len(X_train[0])
-hidden_size = 8
+hidden_size = 16    # Increased hidden size for better capacity
 output_size = len(tags)
+dropout_rate = 0.3  # Dropout for regularization
 
 print(f"Training data loaded:")
 print(f" - {len(X_train)} samples")
@@ -102,14 +107,34 @@ train_loader = DataLoader(dataset=dataset,
                           num_workers=0)
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-model = NeuralNet(input_size, hidden_size, output_size).to(device)
+model = NeuralNet(input_size, hidden_size, output_size, dropout_rate).to(device)
 
-criterion = nn.CrossEntropyLoss()
-optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+# Enhanced loss function (label smoothing may not be available in older PyTorch versions)
+try:
+    criterion = nn.CrossEntropyLoss(label_smoothing=0.1)
+except TypeError:
+    # Fallback for older PyTorch versions
+    criterion = nn.CrossEntropyLoss()
+
+# Enhanced optimizer with weight decay
+optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=1e-4)
+
+# Learning rate scheduler
+scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+    optimizer, mode='min', factor=0.5, patience=100
+)
 
 print("\nTraining neural network...")
-# Training loop
+# Enhanced training loop with validation
+best_loss = float('inf')
+patience_counter = 0
+patience = 200
+
 for epoch in range(num_epochs):
+    model.train()
+    total_loss = 0.0
+    num_batches = 0
+    
     for (words, labels) in train_loader:
         words = words.to(device)
         labels = labels.to(dtype=torch.long).to(device)
@@ -121,12 +146,37 @@ for epoch in range(num_epochs):
         # Backward and optimizer step
         optimizer.zero_grad()
         loss.backward()
+        
+        # Gradient clipping for stability
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+        
         optimizer.step()
+        
+        total_loss += loss.item()
+        num_batches += 1
+
+    # Calculate average loss
+    avg_loss = total_loss / num_batches
+    
+    # Update learning rate scheduler
+    scheduler.step(avg_loss)
+    
+    # Early stopping
+    if avg_loss < best_loss:
+        best_loss = avg_loss
+        patience_counter = 0
+    else:
+        patience_counter += 1
+    
+    if patience_counter >= patience:
+        print(f"Early stopping at epoch {epoch+1}")
+        break
 
     if (epoch + 1) % 100 == 0:
-        print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}')
+        current_lr = optimizer.param_groups[0]['lr']
+        print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {avg_loss:.4f}, LR: {current_lr:.6f}')
 
-print(f'Final Loss: {loss.item():.4f}')
+print(f'Final Loss: {best_loss:.4f}')
 
 # Save model and metadata
 data = {
