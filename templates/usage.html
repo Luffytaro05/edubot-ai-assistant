@@ -186,6 +186,7 @@
                             <span class="stat-change positive">+8.3%</span>
                         </div>
                     </div>
+                    <!-- Avg. Satisfaction - Connected to Feedback Page Average Rating -->
                     <div class="stat-card">
                         <div class="stat-icon satisfaction">
                             <i class="fas fa-star"></i>
@@ -216,16 +217,6 @@
                                 <div class="chart-header">
                                     <h3>Conversation Trends</h3>
                                     <div class="chart-actions" style="display: flex; align-items: center; gap: 0.75rem;">
-                                        <div class="date-filter-group" style="display: flex; align-items: center; gap: 0.5rem;">
-                                            <label for="trend-date-filter" style="margin: 0; font-size: 0.875rem; color: #64748b;">Filter by Date:</label>
-                                            <input type="date" id="trend-date-filter" class="form-control form-control-sm" style="max-width: 160px;">
-                                            <button class="btn btn-sm btn-outline-primary" onclick="applyTrendDateFilter()" title="Apply Date Filter">
-                                                <i class="fas fa-filter"></i>
-                                            </button>
-                                            <button class="btn btn-sm btn-outline-secondary" onclick="clearTrendDateFilter()" title="Clear Filter">
-                                                <i class="fas fa-times"></i>
-                                            </button>
-                                        </div>
                                         <button class="btn btn-sm btn-outline-secondary" onclick="downloadChart('trends')">
                                             <i class="fas fa-download"></i>
                                         </button>
@@ -244,16 +235,6 @@
                         <div class="chart-header">
                             <h3>Office Performance</h3>
                             <div class="chart-actions" style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
-                                <div class="date-filter-group" style="display: flex; align-items: center; gap: 0.5rem;">
-                                    <label for="office-date-filter" style="margin: 0; font-size: 0.875rem; color: #64748b;">Filter by Date:</label>
-                                    <input type="date" id="office-date-filter" class="form-control form-control-sm" style="max-width: 160px;">
-                                    <button class="btn btn-sm btn-outline-primary" onclick="applyOfficeDateFilter()" title="Apply Date Filter">
-                                        <i class="fas fa-filter"></i>
-                                    </button>
-                                    <button class="btn btn-sm btn-outline-secondary" onclick="clearOfficeDateFilter()" title="Clear Filter">
-                                        <i class="fas fa-times"></i>
-                                    </button>
-                                </div>
                                 <select id="chart-type-selector" class="form-select form-select-sm me-2" onchange="changeChartType()">
                                     <option value="bar">Bar Chart</option>
                                     <option value="pie">Pie Chart</option>
@@ -422,8 +403,28 @@
                 document.getElementById('unique-users').textContent = stats.uniqueUsers || 0;
             }
             
+            // Fetch average satisfaction from feedback analytics to ensure consistency with feedback page
+            try {
+                const feedbackResponse = await fetch('/api/admin/feedback');
+                if (feedbackResponse.ok) {
+                    const feedbackData = await feedbackResponse.json();
+                    if (feedbackData.success && feedbackData.analytics) {
+                        document.getElementById('avg-satisfaction').textContent = (feedbackData.analytics.average_rating || 0).toFixed(1);
+                    } else {
+                        // Fallback to stats data if feedback API is unavailable
+                        document.getElementById('avg-satisfaction').textContent = (stats.avgSatisfaction || 0).toFixed(1);
+                    }
+                } else {
+                    // Fallback to stats data if feedback API is unavailable
+                    document.getElementById('avg-satisfaction').textContent = (stats.avgSatisfaction || 0).toFixed(1);
+                }
+            } catch (error) {
+                console.error('Error fetching feedback analytics for average satisfaction:', error);
+                // Fallback to stats data
+                document.getElementById('avg-satisfaction').textContent = (stats.avgSatisfaction || 0).toFixed(1);
+            }
+            
             document.getElementById('total-conversations').textContent = stats.totalConversations || 0;
-            document.getElementById('avg-satisfaction').textContent = (stats.avgSatisfaction || 0).toFixed(1);
             document.getElementById('resolution-rate').textContent = (stats.resolutionRate || 0) + '%';
         }
 
@@ -538,49 +539,6 @@
             }
         }
 
-        // Single-date filter functions for Conversation Trends
-        function applyTrendDateFilter() {
-            const dateInput = document.getElementById('trend-date-filter');
-            if (dateInput && dateInput.value && usageStatsManager) {
-                usageStatsManager.setTrendDateFilter(dateInput.value);
-                toast.success('Date filter applied to Conversation Trends');
-            } else {
-                toast.error('Please select a date');
-            }
-        }
-
-        function clearTrendDateFilter() {
-            const dateInput = document.getElementById('trend-date-filter');
-            if (dateInput) {
-                dateInput.value = '';
-            }
-            if (usageStatsManager) {
-                usageStatsManager.clearTrendDateFilter();
-                toast.info('Date filter cleared');
-            }
-        }
-
-        // Single-date filter functions for Office Performance
-        function applyOfficeDateFilter() {
-            const dateInput = document.getElementById('office-date-filter');
-            if (dateInput && dateInput.value && usageStatsManager) {
-                usageStatsManager.setOfficeDateFilter(dateInput.value);
-                toast.success('Date filter applied to Office Performance');
-            } else {
-                toast.error('Please select a date');
-            }
-        }
-
-        function clearOfficeDateFilter() {
-            const dateInput = document.getElementById('office-date-filter');
-            if (dateInput) {
-                dateInput.value = '';
-            }
-            if (usageStatsManager) {
-                usageStatsManager.clearOfficeDateFilter();
-                toast.info('Date filter cleared');
-            }
-        }
 
         // Filter function removed - no longer needed since we show overall stats only
 

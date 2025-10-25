@@ -37,30 +37,59 @@ class UserManager {
                         } else {
                             console.log('Stored session expired, clearing...');
                             localStorage.removeItem('educhat_session');
+                            localStorage.removeItem('auth_token');
                         }
                     }
                 } catch (error) {
                     console.error('Error parsing stored session:', error);
                     localStorage.removeItem('educhat_session');
+                    localStorage.removeItem('auth_token');
                 }
             }
             
-            // Check server-side session status
-            const response = await fetch('/api/auth/session-status', {
-                credentials: 'include' // Important for session cookies
-            });
-            
-            // Only parse as JSON if response is OK and content-type is JSON
+            // Check server-side session status only if we have a token and are on a protected page
+            const token = localStorage.getItem('auth_token');
             let data = { authenticated: false };
-            if (response.ok) {
-                const contentType = response.headers.get('content-type');
-                if (contentType && contentType.includes('application/json')) {
-                    data = await response.json();
-                } else {
-                    console.warn('Session status endpoint returned non-JSON response');
+            
+            // Only make server call if we have a token and are on a protected page
+            if (token && this.isProtectedPage()) {
+                try {
+                    const headers = {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    };
+                    
+                    const response = await fetch('/api/auth/check', {
+                        method: 'GET',
+                        headers: headers,
+                        credentials: 'include'
+                    });
+                    
+                    if (response.ok) {
+                        const contentType = response.headers.get('content-type');
+                        if (contentType && contentType.includes('application/json')) {
+                            data = await response.json();
+                        } else {
+                            console.warn('Session status endpoint returned non-JSON response');
+                        }
+                    } else if (response.status === 401) {
+                        console.log('Token invalid or expired, clearing session');
+                        localStorage.removeItem('auth_token');
+                        localStorage.removeItem('educhat_session');
+                        data = { authenticated: false };
+                    } else {
+                        console.warn(`Session status endpoint error (${response.status})`);
+                    }
+                } catch (error) {
+                    console.error('Error checking session status:', error);
+                    data = { authenticated: false };
                 }
             } else {
-                console.warn(`Session status endpoint not available (${response.status})`);
+                if (!token) {
+                    console.log('No token found, skipping server session check');
+                } else {
+                    console.log('Not on a protected page, skipping server session check');
+                }
             }
             
             if (data.authenticated && data.user) {
@@ -288,15 +317,40 @@ class UserManager {
     startSessionMonitoring(intervalMinutes = 30) {
         setInterval(async () => {
             try {
-                const response = await fetch('/api/auth/session-status');
-                const data = await response.json();
-
-                if (!data.authenticated) {
-                    console.log('Session expired, logging out');
+                const token = localStorage.getItem('auth_token');
+                
+                if (!token) {
+                    console.log('No token found, skipping session check');
+                    return;
+                }
+                
+                const headers = {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                };
+                
+                const response = await fetch('/api/auth/check', {
+                    method: 'GET',
+                    headers: headers,
+                    credentials: 'include'
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (!data.authenticated) {
+                        console.log('Session expired, logging out');
+                        await this.logout();
+                    }
+                } else if (response.status === 401) {
+                    console.log('Token invalid or expired, logging out');
+                    await this.logout();
+                } else {
+                    console.log('Session check failed, logging out');
                     await this.logout();
                 }
             } catch (error) {
                 console.error('Session validation error:', error);
+                // Don't logout on network errors, just log the error
             }
         }, intervalMinutes * 60 * 1000);
     }

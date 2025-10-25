@@ -342,10 +342,28 @@ class UsageStatsManager {
             }
         }
 
-        // Update average satisfaction
+        // Update average satisfaction - fetch from feedback analytics to ensure consistency with feedback page
         const avgSatisfactionEl = document.getElementById('avg-satisfaction');
         if (avgSatisfactionEl) {
-            avgSatisfactionEl.textContent = (data.avgSatisfaction || 0).toFixed(1);
+            try {
+                const feedbackResponse = await fetch('/api/admin/feedback');
+                if (feedbackResponse.ok) {
+                    const feedbackData = await feedbackResponse.json();
+                    if (feedbackData.success && feedbackData.analytics) {
+                        avgSatisfactionEl.textContent = (feedbackData.analytics.average_rating || 0).toFixed(1);
+                    } else {
+                        // Fallback to stats data if feedback API is unavailable
+                        avgSatisfactionEl.textContent = (data.avgSatisfaction || 0).toFixed(1);
+                    }
+                } else {
+                    // Fallback to stats data if feedback API is unavailable
+                    avgSatisfactionEl.textContent = (data.avgSatisfaction || 0).toFixed(1);
+                }
+            } catch (error) {
+                console.error('Error fetching feedback analytics for average satisfaction:', error);
+                // Fallback to stats data
+                avgSatisfactionEl.textContent = (data.avgSatisfaction || 0).toFixed(1);
+            }
         }
 
         // Update resolution rate

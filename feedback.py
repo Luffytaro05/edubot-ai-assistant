@@ -249,6 +249,92 @@ def get_recent_feedback(limit=20):
         print(f"Error getting recent feedback: {e}")
         return []
 
+def get_shared_feedback_analytics(query=None):
+    """
+    Shared function to get feedback analytics with consistent calculation
+    This ensures both main feedback and sub-feedback pages show the same data
+    
+    Args:
+        query (dict, optional): MongoDB query filter
+    
+    Returns:
+        dict: Analytics data with consistent calculation
+    """
+    try:
+        if query is None:
+            query = {}
+            
+        # Get all feedback data
+        all_feedback = list(feedback_collection.find(query))
+        
+        if not all_feedback:
+            return {
+                "average_rating": 0,
+                "total_reviews": 0,
+                "positive_count": 0,
+                "negative_count": 0,
+                "neutral_count": 0,
+                "positive_percentage": 0.0,
+                "negative_percentage": 0.0,
+                "neutral_percentage": 0.0
+            }
+        
+        # Calculate metrics
+        total_reviews = len(all_feedback)
+        ratings = [f["rating"] for f in all_feedback if "rating" in f]
+        average_rating = sum(ratings) / len(ratings) if ratings else 0
+        
+        # Calculate sentiment-based percentages (consistent with sub-feedback page)
+        positive_count = sum(1 for f in all_feedback if f.get("sentiment") == "positive")
+        negative_count = sum(1 for f in all_feedback if f.get("sentiment") == "negative")
+        neutral_count = sum(1 for f in all_feedback if f.get("sentiment") == "neutral")
+        
+        # If no sentiment data exists, calculate and store sentiment
+        if positive_count == 0 and negative_count == 0 and neutral_count == 0:
+            for feedback in all_feedback:
+                if "sentiment" not in feedback:
+                    sentiment = analyze_sentiment(feedback.get("rating", 3), feedback.get("comment"))[0]
+                    feedback_collection.update_one(
+                        {"_id": feedback["_id"]},
+                        {"$set": {"sentiment": sentiment}}
+                    )
+                    # Recalculate counts
+                    if sentiment == "positive":
+                        positive_count += 1
+                    elif sentiment == "negative":
+                        negative_count += 1
+                    else:
+                        neutral_count += 1
+        
+        # Calculate percentages
+        positive_percentage = round((positive_count / total_reviews) * 100, 1) if total_reviews > 0 else 0.0
+        negative_percentage = round((negative_count / total_reviews) * 100, 1) if total_reviews > 0 else 0.0
+        neutral_percentage = round((neutral_count / total_reviews) * 100, 1) if total_reviews > 0 else 0.0
+        
+        return {
+            "average_rating": round(average_rating, 2),
+            "total_reviews": total_reviews,
+            "positive_count": positive_count,
+            "negative_count": negative_count,
+            "neutral_count": neutral_count,
+            "positive_percentage": positive_percentage,
+            "negative_percentage": negative_percentage,
+            "neutral_percentage": neutral_percentage
+        }
+        
+    except Exception as e:
+        print(f"Error in get_shared_feedback_analytics: {e}")
+        return {
+            "average_rating": 0,
+            "total_reviews": 0,
+            "positive_count": 0,
+            "negative_count": 0,
+            "neutral_count": 0,
+            "positive_percentage": 0.0,
+            "negative_percentage": 0.0,
+            "neutral_percentage": 0.0
+        }
+
 def get_feedback_analytics():
     """
     Get comprehensive feedback analytics for admin dashboard
@@ -257,7 +343,10 @@ def get_feedback_analytics():
         dict: Complete analytics data including KPIs and detailed feedback
     """
     try:
-        # Get all feedback data
+        # Use shared analytics function for consistent calculation
+        analytics_data = get_shared_feedback_analytics({})
+        
+        # Get all feedback data for detailed table
         all_feedback = list(feedback_collection.find({}).sort("timestamp", -1))
         
         if not all_feedback:
@@ -272,18 +361,14 @@ def get_feedback_analytics():
                 }
             }
         
-        # Calculate metrics
-        total_feedback = len(all_feedback)
-        ratings = [f["rating"] for f in all_feedback]
-        average_rating = sum(ratings) / len(ratings) if ratings else 0
-        
-        # Calculate sentiment-based percentages
-        positive_count = sum(1 for f in all_feedback if f.get("sentiment") == "positive")
-        negative_count = sum(1 for f in all_feedback if f.get("sentiment") == "negative")
-        neutral_count = sum(1 for f in all_feedback if f.get("sentiment") == "neutral")
-        
-        positive_percentage = (positive_count / total_feedback) * 100 if total_feedback > 0 else 0
-        negative_percentage = (negative_count / total_feedback) * 100 if total_feedback > 0 else 0
+        # Extract values from shared analytics
+        total_feedback = analytics_data["total_reviews"]
+        average_rating = analytics_data["average_rating"]
+        positive_count = analytics_data["positive_count"]
+        negative_count = analytics_data["negative_count"]
+        neutral_count = analytics_data["neutral_count"]
+        positive_percentage = analytics_data["positive_percentage"]
+        negative_percentage = analytics_data["negative_percentage"]
         
         # Prepare feedback data for table
         feedback_data = []

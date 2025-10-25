@@ -109,11 +109,15 @@ class UsageStatsCalculator:
             avg_satisfaction = satisfaction_result[0]['avg_rating'] if satisfaction_result else 0
             total_ratings = satisfaction_result[0]['total_ratings'] if satisfaction_result else 0
             
-            # Resolution Rate - conversations resolved vs escalated
+            # Resolution Rate - conversations with status 'resolved' vs total conversations with status
+            # First try to get conversations with status field
             resolution_pipeline = [
-                {'$match': time_query},
+                {'$match': {
+                    **time_query,
+                    'status': {'$exists': True, '$ne': None}
+                }},
                 {'$group': {
-                    '_id': '$resolved',
+                    '_id': '$status',
                     'count': {'$sum': 1}
                 }}
             ]
@@ -124,10 +128,22 @@ class UsageStatsCalculator:
             
             for item in resolution_result:
                 total_resolution_conversations += item['count']
-                if item['_id'] == True:  # Resolved conversations
+                if item['_id'] == 'resolved':  # Resolved conversations
                     resolved_count = item['count']
             
-            resolution_rate = (resolved_count / total_resolution_conversations * 100) if total_resolution_conversations > 0 else 0
+            # If no conversations with status, try to get all conversations and assume none are resolved
+            if total_resolution_conversations == 0:
+                total_conversations_with_status = self.conversations_collection.count_documents(time_query)
+                if total_conversations_with_status > 0:
+                    # If there are conversations but no status field, assume 0% resolution rate
+                    resolution_rate = 0
+                    print(f"Resolution Rate Debug - No conversations with status field, assuming 0% resolution rate")
+                else:
+                    resolution_rate = 0
+                    print(f"Resolution Rate Debug - No conversations found in time range")
+            else:
+                resolution_rate = (resolved_count / total_resolution_conversations * 100) if total_resolution_conversations > 0 else 0
+                print(f"Resolution Rate Debug - Resolved: {resolved_count}, Total: {total_resolution_conversations}, Rate: {resolution_rate}%")
             
             # Calculate trends (comparison with previous period)
             prev_start = start_time - (end_time - start_time)
@@ -387,11 +403,14 @@ class UsageStatsCalculator:
             satisfaction_result = list(self.feedback_collection.aggregate(satisfaction_pipeline))
             satisfaction = satisfaction_result[0]['avg_rating'] if satisfaction_result else 0
             
-            # Overall resolution rate
+            # Overall resolution rate - conversations with status 'resolved' vs total conversations with status
             resolution_pipeline = [
-                {'$match': overall_query},
+                {'$match': {
+                    **overall_query,
+                    'status': {'$exists': True, '$ne': None}
+                }},
                 {'$group': {
-                    '_id': '$resolved',
+                    '_id': '$status',
                     'count': {'$sum': 1}
                 }}
             ]
@@ -402,7 +421,7 @@ class UsageStatsCalculator:
             
             for item in resolution_result:
                 total_for_resolution += item['count']
-                if item['_id'] == True:
+                if item['_id'] == 'resolved':
                     resolved_count = item['count']
             
             resolution_rate = (resolved_count / total_for_resolution * 100) if total_for_resolution > 0 else 0
@@ -595,11 +614,14 @@ class UsageStatsCalculator:
             ]))
             prev_satisfaction = prev_satisfaction_result[0]['avg_rating'] if prev_satisfaction_result else 0
             
-            # Previous resolution rate
+            # Previous resolution rate - conversations with status 'resolved' vs total conversations with status
             prev_resolution_result = list(self.conversations_collection.aggregate([
-                {'$match': time_query},
+                {'$match': {
+                    **time_query,
+                    'status': {'$exists': True, '$ne': None}
+                }},
                 {'$group': {
-                    '_id': '$resolved',
+                    '_id': '$status',
                     'count': {'$sum': 1}
                 }}
             ]))
@@ -609,7 +631,7 @@ class UsageStatsCalculator:
             
             for item in prev_resolution_result:
                 prev_total += item['count']
-                if item['_id'] == True:
+                if item['_id'] == 'resolved':
                     prev_resolved = item['count']
             
             prev_resolution_rate = (prev_resolved / prev_total * 100) if prev_total > 0 else 0

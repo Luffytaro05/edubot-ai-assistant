@@ -1753,7 +1753,7 @@ def predict():
             
             # Save the exchange
             save_message(user=user, sender="user", message=original_message, detected_office=current_office_tag)
-            save_message(user=user, sender="bot", message=warning_message, detected_office=current_office_tag, status="unresolved")
+            save_message(user=user, sender="bot", message=warning_message, detected_office=current_office_tag, status="escalated")
             
             return jsonify({
                 "answer": warning_message,
@@ -1815,16 +1815,41 @@ def predict():
             "i think you might be asking about",   # NEW
             "would you like me to connect you",     # NEW
             "Context Switch Detected",
-            "Click the **'Reset Context'** button at the top of the chat"
+            "Click the **'Reset Context'** button at the top of the chat",
+            "⚠️ **Context Switch Detected**",  # Enhanced pattern for your specific message
+            "reset context",  # Additional pattern for context reset
+            "reset the",  # Pattern for "reset the Admissions Office context"
+            "switching to the",  # Pattern for "switching to the Registrar's Office"
+            "office context",  # Pattern for office context messages
+            "context switch",  # Additional pattern
+            "reset context'",  # Pattern with apostrophe
+            "type 'reset context'",  # Pattern for "type 'reset context'"
+            "clear the current office context",  # Pattern for "clear the current office context"
+            "ensure clear and accurate responses"  # Pattern from your message
         ]
 
         # Detect resolved/unresolved/escalated status
-        if response and any(p in response.lower() for p in escalation_patterns):
+        # First check for escalation patterns (highest priority)
+        is_escalated = False
+        if response:
+            response_lower = response.lower()
+            for pattern in escalation_patterns:
+                if pattern.lower() in response_lower:
+                    is_escalated = True
+                    print(f"🚨 ESCALATION DETECTED: Pattern '{pattern}' found in response")
+                    break
+        
+        if is_escalated:
             status = "escalated"
-        elif response and not any(p in response.lower() for p in unresolved_patterns):
-            status = "resolved"
-        else:
+            print(f"✅ STATUS SET TO ESCALATED for response: {response[:100]}...")
+        elif response and any(p in response.lower() for p in unresolved_patterns):
             status = "unresolved"
+            print(f"❌ STATUS SET TO UNRESOLVED for response: {response[:100]}...")
+        else:
+            status = "resolved"
+            print(f"✅ STATUS SET TO RESOLVED for response: {response[:100]}...")
+        
+        print(f"🎯 FINAL STATUS: {status}")
 
         # ✅ AUTO-SWITCH: Detect office switch suggestions and extract suggested office
         suggested_office = None

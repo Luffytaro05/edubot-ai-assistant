@@ -480,6 +480,28 @@
                 </div>
                 <p class="page-subtitle">Comprehensive analytics and performance metrics</p>
 
+                <!-- Date Filter Section -->
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center" style="flex-wrap: wrap; gap: 1rem;">
+                            <div>
+                                <h5 class="card-title mb-0">Filter Options</h5>
+                                <p class="card-text text-muted">Filter data by specific date</p>
+                            </div>
+                            <div class="date-filter-group" style="display: flex; align-items: center; gap: 0.5rem;">
+                                <label for="usageFilterDate" style="margin: 0; font-size: 0.875rem; color: #64748b;">Filter by Date:</label>
+                                <input type="date" id="usageFilterDate" class="form-control form-control-sm" style="max-width: 160px;">
+                                <button class="btn btn-sm btn-outline-primary" onclick="applyUsageDateFilter()" title="Apply Date Filter">
+                                    <i class="fas fa-filter"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-secondary" onclick="clearUsageDateFilter()" title="Clear Filter">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- KPI Cards -->
                 <div class="row mb-4">
                     <div class="col-md-3 mb-3">
@@ -489,9 +511,6 @@
                             </div>
                             <div class="kpi-value" id="totalSessions">12,543</div>
                             <div class="kpi-label">Total Sessions</div>
-                            <div class="kpi-trend trend-up">
-                                <i class="fas fa-arrow-up"></i> +12%
-                            </div>
                         </div>
                     </div>
                     
@@ -502,9 +521,6 @@
                             </div>
                             <div class="kpi-value" id="avgSessionDuration">4m 32s</div>
                             <div class="kpi-label">Avg. Session Duration</div>
-                            <div class="kpi-trend trend-up">
-                                <i class="fas fa-arrow-up"></i> +8%
-                            </div>
                         </div>
                     </div>
                     
@@ -515,9 +531,6 @@
                             </div>
                             <div class="kpi-value" id="responseRate">95.8%</div>
                             <div class="kpi-label">Response Rate</div>
-                            <div class="kpi-trend trend-up">
-                                <i class="fas fa-arrow-up"></i> +2.5%
-                            </div>
                         </div>
                     </div>
                     
@@ -528,9 +541,6 @@
                             </div>
                             <div class="kpi-value" id="successRate">88.3%</div>
                             <div class="kpi-label">Success Rate</div>
-                            <div class="kpi-trend trend-up">
-                                <i class="fas fa-arrow-up"></i> +1.2%
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -539,18 +549,8 @@
                 <div class="row mb-4">
                     <div class="col-md-12">
                         <div class="chart-container">
-                            <div class="d-flex justify-content-between align-items-center mb-3" style="flex-wrap: wrap; gap: 0.75rem;">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
                                 <h5 class="chart-title mb-0">Usage by Time of Day</h5>
-                                <div class="date-filter-group" style="display: flex; align-items: center; gap: 0.5rem;">
-                                    <label for="usageFilterDate" style="margin: 0; font-size: 0.875rem; color: #64748b;">Filter by Date:</label>
-                                    <input type="date" id="usageFilterDate" class="form-control form-control-sm" style="max-width: 160px;">
-                                    <button class="btn btn-sm btn-outline-primary" onclick="applyUsageDateFilter()" title="Apply Date Filter">
-                                        <i class="fas fa-filter"></i>
-                                    </button>
-                                    <button class="btn btn-sm btn-outline-secondary" onclick="clearUsageDateFilter()" title="Clear Filter">
-                                        <i class="fas fa-times"></i>
-                                    </button>
-                                </div>
                             </div>
                             <canvas id="timeOfDayChart" width="400" height="200"></canvas>
                         </div>
