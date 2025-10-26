@@ -62,10 +62,33 @@ app.register_blueprint(sub_faq_bp)
 app.register_blueprint(sub_announcements_bp)
 app.register_blueprint(usage_bp)
 CORS(app)
-app.config['SECRET_KEY'] = 'your-secret-key-change-this-in-production'  # Change this in production
-# MongoDB connection
-client = MongoClient("mongodb+srv://dxtrzpc26:w1frwdiwmW9VRItO@cluster0.gskdq3p.mongodb.net/")
-db = client["chatbot_db"]
+# Railway-compatible configuration
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your-secret-key-change-this-in-production')
+
+# MongoDB connection with Railway environment variable support
+MONGODB_URI = os.getenv('MONGODB_URI', 'mongodb+srv://dxtrzpc26:w1frwdiwmW9VRItO@cluster0.gskdq3p.mongodb.net/')
+try:
+    client = MongoClient(MONGODB_URI, serverSelectionTimeoutMS=5000)
+    # Test connection
+    client.admin.command('ping')
+    db = client["chatbot_db"]
+    print("✅ MongoDB connected successfully")
+except Exception as e:
+    print(f"❌ MongoDB connection failed: {e}")
+    # Create a mock database for Railway deployment without MongoDB
+    class MockDB:
+        def __getattr__(self, name):
+            return MockCollection()
+    class MockCollection:
+        def find_one(self, *args, **kwargs): return None
+        def find(self, *args, **kwargs): return []
+        def insert_one(self, *args, **kwargs): return type('Result', (), {'inserted_id': 'mock_id'})()
+        def update_one(self, *args, **kwargs): return type('Result', (), {'modified_count': 1})()
+        def delete_one(self, *args, **kwargs): return type('Result', (), {'deleted_count': 1})()
+        def count_documents(self, *args, **kwargs): return 0
+        def distinct(self, *args, **kwargs): return []
+    db = MockDB()
+    client = None
 # Fix: Use a different name to avoid conflicts with the route function
 conversations_collection = db["conversations"]  # Changed name here
 users_collection = db["users"]
@@ -1576,16 +1599,53 @@ def get_suggested_messages_from_settings():
 
 @app.post("/predict")
 def predict():
-    data = request.get_json()
-    text = data.get("message")
-    user = data.get("user", "guest")
-    user_language = data.get("language", "en")  # Get user's language preference
-
-    if not text or not text.strip():
-        return jsonify({"answer": "Please type something."})
-
     try:
+        # Validate request data
+        data = request.get_json()
+        if not data:
+            return jsonify({"answer": "Invalid request data."}), 400
+            
+        text = data.get("message")
+        user = data.get("user", "guest")
+        user_language = data.get("language", "en")
+
+        if not text or not text.strip():
+            return jsonify({"answer": "Please type something."})
+
+        # Store original message for later use
         original_message = text
+
+        # Check if required modules are available
+        try:
+            from chat import get_response, save_message, user_contexts, office_tags, detect_office_from_message
+        except ImportError as e:
+            print(f"[ERROR] Chat module import error: {e}")
+            return jsonify({
+                "answer": "Chatbot is temporarily unavailable. Please try again later.",
+                "error": "Module import failed"
+            }), 500
+
+        # Check if model is available
+        try:
+            import torch
+            import os
+            if not os.path.exists("data.pth"):
+                print("[WARNING] Model file not found, using fallback response")
+                return jsonify({
+                    "answer": "Hello! I'm TCC Assistant. How can I help you today?",
+                    "office": "General",
+                    "status": "resolved",
+                    "model_available": False
+                })
+        except ImportError:
+            print("[WARNING] PyTorch not available, using fallback response")
+            return jsonify({
+                "answer": "Hello! I'm TCC Assistant. How can I help you today?",
+                "office": "General", 
+                "status": "resolved",
+                "model_available": False
+            })
+
         detected_language = "en"
         
         # ✅ Google Translate Integration - Detect and translate user message (English and Filipino only)

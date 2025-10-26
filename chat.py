@@ -214,7 +214,7 @@ vector_store = VectorStore()
 # Note: Announcements are now stored exclusively in MongoDB and Pinecone
 # No JSON file fallback - all announcements come from database
 
-# Load trained model
+# Load trained model with Railway fallback
 FILE = "data.pth"
 try:
     data = torch.load(FILE)
@@ -232,12 +232,21 @@ try:
     
     # Initialize hybrid model
     hybrid_model = HybridChatModel(model, vector_store, tags)
-    print("Neural network and vector store loaded successfully")
+    print("[OK] Neural network and vector store loaded successfully")
     
 except FileNotFoundError:
-    print("Neural network model not found. Run train.py first.")
+    print("[WARNING] Neural network model not found. Using fallback mode.")
     model = None
     hybrid_model = None
+    # Create minimal fallback data
+    all_words = ["hello", "help", "thanks", "goodbye"] * 25
+    tags = ["greeting", "help", "thanks", "goodbye"]
+except Exception as e:
+    print(f"[ERROR] Error loading model: {e}. Using fallback mode.")
+    model = None
+    hybrid_model = None
+    all_words = ["hello", "help", "thanks", "goodbye"] * 25
+    tags = ["greeting", "help", "thanks", "goodbye"]
 
 # Store conversation contexts for each user per office
 # Structure: user_contexts[user_id] = {
@@ -679,7 +688,38 @@ def search_faq_database(query, office=None):
         print(f"FAQ search error: {e}")
         return None
 
+def get_fallback_response(msg, user_id="guest"):
+    """Simple fallback response when model is not available"""
+    msg_lower = msg.lower()
+    
+    # Simple keyword matching
+    if any(word in msg_lower for word in ["hello", "hi", "hey", "good morning", "good afternoon"]):
+        return "Hello! Welcome to TCC Assistant. How can I help you today?"
+    elif any(word in msg_lower for word in ["help", "assist", "support"]):
+        return "I'm here to help! You can ask me about admissions, registrar services, ICT support, guidance, or student affairs."
+    elif any(word in msg_lower for word in ["admission", "apply", "enroll"]):
+        return "For admission inquiries, please contact the Admissions Office. They can help with requirements and application procedures."
+    elif any(word in msg_lower for word in ["registrar", "transcript", "grades"]):
+        return "The Registrar's Office handles academic records and transcripts. Please visit them for document requests."
+    elif any(word in msg_lower for word in ["ict", "password", "login", "portal"]):
+        return "For ICT support and password issues, please contact the ICT Office. They can help with student portal access."
+    elif any(word in msg_lower for word in ["guidance", "counseling", "scholarship"]):
+        return "The Guidance Office provides counseling services and scholarship information. Visit them for career guidance."
+    elif any(word in msg_lower for word in ["osa", "student affairs", "clubs", "activities"]):
+        return "The Office of Student Affairs manages student activities and clubs. Contact them for organization information."
+    elif any(word in msg_lower for word in ["thank", "thanks", "salamat"]):
+        return "You're welcome! Feel free to ask if you need more help."
+    elif any(word in msg_lower for word in ["bye", "goodbye", "see you"]):
+        return "Goodbye! Have a great day!"
+    else:
+        return "I'm TCC Assistant! I can help you with information about admissions, registrar services, ICT support, guidance, and student affairs. What would you like to know?"
+
 def get_response(msg, user_id="guest"):
+    # Check if model is available, use fallback if not
+    if model is None or hybrid_model is None:
+        print("⚠️ Using fallback response (model not available)")
+        return get_fallback_response(msg, user_id)
+    
     # Enhanced text preprocessing
     cleaned_msg = clean_text(msg)
     sentence = tokenize(cleaned_msg)
