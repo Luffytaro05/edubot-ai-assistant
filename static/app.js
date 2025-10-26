@@ -669,9 +669,7 @@ class Chatbox {
         if (!subSuggestionBox || !suggestions || suggestions.length === 0) return;
 
         // Clear previous suggestions
-        if (subSuggestionBox) {
-            subSuggestionBox.innerHTML = "";
-        }
+        subSuggestionBox.innerHTML = "";
 
         // Create suggestion buttons
         suggestions.forEach(suggestion => {
@@ -1516,16 +1514,8 @@ showProgressMessage(current, total, operation = "Processing") {
 
         if (rendered) {
             // Hide main suggestions
-            const mainSuggestions = document.querySelector('.chatbox__suggestions');
-            const suggestionsLabel = document.querySelector('.suggestions-label');
-            
-            if (mainSuggestions) {
-                mainSuggestions.style.display = 'none';
-            }
-            
-            if (suggestionsLabel) {
-                suggestionsLabel.textContent = 'Related questions:';
-            }
+            document.querySelector('.chatbox__suggestions').style.display = 'none';
+            document.querySelector('.suggestions-label').textContent = 'Related questions:';
 
             // Apply theme color to the newly rendered buttons
             if (this.botSettings && this.botSettings.primary_color) {
@@ -1535,21 +1525,9 @@ showProgressMessage(current, total, operation = "Processing") {
     }
 
     resetToMainSuggestions() {
-        const subSuggestions = document.getElementById("sub-suggestions");
-        const mainSuggestions = document.querySelector('.chatbox__suggestions');
-        const suggestionsLabel = document.querySelector('.suggestions-label');
-        
-        if (subSuggestions) {
-            subSuggestions.innerHTML = "";
-        }
-        
-        if (mainSuggestions) {
-            mainSuggestions.style.display = 'flex';
-        }
-        
-        if (suggestionsLabel) {
-            suggestionsLabel.textContent = 'Suggested topics:';
-        }
+        document.getElementById("sub-suggestions").innerHTML = "";
+        document.querySelector('.chatbox__suggestions').style.display = 'flex';
+        document.querySelector('.suggestions-label').textContent = 'Suggested topics:';
     }
 
     sendSuggestion(text) {
