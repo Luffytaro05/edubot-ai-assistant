@@ -31,6 +31,7 @@ from settings import (
 )
 from faq import add_faq, get_faqs, update_faq, delete_faq, search_faqs, get_faq_by_id, get_faq_versions, rollback_faq
 import jwt
+import pinecone
 import os
 import time
 from functools import wraps
@@ -63,6 +64,14 @@ app.register_blueprint(sub_announcements_bp)
 app.register_blueprint(usage_bp)
 CORS(app)
 app.config['SECRET_KEY'] = 'your-secret-key-change-this-in-production'  # Change this in production
+# initialize
+pinecone.init(
+    api_key=os.getenv("PINECONE_API_KEY"), 
+    environment=os.getenv("PINECONE_ENV") or "us-east-1"
+)
+
+index_name = os.getenv("PINECONE_INDEX_NAME") or "chatbot-vectors"
+index = pinecone.Index(index_name)
 # MongoDB connection
 client = MongoClient("mongodb+srv://dxtrzpc26:w1frwdiwmW9VRItO@cluster0.gskdq3p.mongodb.net/")
 db = client["chatbot_db"]
