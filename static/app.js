@@ -1525,7 +1525,10 @@ showProgressMessage(current, total, operation = "Processing") {
     }
 
     resetToMainSuggestions() {
-        document.getElementById("sub-suggestions").innerHTML = "";
+        const subSuggestions = document.getElementById("sub-suggestions");
+        if (subSuggestions) {
+            subSuggestions.innerHTML = "";
+        }
         document.querySelector('.chatbox__suggestions').style.display = 'flex';
         document.querySelector('.suggestions-label').textContent = 'Suggested topics:';
     }

@@ -4,7 +4,7 @@ from flask import Flask, render_template, request, jsonify, session, current_app
 from flask_cors import CORS
 from chat import (get_response, reset_user_context, clear_chat_history, 
                   get_active_announcements, add_announcement, get_announcement_by_id,
-                  vector_store, get_chatbot_response, save_message,
+                  vector_store, get_chatbot_response,
                   user_contexts, office_tags, detect_office_from_message as chat_detect_office)
 import requests
 from pymongo import MongoClient
@@ -30,7 +30,12 @@ from settings import (
     reset_settings as reset_bot_settings,
 )
 from faq import add_faq, get_faqs, update_faq, delete_faq, search_faqs, get_faq_by_id, get_faq_versions, rollback_faq
-import jwt
+try:
+    import jwt
+    JWT_AVAILABLE = True
+except ImportError:
+    print("[WARNING] JWT module not available. Authentication features will be disabled.")
+    JWT_AVAILABLE = False
 import os
 import time
 from functools import wraps
@@ -439,6 +444,9 @@ def token_required(f):
     """Decorator to require valid JWT token"""
     @wraps(f)
     def decorated(*args, **kwargs):
+        if not JWT_AVAILABLE:
+            return jsonify({'message': 'JWT authentication not available'}), 500
+            
         token = None
         auth_header = request.headers.get('Authorization')
         
@@ -551,6 +559,12 @@ def api_upload_bot_avatar():
 @app.route('/api/auth/login', methods=['POST'])
 def login():
     try:
+        if not JWT_AVAILABLE:
+            return jsonify({
+                'success': False,
+                'message': 'JWT authentication not available'
+            }), 500
+            
         data = request.get_json()
         email = data.get('email', '').lower().strip()
         password = data.get('password', '')
@@ -1617,7 +1631,7 @@ def predict():
 
         # Check if required modules are available
         try:
-            from chat import get_response, save_message, user_contexts, office_tags, detect_office_from_message
+            from chat import get_response, user_contexts, office_tags, detect_office_from_message
         except ImportError as e:
             print(f"[ERROR] Chat module import error: {e}")
             return jsonify({
@@ -1749,7 +1763,7 @@ def predict():
             
             # Save the confirmation exchange
             save_message(user=user, sender="user", message=original_message, detected_office=pending_switch_office)
-            save_message(user=user, sender="bot", message=switch_confirmation, detected_office=pending_switch_office, status="resolved")
+            save_message(user=user, sender="bot", message=switch_confirmation, detected_office=pending_switch_office)
             
             return jsonify({
                 "answer": switch_confirmation,
@@ -1812,7 +1826,7 @@ def predict():
             
             # Save the exchange
             save_message(user=user, sender="user", message=original_message, detected_office=current_office_tag)
-            save_message(user=user, sender="bot", message=warning_message, detected_office=current_office_tag, status="escalated")
+            save_message(user=user, sender="bot", message=warning_message, detected_office=current_office_tag)
             
             return jsonify({
                 "answer": warning_message,
@@ -2573,6 +2587,9 @@ def health_check():
 def check_auth_status():
     """Check if user is authenticated (for frontend use)"""
     try:
+        if not JWT_AVAILABLE:
+            return jsonify({'authenticated': False, 'message': 'JWT authentication not available'}), 500
+            
         auth_header = request.headers.get('Authorization')
         if not auth_header:
             return jsonify({'authenticated': False, 'message': 'No token provided'}), 401
