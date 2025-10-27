@@ -2821,7 +2821,7 @@ def check_auth_status():
 @app.get("/admin")
 def admin_panel():
     """Admin panel for managing announcements and vector database"""
-    return render_template("admin.html")
+    return render_template("dashboard.html")
 
 @app.get("/admin/index")
 def admin_index():
@@ -4266,7 +4266,7 @@ if __name__ == "__main__":
     print("Available routes:")
     print("- / : Main chatbot interface (base.html)")
     print("- /index : Index page (index.html)")
-    print("- /admin : Admin panel (admin.html)")
+    print("- /admin : Admin panel (dashboard.html)")
     print("- /admin/index : Admin index (index.html)")
     print("- /admin/dashboard : Admin dashboard (dashboard.html)")
     print("- /dashboard : Direct dashboard access (dashboard.html)")
