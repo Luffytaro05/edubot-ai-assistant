@@ -1423,6 +1423,34 @@ def subadmin_login():
         return jsonify({"success": False, "message": "Server error during login"}), 500
 
 
+@app.route('/admin/session', methods=['GET'])
+def admin_session():
+    """Check admin session status"""
+    if "user_id" in session and session.get("role") == "admin":
+        # Check for 24-hour session expiration
+        login_time_str = session.get("login_time")
+        if login_time_str:
+            login_time = datetime.fromisoformat(login_time_str)
+            time_elapsed = datetime.utcnow() - login_time
+            
+            # If more than 24 hours have passed, expire the session
+            if time_elapsed > timedelta(hours=24):
+                session.clear()
+                return jsonify({
+                    "authenticated": False,
+                    "expired": True,
+                    "message": "Session expired after 24 hours. Please login again."
+                })
+        
+        return jsonify({
+            "authenticated": True,
+            "email": session.get("email"),
+            "role": session.get("role"),
+            "office": session.get("office"),
+            "name": session.get("name")
+        })
+    return jsonify({"authenticated": False})
+
 @app.route('/subadmin/session', methods=['GET'])
 def subadmin_session():
     if "user_id" in session and session.get("role") == "sub-admin":
@@ -1450,6 +1478,12 @@ def subadmin_session():
         })
     return jsonify({"authenticated": False})
 
+
+@app.route('/admin/logout', methods=['POST'])
+def admin_logout():
+    """Admin logout route"""
+    session.clear()
+    return jsonify({"success": True, "message": "Logged out"})
 
 @app.route('/subadmin/logout', methods=['POST'])
 def subadmin_logout():
