@@ -55,7 +55,19 @@ DetectorFactory.seed = 0
 
 app = Flask(__name__)
 moment = Moment(app)
-vs = VectorStore()
+
+# Pinecone Configuration (needed before VectorStore initialization)
+PINECONE_API_KEY = os.getenv('PINECONE_API_KEY')
+PINECONE_ENV = os.getenv('PINECONE_ENV', 'us-east-1')
+PINECONE_INDEX_NAME = os.getenv('PINECONE_INDEX_NAME', 'chatbot-vectors')
+
+# Initialize VectorStore with Pinecone configuration
+vs = VectorStore(
+    index_name=PINECONE_INDEX_NAME,
+    model_name="all-MiniLM-L6-v2",
+    dimension=384,
+    enhanced_embeddings=True
+)
 app.register_blueprint(conversations_bp)
 app.register_blueprint(users_bp)
 app.register_blueprint(roles_bp)
@@ -69,6 +81,44 @@ app.register_blueprint(usage_bp)
 CORS(app)
 # Railway-compatible configuration
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your-secret-key-change-this-in-production')
+
+# Initialize Pinecone client
+pinecone_client = None
+pinecone_index = None
+pinecone_available = False
+
+try:
+    if PINECONE_API_KEY:
+        from pinecone import Pinecone, ServerlessSpec
+        pinecone_client = Pinecone(api_key=PINECONE_API_KEY)
+        
+        # Check if index exists, create if not
+        existing_indexes = [idx.name for idx in pinecone_client.list_indexes()]
+        
+        if PINECONE_INDEX_NAME not in existing_indexes:
+            print(f"Creating new Pinecone index: {PINECONE_INDEX_NAME}")
+            pinecone_client.create_index(
+                name=PINECONE_INDEX_NAME,
+                dimension=384,  # For all-MiniLM-L6-v2 model
+                metric='cosine',
+                spec=ServerlessSpec(
+                    cloud='aws',
+                    region=PINECONE_ENV
+                )
+            )
+            print(f"Waiting for index {PINECONE_INDEX_NAME} to be ready...")
+            import time
+            time.sleep(10)
+        
+        # Connect to index
+        pinecone_index = pinecone_client.Index(PINECONE_INDEX_NAME)
+        pinecone_available = True
+        print(f"✅ Pinecone connected successfully - Index: {PINECONE_INDEX_NAME}, Region: {PINECONE_ENV}")
+        
+except Exception as e:
+    print(f"❌ Pinecone initialization failed: {e}")
+    print("⚠️ Running without Pinecone vector search capabilities")
+    pinecone_available = False
 
 # MongoDB connection with Railway environment variable support
 MONGODB_URI = os.getenv('MONGODB_URI', 'mongodb+srv://dxtrzpc26:w1frwdiwmW9VRItO@cluster0.gskdq3p.mongodb.net/')
@@ -2053,6 +2103,18 @@ def chat():
         status = chatbot_result.get('status', 'resolved')
         office = chatbot_result.get('office', 'General')
         
+        # Add Pinecone vector search results if available
+        pinecone_results = []
+        if pinecone_available:
+            try:
+                # Search for similar content using Pinecone
+                search_results = vs.search_similar(user_message, top_k=3)
+                pinecone_results = search_results
+                print(f"🔍 Pinecone search found {len(search_results)} results for: {user_message}")
+            except Exception as e:
+                print(f"⚠️ Pinecone search failed: {e}")
+                pinecone_results = []
+        
         # Save original user message to MongoDB (in user's language) with status
         save_message(
             user=user,
@@ -2069,7 +2131,10 @@ def chat():
             "response": response_text,
             "user": user,
             "status": status,
-            "office": office
+            "office": office,
+            "pinecone_available": pinecone_available,
+            "pinecone_results": pinecone_results,
+            "pinecone_index": PINECONE_INDEX_NAME if pinecone_available else None
         })
     
     except Exception as e:
@@ -2572,8 +2637,20 @@ def reindex_vectors(current_user):
 def health_check():
     """Health check endpoint"""
     try:
+        # Get Pinecone index stats if available
+        pinecone_stats = None
+        if pinecone_available and pinecone_index:
+            try:
+                pinecone_stats = pinecone_index.describe_index_stats()
+            except Exception as e:
+                pinecone_stats = {"error": str(e)}
+        
         return jsonify({
             "status": "healthy",
+            "pinecone_available": pinecone_available,
+            "pinecone_index": PINECONE_INDEX_NAME if pinecone_available else None,
+            "pinecone_region": PINECONE_ENV if pinecone_available else None,
+            "pinecone_stats": pinecone_stats,
             "vector_enabled": vector_store.index is not None,
             "database_connected": conversations_collection is not None,
             "vector_stats": vector_store.get_stats()
@@ -2583,6 +2660,118 @@ def health_check():
             "status": "unhealthy",
             "error": str(e)
         }), 500
+
+@app.route('/api/pinecone/status', methods=['GET'])
+def pinecone_status():
+    """Get Pinecone connection status and statistics"""
+    try:
+        if not pinecone_available:
+            return jsonify({
+                "status": "unavailable",
+                "message": "Pinecone not configured or failed to initialize",
+                "api_key_set": bool(PINECONE_API_KEY),
+                "index_name": PINECONE_INDEX_NAME,
+                "region": PINECONE_ENV
+            })
+        
+        # Get index statistics
+        stats = pinecone_index.describe_index_stats()
+        
+        return jsonify({
+            "status": "available",
+            "index_name": PINECONE_INDEX_NAME,
+            "region": PINECONE_ENV,
+            "stats": {
+                "total_vector_count": stats.get('total_vector_count', 0),
+                "dimension": stats.get('dimension', 384),
+                "index_fullness": stats.get('index_fullness', 0.0)
+            },
+            "environment": {
+                "api_key_set": bool(PINECONE_API_KEY),
+                "index_name": PINECONE_INDEX_NAME,
+                "region": PINECONE_ENV
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "message": str(e),
+            "api_key_set": bool(PINECONE_API_KEY),
+            "index_name": PINECONE_INDEX_NAME,
+            "region": PINECONE_ENV
+        }), 500
+
+@app.route('/api/pinecone/search', methods=['POST'])
+def pinecone_search():
+    """Search using Pinecone vector store"""
+    try:
+        if not pinecone_available:
+            return jsonify({
+                "error": "Pinecone not available",
+                "message": "Vector search is not configured or failed to initialize"
+            }), 503
+        
+        data = request.get_json()
+        query = data.get('query', '')
+        top_k = data.get('top_k', 5)
+        
+        if not query.strip():
+            return jsonify({"error": "Query is required"}), 400
+        
+        # Use VectorStore for search
+        results = vs.search_similar(query, top_k=top_k)
+        
+        return jsonify({
+            "query": query,
+            "results": results,
+            "total_results": len(results),
+            "pinecone_index": PINECONE_INDEX_NAME,
+            "region": PINECONE_ENV
+        })
+        
+    except Exception as e:
+        print(f"Pinecone search error: {e}")
+        return jsonify({
+            "error": str(e),
+            "message": "Search failed"
+        }), 500
+
+@app.route('/api/pinecone/add', methods=['POST'])
+def pinecone_add_vector():
+    """Add a vector to Pinecone index"""
+    try:
+        if not pinecone_available:
+            return jsonify({
+                "error": "Pinecone not available",
+                "message": "Vector store is not configured or failed to initialize"
+            }), 503
+        
+        data = request.get_json()
+        text = data.get('text', '')
+        metadata = data.get('metadata', {})
+        vector_id = data.get('id', None)
+        
+        if not text.strip():
+            return jsonify({"error": "Text is required"}), 400
+        
+        # Add vector using VectorStore
+        result = vs.add_vector(text, metadata=metadata, vector_id=vector_id)
+        
+        return jsonify({
+            "success": True,
+            "vector_id": result.get('id'),
+            "text": text,
+            "metadata": metadata
+        })
+        
+    except Exception as e:
+        print(f"Pinecone add vector error: {e}")
+        return jsonify({
+            "error": str(e),
+            "message": "Failed to add vector"
+        }), 500
+
 @app.route('/api/auth/check', methods=['GET'])
 def check_auth_status():
     """Check if user is authenticated (for frontend use)"""

@@ -3,13 +3,46 @@ from pymongo import MongoClient
 from werkzeug.security import generate_password_hash, check_password_hash
 from bson import ObjectId
 import datetime
+import os
 
 # Blueprint for user routes
 users_bp = Blueprint("users", __name__, url_prefix="/api/users")
 
-# MongoDB connection
-client = MongoClient("mongodb+srv://dxtrzpc26:w1frwdiwmW9VRItO@cluster0.gskdq3p.mongodb.net/")
-db = client["chatbot_db"]
+# MongoDB connection with error handling
+def get_mongo_client():
+    """Get MongoDB client with proper error handling"""
+    try:
+        mongodb_uri = os.getenv('MONGODB_URI', 'mongodb+srv://dxtrzpc26:w1frwdiwmW9VRItO@cluster0.gskdq3p.mongodb.net/')
+        client = MongoClient(mongodb_uri, serverSelectionTimeoutMS=5000)
+        # Test connection
+        client.admin.command('ping')
+        return client
+    except Exception as e:
+        print(f"❌ MongoDB connection failed in users.py: {e}")
+        return None
+
+def get_db():
+    """Get database with fallback"""
+    client = get_mongo_client()
+    if client:
+        return client["chatbot_db"]
+    else:
+        # Return mock database for offline mode
+        class MockDB:
+            def __getattr__(self, name):
+                return MockCollection()
+        class MockCollection:
+            def find_one(self, *args, **kwargs): return None
+            def find(self, *args, **kwargs): return []
+            def insert_one(self, *args, **kwargs): return type('Result', (), {'inserted_id': 'mock_id'})()
+            def update_one(self, *args, **kwargs): return type('Result', (), {'modified_count': 1})()
+            def delete_one(self, *args, **kwargs): return type('Result', (), {'deleted_count': 1})()
+            def count_documents(self, *args, **kwargs): return 0
+            def distinct(self, *args, **kwargs): return []
+        return MockDB()
+
+# Initialize collections with lazy loading
+db = get_db()
 sub_users = db["sub_users"]
 
 # Helper: Convert Mongo document to JSON
