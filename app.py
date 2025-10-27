@@ -37,6 +37,8 @@ except ImportError:
     print("[WARNING] JWT module not available. Authentication features will be disabled.")
     JWT_AVAILABLE = False
 import os
+from dotenv import load_dotenv
+load_dotenv()
 import time
 from functools import wraps
 from bson import ObjectId
