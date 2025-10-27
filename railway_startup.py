@@ -39,18 +39,36 @@ def check_dependencies():
     
     return True
 
-def create_fallback_model():
-    """Create fallback model if data.pth doesn't exist"""
-    if not os.path.exists("data.pth"):
-        print("📦 Creating fallback model...")
-        try:
-            from create_fallback_model import create_fallback_model
-            if create_fallback_model():
-                print("✅ Fallback model created")
-            else:
-                print("❌ Failed to create fallback model")
-        except Exception as e:
-            print(f"❌ Error creating fallback model: {e}")
+def download_nltk_data():
+    """Download NLTK data for deployment"""
+    print("📦 Downloading NLTK data...")
+    try:
+        import nltk
+        
+        # List of required NLTK data
+        required_data = [
+            'punkt',
+            'punkt_tab',  # Newer NLTK versions
+            'wordnet',
+            'averaged_perceptron_tagger',
+            'stopwords'
+        ]
+        
+        for data_name in required_data:
+            try:
+                print(f"📥 Downloading {data_name}...")
+                nltk.download(data_name, quiet=True)
+                print(f"✅ {data_name} downloaded")
+            except Exception as e:
+                print(f"⚠️ Failed to download {data_name}: {e}")
+        
+        print("✅ NLTK data download completed")
+        return True
+        
+    except Exception as e:
+        print(f"❌ NLTK data download failed: {e}")
+        print("⚠️ Application will use fallback tokenization methods")
+        return False
 
 def check_environment():
     """Check Railway environment variables"""
@@ -85,6 +103,9 @@ def main():
     if not check_dependencies():
         print("❌ Dependency check failed")
         sys.exit(1)
+    
+    # Download NLTK data
+    download_nltk_data()
     
     # Create fallback model
     create_fallback_model()

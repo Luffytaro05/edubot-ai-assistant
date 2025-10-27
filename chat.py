@@ -720,13 +720,21 @@ def get_response(msg, user_id="guest"):
         print("⚠️ Using fallback response (model not available)")
         return get_fallback_response(msg, user_id)
     
-    # Enhanced text preprocessing
-    cleaned_msg = clean_text(msg)
-    sentence = tokenize(cleaned_msg)
-    
-    # Expand with synonyms for better matching
-    expanded_msg = expand_synonyms(cleaned_msg)
-    expanded_sentence = tokenize(expanded_msg)
+    # Enhanced text preprocessing with error handling
+    try:
+        cleaned_msg = clean_text(msg)
+        sentence = tokenize(cleaned_msg)
+        
+        # Expand with synonyms for better matching
+        expanded_msg = expand_synonyms(cleaned_msg)
+        expanded_sentence = tokenize(expanded_msg)
+    except Exception as e:
+        print(f"⚠️ Text preprocessing failed: {e}, using fallback")
+        # Use simple fallback tokenization
+        cleaned_msg = msg.lower().strip()
+        sentence = cleaned_msg.split()
+        expanded_msg = cleaned_msg
+        expanded_sentence = sentence
     
     # Detect office from message for context
     detected_office = detect_office_from_message(msg)

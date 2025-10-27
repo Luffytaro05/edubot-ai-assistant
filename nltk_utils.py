@@ -11,24 +11,75 @@ from difflib import SequenceMatcher
 stemmer = PorterStemmer()
 lemmatizer = WordNetLemmatizer()
 
-# Ensure NLTK data is available
-nltk.download('punkt', quiet=True)
-nltk.download('wordnet', quiet=True)
-nltk.download('averaged_perceptron_tagger', quiet=True)
+# NLTK data initialization with error handling
+def initialize_nltk_data():
+    """Initialize NLTK data with fallback handling"""
+    try:
+        # Try to download required NLTK data
+        nltk.download('punkt', quiet=True)
+        nltk.download('punkt_tab', quiet=True)  # Newer NLTK versions
+        nltk.download('wordnet', quiet=True)
+        nltk.download('averaged_perceptron_tagger', quiet=True)
+        return True
+    except Exception as e:
+        print(f"⚠️ NLTK data download failed: {e}")
+        print("🔄 Using fallback tokenization methods")
+        return False
+
+# Initialize NLTK data
+nltk_available = initialize_nltk_data()
 
 def tokenize(sentence):
     """
-    Split sentence into tokens/words.
+    Split sentence into tokens/words with fallback.
     Example: "Hello, how are you?" -> ["Hello", ",", "how", "are", "you", "?"]
     """
-    return nltk.word_tokenize(sentence)
+    if nltk_available:
+        try:
+            return nltk.word_tokenize(sentence)
+        except Exception as e:
+            print(f"⚠️ NLTK tokenization failed: {e}, using fallback")
+            return fallback_tokenize(sentence)
+    else:
+        return fallback_tokenize(sentence)
+
+def fallback_tokenize(sentence):
+    """
+    Fallback tokenization using regex when NLTK is not available
+    """
+    # Simple regex-based tokenization
+    import re
+    # Split on word boundaries, keeping punctuation
+    tokens = re.findall(r'\b\w+\b|[^\w\s]', sentence)
+    return tokens
 
 def stem(word):
     """
-    Stem word to its root form in lowercase.
+    Stem word to its root form in lowercase with fallback.
     Example: "Running" -> "run"
     """
-    return stemmer.stem(word.lower())
+    if nltk_available:
+        try:
+            return stemmer.stem(word.lower())
+        except Exception as e:
+            print(f"⚠️ NLTK stemming failed: {e}, using fallback")
+            return fallback_stem(word)
+    else:
+        return fallback_stem(word)
+
+def fallback_stem(word):
+    """
+    Simple fallback stemming using basic rules
+    """
+    word = word.lower()
+    # Basic stemming rules
+    if word.endswith('ing') and len(word) > 5:
+        return word[:-3]
+    elif word.endswith('ed') and len(word) > 4:
+        return word[:-2]
+    elif word.endswith('s') and len(word) > 3:
+        return word[:-1]
+    return word
 
 def bag_of_words(tokenized_sentence, words):
     """
