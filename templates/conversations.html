@@ -667,7 +667,9 @@ async function loadConversations() {
     try {
         console.log('Loading conversations from API...');
         
-        const response = await fetch("http://localhost:5000/api/conversations");
+        // Use dynamic base URL that works in both local and Railway environments
+        const baseUrl = window.location.origin;
+        const response = await fetch(`${baseUrl}/api/conversations`);
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -918,7 +920,9 @@ async function deleteConversation(id) {
     if (!confirm("Are you sure you want to delete this conversation?")) return;
     
     try {
-        const response = await fetch(`http://localhost:5000/api/conversations/${id}`, { 
+        // Use dynamic base URL that works in both local and Railway environments
+        const baseUrl = window.location.origin;
+        const response = await fetch(`${baseUrl}/api/conversations/${id}`, { 
             method: "DELETE" 
         });
         

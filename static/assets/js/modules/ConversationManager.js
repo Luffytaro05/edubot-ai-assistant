@@ -6,7 +6,8 @@
 class ConversationManager extends BaseManager {
     constructor() {
         super('conversations');
-        this.API_BASE = "http://localhost:5000/api"; // Flask backend URL
+        // Use dynamic base URL that works in both local and Railway environments
+        this.API_BASE = `${window.location.origin}/api`; // Dynamic Flask backend URL
         this.useAPI = true; // Set to false to use localStorage fallback
         this.initializeDefaultConversations();
     }
