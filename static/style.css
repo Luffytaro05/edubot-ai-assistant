@@ -2,6 +2,54 @@
    COLLEGE WEBSITE STYLES
    ======================= */
 
+/* Mobile hamburger menu styles */
+.mobile-menu-toggle {
+    display: none;
+    flex-direction: column;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    z-index: 1001;
+}
+
+.hamburger-line {
+    width: 25px;
+    height: 3px;
+    background-color: #000;
+    margin: 3px 0;
+    transition: 0.3s;
+    border-radius: 2px;
+}
+
+.mobile-menu-toggle.active .hamburger-line:nth-child(1) {
+    transform: rotate(-45deg) translate(-5px, 6px);
+}
+
+.mobile-menu-toggle.active .hamburger-line:nth-child(2) {
+    opacity: 0;
+}
+
+.mobile-menu-toggle.active .hamburger-line:nth-child(3) {
+    transform: rotate(45deg) translate(-5px, -6px);
+}
+
+/* Mobile menu overlay */
+.mobile-menu-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+}
+
+.mobile-menu-overlay.active {
+    display: block;
+}
+
 body {
     margin: 0;
     font-family: Arial, sans-serif;
@@ -1210,6 +1258,23 @@ header {
 .chatbox__close {
     font-size: 18px;
     font-weight: bold;
+    color: #000;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 4px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    min-height: 28px;
+}
+
+.chatbox__close:hover {
+    background: rgba(0,0,0,0.1);
+    transform: scale(1.1);
 }
 
 /* Header button SVGs */
@@ -1919,35 +1984,144 @@ header {
     }
 }
 
-/* Responsive design */
-@media (max-width: 480px) {
-    .chatbox__support {
-        width: 320px;
-        height: 400px;
-    }
-    
-    .chatbox {
-        bottom: 10px;
-        right: 10px;
-    }
-    
-    .chatbox__header-right {
-        gap: 4px;
-    }
-    
-    .chatbox__announcements, .chatbox__tts, .chatbox__clear, .chatbox__reset, .chatbox__close {
-        font-size: 14px;
-        padding: 4px;
-        min-width: 24px;
-        min-height: 24px;
-    }
-    
-    .chatbox__announcements svg, .chatbox__tts svg, .chatbox__clear svg, .chatbox__reset svg {
-        width: 12px;
-        height: 12px;
-    }
+/* =======================
+   RESPONSIVE DESIGN
+   ======================= */
 
-    /* Mobile adjustments for college website */
+/* Mobile-first approach with multiple breakpoints */
+
+/* Large tablets and small desktops */
+@media (max-width: 1024px) {
+    .navbar {
+        padding: 0 15px;
+    }
+    
+    .nav-links {
+        gap: 15px;
+    }
+    
+    .nav-links a {
+        padding: 8px 12px;
+        font-size: 14px;
+    }
+    
+    .hero {
+        padding: 40px 30px;
+    }
+    
+    .hero-text h2 {
+        font-size: 32px;
+    }
+    
+    .features {
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    }
+}
+
+/* Tablets */
+@media (max-width: 768px) {
+    body {
+        padding-top: 80px;
+    }
+    
+    header {
+        padding: 8px 15px;
+    }
+    
+    .navbar {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 15px;
+    }
+    
+    .logo-section {
+        justify-content: flex-start;
+    }
+    
+    .logo {
+        width: 50px;
+        margin-right: 8px;
+    }
+    
+    .college-name h1 {
+        font-size: 16px;
+    }
+    
+    .college-name p {
+        font-size: 11px;
+    }
+    
+    .mobile-menu-toggle {
+        display: flex;
+    }
+    
+    .nav-links {
+        position: fixed;
+        top: 0;
+        right: -100%;
+        width: 280px;
+        height: 100vh;
+        background: #fdf378;
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: flex-start;
+        padding: 80px 20px 20px;
+        gap: 0;
+        transition: right 0.3s ease;
+        z-index: 1000;
+        box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+    }
+    
+    .nav-links.active {
+        right: 0;
+    }
+    
+    .nav-links a {
+        padding: 15px 0;
+        font-size: 16px;
+        width: 100%;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        text-align: left;
+    }
+    
+    .nav-links a:hover::after {
+        width: 0%;
+    }
+    
+    .dropdown {
+        width: 100%;
+    }
+    
+    .dropdown > a {
+        padding: 15px 0;
+        font-size: 16px;
+        width: 100%;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        text-align: left;
+    }
+    
+    .dropdown-content {
+        position: static;
+        display: none;
+        width: 100%;
+        background: rgba(0, 0, 0, 0.05);
+        box-shadow: none;
+        border-radius: 0;
+        margin-top: 0;
+    }
+    
+    .dropdown:hover .dropdown-content,
+    .dropdown.active .dropdown-content {
+        display: block;
+    }
+    
+    .dropdown-content a {
+        padding: 12px 20px;
+        font-size: 14px;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    }
+    
     .hero {
         flex-direction: column;
         padding: 30px 20px;
@@ -1967,23 +2141,20 @@ header {
         font-size: 16px;
     }
     
-    .navbar {
-        flex-direction: column;
-        gap: 10px;
-        padding: 10px;
-    }
-    
-    .nav-links {
-        gap: 10px;
-        flex-wrap: wrap;
-        justify-content: center;
+    .hero-image {
+        max-width: 300px;
+        margin: 0 auto;
     }
     
     .features, .program-cards, .education-excellence .features {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 15px;
     }
     
-    .why-choose, .academic-programs, .cta, .education-excellence, .academic-programs-section, .cta-section, .board-trustees, .leadership-section, .responsibilities-section, .mission-section, .core-values, .commitment-students {
+    .why-choose, .academic-programs, .cta, .education-excellence, 
+    .academic-programs-section, .cta-section, .board-trustees, 
+    .leadership-section, .responsibilities-section, .mission-section, 
+    .core-values, .commitment-students {
         padding: 40px 20px;
     }
     
@@ -1993,54 +2164,540 @@ header {
     
     .college-card {
         flex-direction: column;
+        text-align: center;
     }
     
     .college-card.reverse {
         flex-direction: column;
     }
     
-    .college-image {
-        min-width: auto;
-        min-height: 200px;
-    }
-    
-    .history-container {
-        flex-direction: column;
-    }
-    
-    .history-text {
-        flex: none;
-    }
-    
-    .history-image {
-        flex: none;
-    }
-    
-    .commitment-cards, .learn-grid, .cards, .mission-vision-cards {
-        flex-direction: column;
-        align-items: center;
-    }
-    
-    .numbers-grid {
-        flex-direction: column;
-        align-items: center;
-        gap: 20px;
-    }
-    
-    .leadership-section .card {
-        width: 280px;
-    }
-    
-    .responsibilities-card {
-        padding: 20px;
-    }
-    
-    .mission-vision-cards .card {
+    .college-card img {
         max-width: 100%;
-        flex: none;
+        margin-bottom: 20px;
     }
     
-    .values-grid {
+    /* Chatbot maintains same size on tablets */
+    .chatbox__support {
+        width: 350px;
+        height: 450px;
+    }
+    
+    .chatbox {
+        bottom: 20px;
+        right: 20px;
+    }
+}
+
+/* Mobile phones */
+@media (max-width: 480px) {
+    body {
+        padding-top: 70px;
+    }
+    
+    header {
+        padding: 5px 10px;
+    }
+    
+    .navbar {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 10px;
+    }
+    
+    .logo-section {
+        flex-direction: row;
+        align-items: center;
+        text-align: left;
+    }
+    
+    .logo {
+        width: 40px;
+        margin-right: 8px;
+        margin-bottom: 0;
+    }
+    
+    .college-name h1 {
+        font-size: 14px;
+        margin-bottom: 2px;
+    }
+    
+    .college-name p {
+        font-size: 10px;
+    }
+    
+    .mobile-menu-toggle {
+        display: flex;
+    }
+    
+    .nav-links {
+        position: fixed;
+        top: 0;
+        right: -100%;
+        width: 260px;
+        height: 100vh;
+        background: #fdf378;
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: flex-start;
+        padding: 70px 15px 15px;
+        gap: 0;
+        transition: right 0.3s ease;
+        z-index: 1000;
+        box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+    }
+    
+    .nav-links.active {
+        right: 0;
+    }
+    
+    .nav-links a {
+        padding: 12px 0;
+        font-size: 15px;
+        width: 100%;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        text-align: left;
+    }
+    
+    .nav-links a:hover::after {
+        width: 0%;
+    }
+    
+    .dropdown {
+        width: 100%;
+    }
+    
+    .dropdown > a {
+        padding: 12px 0;
+        font-size: 15px;
+        width: 100%;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        text-align: left;
+    }
+    
+    .dropdown-content {
+        position: static;
+        display: none;
+        width: 100%;
+        background: rgba(0, 0, 0, 0.05);
+        box-shadow: none;
+        border-radius: 0;
+        margin-top: 0;
+    }
+    
+    .dropdown:hover .dropdown-content,
+    .dropdown.active .dropdown-content {
+        display: block;
+    }
+    
+    .dropdown-content a {
+        padding: 10px 15px;
+        font-size: 13px;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    }
+    
+    .hero {
+        flex-direction: column;
+        padding: 20px 15px;
+        text-align: center;
+    }
+    
+    .hero-text {
+        max-width: 100%;
+        margin-bottom: 20px;
+    }
+    
+    .hero-text h2 {
+        font-size: 24px;
+        margin-bottom: 15px;
+    }
+    
+    .hero-text p {
+        font-size: 14px;
+        margin-bottom: 20px;
+    }
+    
+    .hero-text button {
+        padding: 8px 16px;
+        font-size: 14px;
+    }
+    
+    .hero-image {
+        max-width: 250px;
+        margin: 0 auto;
+    }
+    
+    .features, .program-cards, .education-excellence .features {
         grid-template-columns: 1fr;
+        gap: 15px;
+    }
+    
+    .feature-card {
+        padding: 20px 15px;
+    }
+    
+    .feature-card h3 {
+        font-size: 16px;
+    }
+    
+    .feature-card p {
+        font-size: 14px;
+    }
+    
+    .why-choose, .academic-programs, .cta, .education-excellence, 
+    .academic-programs-section, .cta-section, .board-trustees, 
+    .leadership-section, .responsibilities-section, .mission-section, 
+    .core-values, .commitment-students {
+        padding: 30px 15px;
+    }
+    
+    .why-choose h2, .academic-programs h2, .cta h2 {
+        font-size: 22px;
+        margin-bottom: 25px;
+    }
+    
+    .college-section {
+        padding: 15px;
+    }
+    
+    .college-card {
+        flex-direction: column;
+        text-align: center;
+        padding: 20px 15px;
+    }
+    
+    .college-card.reverse {
+        flex-direction: column;
+    }
+    
+    .college-card img {
+        max-width: 100%;
+        margin-bottom: 15px;
+    }
+    
+    .college-card h3 {
+        font-size: 18px;
+        margin-bottom: 10px;
+    }
+    
+    .college-card p {
+        font-size: 14px;
+    }
+    
+/* Mobile phones - Chatbot maintains consistent size */
+@media (max-width: 480px) {
+    /* Chatbot maintains same size on mobile */
+    .chatbox__support {
+        width: 350px;
+        height: 450px;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    }
+    
+    .chatbox {
+        bottom: 20px;
+        right: 20px;
+    }
+    
+    .chatbox__button {
+        bottom: 20px;
+        right: 20px;
+        z-index: 1001;
+    }
+    
+    .chatbox__button button {
+        width: 50px;
+        height: 50px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        transition: all 0.3s ease;
+    }
+    
+    .chatbox__button button:active {
+        transform: scale(0.95);
+    }
+    
+    .chatbox__button img {
+        width: 40px;
+        height: 40px;
+    }
+    
+    /* Ensure close button is visible on mobile - HIGH PRIORITY */
+    .chatbox__announcements, .chatbox__tts, .chatbox__clear, 
+    .chatbox__reset, .chatbox__close {
+        min-width: 28px !important;
+        min-height: 28px !important;
+        font-size: 16px !important;
+        color: #000 !important;
+        background: none !important;
+        border: none !important;
+        cursor: pointer !important;
+        padding: 6px !important;
+        border-radius: 4px !important;
+        transition: all 0.2s !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+    
+    .chatbox__close {
+        font-size: 18px !important;
+        font-weight: bold !important;
+        color: #000 !important;
+        background: none !important;
+        border: none !important;
+        cursor: pointer !important;
+        padding: 6px !important;
+        border-radius: 4px !important;
+        transition: all 0.2s !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        min-width: 28px !important;
+        min-height: 28px !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+    
+    .chatbox__close:hover {
+        background: rgba(0,0,0,0.1) !important;
+        transform: scale(1.1) !important;
+    }
+    
+    /* Ensure header is visible on mobile */
+    .chatbox__header {
+        background: #ffeb3b;
+        color: #000;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px;
+        font-size: 14px;
+        font-weight: bold;
+    }
+    
+    .chatbox__header-left {
+        display: flex;
+        align-items: center;
+    }
+    
+    .chatbox__header-right {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    
+    .chatbox__logo {
+        width: 32px;
+        height: 32px;
+        background: #fdd835;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 10px;
+    }
+    
+    .chatbox__logo img {
+        width: 28px;
+        height: 28px;
+    }
+    
+    .chatbox__title strong {
+        font-size: 15px;
+    }
+    
+    /* CRITICAL: Force close button visibility on mobile */
+    .chatbox__header .chatbox__header-right .chatbox__close {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        font-size: 18px !important;
+        font-weight: bold !important;
+        color: #000 !important;
+        background: none !important;
+        border: none !important;
+        cursor: pointer !important;
+        padding: 6px !important;
+        border-radius: 4px !important;
+        transition: all 0.2s !important;
+        align-items: center !important;
+        justify-content: center !important;
+        min-width: 28px !important;
+        min-height: 28px !important;
+        width: auto !important;
+        height: auto !important;
+    }
+    
+    /* DEBUG: Make close button very obvious on mobile */
+    .chatbox__close {
+        background: rgba(255, 0, 0, 0.1) !important;
+        border: 2px solid #ff0000 !important;
+        box-shadow: 0 0 5px #ff0000 !important;
+    }
+}
+
+/* Small mobile phones */
+@media (max-width: 360px) {
+    .navbar {
+        padding: 5px 8px;
+    }
+    
+    .nav-links a {
+        padding: 4px 6px;
+        font-size: 11px;
+    }
+    
+    .hero-text h2 {
+        font-size: 20px;
+    }
+    
+    .hero-text p {
+        font-size: 13px;
+    }
+    
+    .why-choose h2, .academic-programs h2, .cta h2 {
+        font-size: 20px;
+    }
+    
+    .chatbox__support {
+        width: 350px;
+        height: 450px;
+    }
+    
+    .chatbox {
+        bottom: 20px;
+        right: 20px;
+    }
+    
+    .chatbox__button {
+        bottom: 20px;
+        right: 20px;
+    }
+    
+    .chatbox__button button {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .chatbox__button img {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .chatbox__header {
+        padding: 10px 12px;
+    }
+    
+    .chatbox__title strong {
+        font-size: 13px;
+    }
+    
+    .chatbox__announcements, .chatbox__tts, .chatbox__clear, 
+    .chatbox__reset, .chatbox__close {
+        min-width: 28px;
+        min-height: 28px;
+        font-size: 16px;
+    }
+    
+    .chatbox__close {
+        font-size: 18px;
+        font-weight: bold;
+        color: #000;
+    }
+    
+    .chatbox__suggestions button {
+        padding: 6px 10px;
+        font-size: 12px;
+    }
+    
+    .chatbox__footer input {
+        font-size: 13px;
+    }
+}
+
+/* Landscape mobile orientation */
+@media (max-width: 768px) and (orientation: landscape) {
+    .chatbox__support {
+        width: 350px;
+        height: 450px;
+    }
+    
+    .hero {
+        flex-direction: row;
+        padding: 20px 30px;
+    }
+    
+    .hero-text {
+        max-width: 60%;
+        margin-bottom: 0;
+        margin-right: 20px;
+    }
+    
+    .hero-image {
+        max-width: 40%;
+    }
+}
+
+/* Touch device optimizations */
+@media (hover: none) and (pointer: coarse) {
+    .nav-links a:hover::after {
+        width: 0%;
+    }
+    
+    .feature-card:hover {
+        transform: none;
+    }
+    
+    .chatbox__button button:hover {
+        transform: none;
+        background: #ffeb3b;
+    }
+    
+    .chatbox__announcements:hover, .chatbox__tts:hover, 
+    .chatbox__clear:hover, .chatbox__reset:hover, 
+    .chatbox__close:hover {
+        background: rgba(0,0,0,0.1);
+        transform: none;
+    }
+    
+    .chatbox__suggestions button:hover {
+        background: #fdd835;
+        transform: none;
+    }
+    
+    .chatbox__sub-suggestions button:hover,
+    .sub-suggestion-btn:hover {
+        background: #f8f8f8;
+        transform: none;
+    }
+    
+    /* Increase touch targets */
+    .nav-links a {
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+    }
+    
+    .chatbox__announcements, .chatbox__tts, .chatbox__clear, 
+    .chatbox__reset, .chatbox__close {
+        min-width: 44px;
+        min-height: 44px;
+    }
+    
+    .chatbox__close {
+        font-size: 18px;
+        font-weight: bold;
+        color: #000;
+    }
+    
+    .chatbox__suggestions button {
+        min-height: 44px;
+    }
+    
+    .chatbox__sub-suggestions button,
+    .sub-suggestion-btn {
+        min-height: 40px;
     }
 }
