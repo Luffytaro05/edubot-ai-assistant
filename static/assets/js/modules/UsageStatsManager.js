@@ -346,7 +346,9 @@ class UsageStatsManager {
         const avgSatisfactionEl = document.getElementById('avg-satisfaction');
         if (avgSatisfactionEl) {
             try {
-                const feedbackResponse = await fetch('/api/admin/feedback');
+                const feedbackResponse = await fetch('/api/admin/feedback', {
+                    headers: this.getAuthHeaders()
+                });
                 if (feedbackResponse.ok) {
                     const feedbackData = await feedbackResponse.json();
                     if (feedbackData.success && feedbackData.analytics) {
@@ -539,11 +541,11 @@ class UsageStatsManager {
         const endDateInput = document.getElementById('end-date');
         
         if (startDateInput && endDateInput) {
-            // Set default date range (last 7 days)
+            // Set default date range (last 15 days)
             const today = new Date();
-            const lastWeek = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+            const lastTwoWeeks = new Date(today.getTime() - 15 * 24 * 60 * 60 * 1000);
             
-            startDateInput.value = lastWeek.toISOString().split('T')[0];
+            startDateInput.value = lastTwoWeeks.toISOString().split('T')[0];
             endDateInput.value = today.toISOString().split('T')[0];
             
             this.currentDateRange = {

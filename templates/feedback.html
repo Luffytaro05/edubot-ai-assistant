@@ -699,6 +699,181 @@ async function logoutWithModal() {
             }
         }
 
+        // Clear all filters
+        function clearFilters() {
+            // Reset filter buttons to "all" state
+            document.querySelectorAll('.feedback-filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector('.feedback-filter-btn[data-filter="all"]').classList.add('active');
+            
+            // Clear any search inputs if they exist
+            const searchInputs = document.querySelectorAll('input[type="search"], input[placeholder*="search"], input[placeholder*="Search"]');
+            searchInputs.forEach(input => {
+                input.value = '';
+            });
+            
+            // Call feedbackManager clearFilters if it exists
+            if (window.feedbackManager && typeof window.feedbackManager.clearFilters === 'function') {
+                window.feedbackManager.clearFilters();
+            }
+        }
+
+        // Apply filters
+        function applyFilters() {
+            // Get active filter
+            const activeFilter = document.querySelector('.feedback-filter-btn.active');
+            const filterType = activeFilter ? activeFilter.getAttribute('data-filter') : 'all';
+            
+            // Call feedbackManager applyFilters if it exists
+            if (window.feedbackManager && typeof window.feedbackManager.applyFilters === 'function') {
+                window.feedbackManager.applyFilters(filterType);
+            }
+        }
+
+        // View feedback details
+        function viewFeedback(feedbackId) {
+            // Try to get feedback data from feedbackManager
+            if (window.feedbackManager && window.feedbackManager.feedbackData) {
+                const feedback = window.feedbackManager.feedbackData.find(f => f.id === feedbackId || f._id === feedbackId);
+                
+                if (feedback) {
+                    // Create a simple modal to show feedback details
+                    const modal = document.createElement('div');
+                    modal.className = 'modal-overlay';
+                    modal.innerHTML = `
+                        <div class="modal-container">
+                            <div class="modal-header">
+                                <h3><i class="fas fa-eye"></i> Feedback Details</h3>
+                                <button class="close-modal-btn" onclick="this.closest('.modal-overlay').remove()">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="feedback-detail">
+                                    <div class="detail-row">
+                                        <label><i class="fas fa-star"></i> Rating:</label>
+                                        <span class="rating-stars">${generateStarsHTML(feedback.rating || 0)}</span>
+                                    </div>
+                                    <div class="detail-row">
+                                        <label><i class="fas fa-comment"></i> Message:</label>
+                                        <p class="feedback-message">${feedback.message || 'No message provided'}</p>
+                                    </div>
+                                    <div class="detail-row">
+                                        <label><i class="fas fa-heart"></i> Sentiment:</label>
+                                        <span class="sentiment-badge ${feedback.sentiment || 'neutral'}">${feedback.sentiment || 'Neutral'}</span>
+                                    </div>
+                                    <div class="detail-row">
+                                        <label><i class="fas fa-calendar"></i> Date:</label>
+                                        <span>${feedback.date || 'Unknown'}</span>
+                                    </div>
+                                    <div class="detail-row">
+                                        <label><i class="fas fa-user"></i> User ID:</label>
+                                        <span>${feedback.user_id || 'Anonymous'}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()">Close</button>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Add styles for the modal
+                    const style = document.createElement('style');
+                    style.textContent = `
+                        .feedback-detail .detail-row {
+                            margin-bottom: 15px;
+                            display: flex;
+                            align-items: flex-start;
+                        }
+                        .feedback-detail .detail-row label {
+                            font-weight: 600;
+                            min-width: 120px;
+                            margin-right: 10px;
+                            color: #374151;
+                        }
+                        .feedback-detail .detail-row label i {
+                            margin-right: 5px;
+                            color: #6b7280;
+                        }
+                        .feedback-message {
+                            margin: 0;
+                            padding: 10px;
+                            background: #f9fafb;
+                            border-radius: 6px;
+                            border-left: 3px solid #3b82f6;
+                            white-space: pre-wrap;
+                            word-wrap: break-word;
+                        }
+                        .sentiment-badge {
+                            padding: 4px 8px;
+                            border-radius: 12px;
+                            font-size: 12px;
+                            font-weight: 600;
+                            text-transform: capitalize;
+                        }
+                        .sentiment-badge.positive {
+                            background: #dcfce7;
+                            color: #166534;
+                        }
+                        .sentiment-badge.negative {
+                            background: #fef2f2;
+                            color: #dc2626;
+                        }
+                        .sentiment-badge.neutral {
+                            background: #f3f4f6;
+                            color: #374151;
+                        }
+                        .rating-stars {
+                            color: #fbbf24;
+                        }
+                    `;
+                    document.head.appendChild(style);
+                    
+                    document.body.appendChild(modal);
+                    
+                    // Close modal when clicking overlay
+                    modal.addEventListener('click', (e) => {
+                        if (e.target === modal) {
+                            modal.remove();
+                            style.remove();
+                        }
+                    });
+                } else {
+                    showToast('Feedback not found', 'error');
+                }
+            } else {
+                showToast('Feedback data not available', 'error');
+            }
+        }
+
+        // Helper function to generate stars HTML
+        function generateStarsHTML(rating) {
+            const fullStars = Math.floor(rating);
+            const hasHalfStar = rating % 1 >= 0.5;
+            const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
+            
+            let html = '';
+            
+            // Full stars
+            for (let i = 0; i < fullStars; i++) {
+                html += '<i class="fas fa-star"></i>';
+            }
+            
+            // Half star
+            if (hasHalfStar) {
+                html += '<i class="fas fa-star-half-alt"></i>';
+            }
+            
+            // Empty stars
+            for (let i = 0; i < emptyStars; i++) {
+                html += '<i class="far fa-star"></i>';
+            }
+            
+            return html;
+        }
+
         // Global functions
         window.toggleMobileMenu = toggleMobileMenu;
         window.clearFilters = clearFilters;

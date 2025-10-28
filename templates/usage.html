@@ -7,7 +7,6 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link href="../assets/css/style.css" rel="stylesheet">
     <link href="{{ url_for('static', filename='assets/css/style.css') }}" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -314,7 +313,6 @@
     <script src="{{ url_for('static', filename='assets/js/modules/UsageStatsManager.js') }}"></script>
     <script src="{{ url_for('static', filename='assets/js/modules/NotificationManager.js') }}"></script>
     <script src="{{ url_for('static', filename='assets/js/utils/toast.js') }}"></script>
-    <script src="{{ url_for('static', filename='assets/js/app.js') }}"></script>
     <script>
         // Declare authManager globally so it's accessible in logout function
         let authManager;
@@ -387,11 +385,31 @@
         }
 
         async function updateKPICards(stats) {
-            // Fetch unique users from dashboard KPI endpoint to ensure consistency
+            // Update Total Conversations and Resolution Rate immediately for faster loading
+            document.getElementById('total-conversations').textContent = stats.totalConversations || 0;
+            document.getElementById('resolution-rate').textContent = (stats.resolutionRate || 0) + '%';
+            
+            // Fetch unique users and average satisfaction in parallel for faster loading
+            const [dashboardKPIResponse, feedbackResponse] = await Promise.allSettled([
+                fetch('/api/dashboard/kpis'),
+                (async () => {
+                    const token = authManager.getToken();
+                    if (!token) {
+                        throw new Error('No auth token available');
+                    }
+                    return fetch('/api/admin/feedback', {
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                })()
+            ]);
+            
+            // Update unique users
             try {
-                const dashboardKPIResponse = await fetch('/api/dashboard/kpis');
-                if (dashboardKPIResponse.ok) {
-                    const dashboardKPI = await dashboardKPIResponse.json();
+                if (dashboardKPIResponse.status === 'fulfilled' && dashboardKPIResponse.value.ok) {
+                    const dashboardKPI = await dashboardKPIResponse.value.json();
                     document.getElementById('unique-users').textContent = dashboardKPI.uniqueUsers || 0;
                 } else {
                     // Fallback to stats data if dashboard KPI is unavailable
@@ -403,11 +421,10 @@
                 document.getElementById('unique-users').textContent = stats.uniqueUsers || 0;
             }
             
-            // Fetch average satisfaction from feedback analytics to ensure consistency with feedback page
+            // Update average satisfaction
             try {
-                const feedbackResponse = await fetch('/api/admin/feedback');
-                if (feedbackResponse.ok) {
-                    const feedbackData = await feedbackResponse.json();
+                if (feedbackResponse.status === 'fulfilled' && feedbackResponse.value.ok) {
+                    const feedbackData = await feedbackResponse.value.json();
                     if (feedbackData.success && feedbackData.analytics) {
                         document.getElementById('avg-satisfaction').textContent = (feedbackData.analytics.average_rating || 0).toFixed(1);
                     } else {
@@ -423,9 +440,6 @@
                 // Fallback to stats data
                 document.getElementById('avg-satisfaction').textContent = (stats.avgSatisfaction || 0).toFixed(1);
             }
-            
-            document.getElementById('total-conversations').textContent = stats.totalConversations || 0;
-            document.getElementById('resolution-rate').textContent = (stats.resolutionRate || 0) + '%';
         }
 
         function updateCharts(stats) {
@@ -519,9 +533,9 @@
 
             // Date range
             const today = new Date();
-            const lastWeek = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+            const lastTwoWeeks = new Date(today.getTime() - 15 * 24 * 60 * 60 * 1000);
             
-            document.getElementById('start-date').value = lastWeek.toISOString().split('T')[0];
+            document.getElementById('start-date').value = lastTwoWeeks.toISOString().split('T')[0];
             document.getElementById('end-date').value = today.toISOString().split('T')[0];
 
             // Table filter removed - no longer needed
