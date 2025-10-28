@@ -46,15 +46,17 @@ class VectorStore:
         self._initialize_pinecone()
         
     def _initialize_pinecone(self):
-        """Initialize Pinecone client and index"""
+        """Initialize Pinecone client and index with performance optimizations"""
         try:
             # Get API key from environment
             api_key = os.getenv('PINECONE_API_KEY')
             if not api_key:
                 print("WARNING: PINECONE_API_KEY not found in environment variables")
-                print("Please set your Pinecone API key:")
-                print("export PINECONE_API_KEY='pcsk_3LGtPm_F7RyLr4yFTu4C7bbEonvRcCxysxCztU9ADjyRefakqjq7wxqjJXVwt5JD5TeM62'")
+                print("Running in offline mode - vector search will be disabled")
                 return
+            
+            print(f"🔗 Initializing Pinecone connection...")
+            init_start = time.time()
             
             # Initialize Pinecone client
             self.pc = Pinecone(api_key=api_key)
@@ -63,7 +65,7 @@ class VectorStore:
             existing_indexes = [idx.name for idx in self.pc.list_indexes()]
             
             if self.index_name not in existing_indexes:
-                print(f"Creating new Pinecone index: {self.index_name}")
+                print(f"📦 Creating new Pinecone index: {self.index_name}")
                 self.pc.create_index(
                     name=self.index_name,
                     dimension=self.dimension,
@@ -73,15 +75,18 @@ class VectorStore:
                         region='us-east-1'
                     )
                 )
-                # Wait for index to be ready
-                time.sleep(10)
+                # Reduced wait time for faster startup
+                print("⏳ Waiting for index to be ready...")
+                time.sleep(5)  # Reduced from 10 to 5 seconds
             
             # Connect to index
             self.index = self.pc.Index(self.index_name)
-            print(f"Connected to Pinecone index: {self.index_name}")
+            
+            init_time = time.time() - init_start
+            print(f"✅ Connected to Pinecone index: {self.index_name} (took {init_time:.2f}s)")
             
         except Exception as e:
-            print(f"Error initializing Pinecone: {e}")
+            print(f"❌ Error initializing Pinecone: {e}")
             print("Running in offline mode - vector search will be disabled")
     
     def generate_embedding(self, text: str) -> List[float]:

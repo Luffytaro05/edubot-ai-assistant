@@ -54,6 +54,9 @@ from langdetect import detect, DetectorFactory
 # Ensure consistent language detection results
 DetectorFactory.seed = 0
 # In-memory cache for user conversations
+# Simple response cache to improve performance
+response_cache = {}
+CACHE_SIZE_LIMIT = 100  # Maximum number of cached responses
 
 app = Flask(__name__)
 moment = Moment(app)
@@ -1699,6 +1702,7 @@ def get_suggested_messages_from_settings():
 
 @app.post("/predict")
 def predict():
+    start_time = time.time()
     try:
         # Validate request data
         data = request.get_json()
@@ -1708,9 +1712,20 @@ def predict():
         text = data.get("message")
         user = data.get("user", "guest")
         user_language = data.get("language", "en")
+        
+        print(f"🚀 Processing request for user '{user}': '{text[:50]}...'")
 
         if not text or not text.strip():
             return jsonify({"answer": "Please type something."})
+
+        # Check cache first for performance optimization
+        cache_key = f"{user}:{text.lower().strip()}"
+        if cache_key in response_cache:
+            cached_response = response_cache[cache_key]
+            print(f"⚡ Cache hit for: '{text[:30]}...'")
+            # Update cache access time
+            response_cache[cache_key]['last_accessed'] = time.time()
+            return jsonify(cached_response)
 
         # Store original message for later use
         original_message = text
@@ -1749,6 +1764,7 @@ def predict():
         detected_language = "en"
         
         # ✅ Google Translate Integration - Detect and translate user message (English and Filipino only)
+        translation_start = time.time()
         try:
             # ✅ Check for Filipino keywords first (more reliable than auto-detect)
             filipino_keywords = [
@@ -1798,6 +1814,9 @@ def predict():
             print(f"⚠️ Translation detection error: {translate_error}")
             # Continue with original text if translation fails
             detected_language = "en"
+        
+        translation_time = time.time() - translation_start
+        print(f"⏱️ Translation processing took {translation_time:.3f}s")
         
         print(f"User {user} asked: {text}")
 
@@ -1927,6 +1946,7 @@ def predict():
             })
 
         # Search FAQs first for relevant answers
+        faq_start = time.time()
         faq_response = None
         try:
             faq_search_result = search_faqs(text, top_k=3)
@@ -1938,14 +1958,21 @@ def predict():
                     print(f"FAQ match found with score: {best_match['score']}")
         except Exception as e:
             print(f"Error searching FAQs: {e}")
+        
+        faq_time = time.time() - faq_start
+        print(f"⏱️ FAQ search took {faq_time:.3f}s")
 
         # Get chatbot response (in English)
+        response_start = time.time()
         if faq_response:
             response = faq_response
             print("Using FAQ response")
         else:
             response = get_response(text, user_id=user)
             print("Using neural network response")
+        
+        response_time = time.time() - response_start
+        print(f"⏱️ Response generation took {response_time:.3f}s")
 
         # ✅ Common unresolved/fallback patterns
         unresolved_patterns = [
@@ -2023,6 +2050,7 @@ def predict():
                     break
 
         # ✅ Translate response back to user's language (English or Filipino only)
+        response_translation_start = time.time()
         translated_response = response
         try:
             if detected_language == 'tl':
@@ -2038,6 +2066,9 @@ def predict():
             print(f"⚠️ Translation error for response: {translate_error}")
             # Use English response if translation fails
             translated_response = response
+        
+        response_translation_time = time.time() - response_translation_start
+        print(f"⏱️ Response translation took {response_translation_time:.3f}s")
 
         # ✅ Save user query (original message in user's language) with detected office
         save_message(
@@ -2085,7 +2116,12 @@ def predict():
             user_contexts[user]['pending_switch'] = suggested_office_tag
             print(f"📌 Stored pending office switch for user '{user}': {suggested_office} (tag: {suggested_office_tag})")
         
-        return jsonify({
+        # Calculate total processing time
+        total_time = time.time() - start_time
+        print(f"⚡ Total processing time: {total_time:.3f}s")
+        
+        # Prepare response data
+        response_data = {
             "answer": translated_response,
             "original_answer": response,  # English version for debugging
             "office": detected_office,  # Return the display name for frontend
@@ -2097,9 +2133,28 @@ def predict():
             "vector_enabled": vector_store.index is not None,
             "vector_stats": vector_store.get_stats(),
             "suggested_messages": suggested_messages,
+            "response_time": round(total_time * 1000),  # Convert to milliseconds
+            "performance_metrics": {
+                "translation_time": round(translation_time * 1000),
+                "faq_search_time": round(faq_time * 1000),
+                "response_generation_time": round(response_time * 1000),
+                "response_translation_time": round(response_translation_time * 1000),
+                "total_time": round(total_time * 1000)
+            },
             "suggested_office": suggested_office,  # ✅ Office name for display
             "suggested_office_tag": suggested_office_tag  # ✅ Office tag for switching
-        })
+        }
+        
+        # Cache the response for future use (only for common queries)
+        if len(response_cache) < CACHE_SIZE_LIMIT and status == "resolved":
+            response_cache[cache_key] = {
+                **response_data,
+                'last_accessed': time.time(),
+                'cached_at': time.time()
+            }
+            print(f"💾 Cached response for: '{text[:30]}...'")
+        
+        return jsonify(response_data)
 
     except Exception as e:
         print(f"Error in predict: {e}")

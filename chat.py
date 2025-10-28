@@ -248,6 +248,63 @@ except Exception as e:
     all_words = ["hello", "help", "thanks", "goodbye"] * 25
     tags = ["greeting", "help", "thanks", "goodbye"]
 
+# Global variables for lazy loading
+model = None
+hybrid_model = None
+all_words = None
+tags = None
+model_loaded = False
+
+def load_model():
+    """Lazy load the neural network model"""
+    global model, hybrid_model, all_words, tags, model_loaded
+    
+    if model_loaded:
+        return model, hybrid_model, all_words, tags
+    
+    print("🔄 Loading neural network model...")
+    load_start = time.time()
+    
+    FILE = "data.pth"
+    try:
+        data = torch.load(FILE)
+
+        input_size = data["input_size"]
+        hidden_size = data["hidden_size"]
+        output_size = data["output_size"]
+        all_words = data["all_words"]
+        tags = data["tags"]
+        model_state = data["model_state"]
+
+        model = NeuralNet(input_size, hidden_size, output_size)
+        model.load_state_dict(model_state)
+        model.eval()
+        
+        # Initialize hybrid model
+        hybrid_model = HybridChatModel(model, vector_store, tags)
+        
+        load_time = time.time() - load_start
+        print(f"✅ Neural network loaded successfully (took {load_time:.2f}s)")
+        model_loaded = True
+        
+    except FileNotFoundError:
+        print("[WARNING] Model file not found. Using fallback mode.")
+        model = None
+        hybrid_model = None
+        # Create minimal fallback data
+        all_words = ["hello", "help", "thanks", "goodbye"] * 25
+        tags = ["greeting", "help", "thanks", "goodbye"]
+        model_loaded = True
+    except Exception as e:
+        print(f"[ERROR] Error loading model: {e}. Using fallback mode.")
+        model = None
+        hybrid_model = None
+        all_words = ["hello", "help", "thanks", "goodbye"] * 25
+        tags = ["greeting", "help", "thanks", "goodbye"]
+        model_loaded = True
+    
+    return model, hybrid_model, all_words, tags
+
 # Store conversation contexts for each user per office
 # Structure: user_contexts[user_id] = {
 #     "current_office": "admission_office",  # Currently active office
@@ -715,6 +772,11 @@ def get_fallback_response(msg, user_id="guest"):
         return "I'm TCC Assistant! I can help you with information about admissions, registrar services, ICT support, guidance, and student affairs. What would you like to know?"
 
 def get_response(msg, user_id="guest"):
+    # Lazy load model if not already loaded
+    global model, hybrid_model, all_words, tags
+    if model is None or hybrid_model is None:
+        model, hybrid_model, all_words, tags = load_model()
+    
     # Check if model is available, use fallback if not
     if model is None or hybrid_model is None:
         print("⚠️ Using fallback response (model not available)")
