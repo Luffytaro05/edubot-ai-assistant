@@ -242,8 +242,11 @@ class Chatbox {
 
     getResponseTimeoutMs() {
         // Get response timeout from settings (in seconds) and convert to milliseconds
-        const timeoutSeconds = this.botSettings?.response_timeout || 30;
-        return timeoutSeconds * 1000; // Convert to milliseconds
+        const configuredSeconds = this.botSettings?.response_timeout || 30;
+        const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+        // Enforce a minimum of 15s online to avoid premature aborts on slower networks/backends
+        const effectiveSeconds = isLocal ? configuredSeconds : Math.max(configuredSeconds, 15);
+        return effectiveSeconds * 1000; // Convert to milliseconds
     }
 
     handleResponseTimeout() {
