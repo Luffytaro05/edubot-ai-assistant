@@ -15,6 +15,9 @@ from pymongo.errors import ServerSelectionTimeoutError, ConnectionFailure
 from datetime import datetime, UTC, date
 import certifi
 import time
+import asyncio
+import functools
+from typing import Dict, Any, Optional
 
 # Load environment variables
 load_dotenv()
@@ -26,6 +29,62 @@ print(f"PyMongo version: {pymongo.__version__}")
 print(f"SSL version: {ssl.OPENSSL_VERSION}")
 print(f"Certifi version: {certifi.__version__}")
 print()
+
+# Performance optimization: Global caches and models
+_response_cache = {}
+_vector_cache = {}
+_model_cache = {}
+_cache_timeout = 300  # 5 minutes
+_max_cache_size = 100
+
+def is_production():
+    """Check if running in production environment"""
+    return os.getenv('FLASK_ENV') == 'production' or os.getenv('RAILWAY_ENVIRONMENT') is not None
+
+def log_performance(message, *args):
+    """Log only in development mode"""
+    if not is_production():
+        print(f"[PERF] {message}", *args)
+
+def get_cached_response(key: str) -> Optional[Dict[str, Any]]:
+    """Get cached response if still valid"""
+    if key in _response_cache:
+        cached_data, timestamp = _response_cache[key]
+        if time.time() - timestamp < _cache_timeout:
+            log_performance(f"Cache hit for key: {key}")
+            return cached_data
+        else:
+            del _response_cache[key]
+    return None
+
+def set_cached_response(key: str, data: Dict[str, Any]):
+    """Cache response data with timestamp"""
+    # Limit cache size
+    if len(_response_cache) >= _max_cache_size:
+        # Remove oldest entry
+        oldest_key = min(_response_cache.keys(), key=lambda k: _response_cache[k][1])
+        del _response_cache[oldest_key]
+    
+    _response_cache[key] = (data, time.time())
+    log_performance(f"Cached response for key: {key}")
+
+def get_cached_vector_search(query: str, top_k: int = 3) -> Optional[list]:
+    """Get cached vector search results"""
+    cache_key = f"vector_{hash(query)}_{top_k}"
+    if cache_key in _vector_cache:
+        cached_data, timestamp = _vector_cache[cache_key]
+        if time.time() - timestamp < _cache_timeout:
+            log_performance(f"Vector cache hit for query: {query[:50]}...")
+            return cached_data
+        else:
+            del _vector_cache[cache_key]
+    return None
+
+def set_cached_vector_search(query: str, results: list, top_k: int = 3):
+    """Cache vector search results"""
+    cache_key = f"vector_{hash(query)}_{top_k}"
+    _vector_cache[cache_key] = (results, time.time())
+    log_performance(f"Cached vector search for query: {query[:50]}...")
 
 # MongoDB Announcements Collections
 sub_announcements_collection = None
@@ -1188,6 +1247,7 @@ def get_chatbot_response(message):
     Simple rules-based chatbot for TCC Assistant.
     Returns appropriate responses based on keyword matching.
     This function provides basic responses without AI/NLP.
+    Optimized with caching for better performance.
     
     Returns:
         dict: {
@@ -1196,7 +1256,16 @@ def get_chatbot_response(message):
             'office': str - Detected office or 'General'
         }
     """
-    message_lower = message.lower()
+    start_time = time.time()
+    message_lower = message.lower().strip()
+    
+    # Check cache first
+    cache_key = f"response_{hash(message_lower)}"
+    cached_response = get_cached_response(cache_key)
+    if cached_response:
+        log_performance(f"Returning cached response in {(time.time() - start_time) * 1000:.2f}ms")
+        return cached_response
+    
     office = "General"
     status = "resolved"
     response = ""
@@ -1280,11 +1349,17 @@ def get_chatbot_response(message):
         response = "I'm sorry, I don't have information about that yet. Please try asking about: TCC E-Hub, student portal, office hours, admissions, registrar, ICT support, guidance services, or student affairs."
         status = "unresolved"
     
-    return {
+    result = {
         'response': response,
         'status': status,
         'office': office
     }
+    
+    # Cache the result
+    set_cached_response(cache_key, result)
+    log_performance(f"Generated response in {(time.time() - start_time) * 1000:.2f}ms")
+    
+    return result
 
 
 if __name__ == "__main__":

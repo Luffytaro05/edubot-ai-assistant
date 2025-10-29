@@ -2,10 +2,12 @@
 from collections import UserDict
 from flask import Flask, render_template, request, jsonify, session, current_app, redirect, url_for
 from flask_cors import CORS
+from flask_compress import Compress
 from chat import (get_response, reset_user_context, clear_chat_history, 
                   get_active_announcements, add_announcement, get_announcement_by_id,
                   vector_store, get_chatbot_response,
-                  user_contexts, office_tags, detect_office_from_message as chat_detect_office)
+                  user_contexts, office_tags, detect_office_from_message as chat_detect_office,
+                  get_cached_vector_search, set_cached_vector_search)
 import requests
 from pymongo import MongoClient
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -60,6 +62,14 @@ CACHE_SIZE_LIMIT = 100  # Maximum number of cached responses
 
 app = Flask(__name__)
 moment = Moment(app)
+
+# Performance optimizations
+app.config['JSON_SORT_KEYS'] = False  # Disable JSON key sorting for faster serialization
+app.config['JSONIFY_PRETTYPRINT_REGULAR'] = False  # Disable pretty printing for faster responses
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 31536000  # 1 year cache for static files
+
+# Enable compression for better performance
+Compress(app)
 
 # Pinecone Configuration (needed before VectorStore initialization)
 PINECONE_API_KEY = os.getenv('PINECONE_API_KEY')
@@ -1916,8 +1926,7 @@ def predict():
                 f"I noticed you're now asking about the **{new_office_name}**.\n\n"
                 f"To ensure clear and accurate responses, please **reset the {current_office_name} context** first before switching to the {new_office_name}.\n\n"
                 f"💡 **How to reset:**\n"
-                f"• Click the **'Reset Context'** button at the top of the chat\n"
-                f"• Or type **'reset context'** to clear the current office context\n\n"
+                f"• Click the **'Reset Context'** button at the top of the chat\n\n"
                 f"This helps me provide you with the most relevant information for each office! 😊"
             )
             
@@ -2194,14 +2203,23 @@ def chat():
         status = chatbot_result.get('status', 'resolved')
         office = chatbot_result.get('office', 'General')
         
-        # Add Pinecone vector search results if available
+        # Add Pinecone vector search results if available (optimized with caching)
         pinecone_results = []
         if pinecone_available:
             try:
-                # Search for similar content using Pinecone
-                search_results = vs.search_similar(user_message, top_k=3)
-                pinecone_results = search_results
-                print(f"🔍 Pinecone search found {len(search_results)} results for: {user_message}")
+                # Check cache first
+                cache_key = f"pinecone_{hash(user_message)}_3"
+                cached_results = get_cached_vector_search(user_message, 3)
+                
+                if cached_results:
+                    pinecone_results = cached_results
+                    print(f"🔍 Pinecone cache hit for: {user_message}")
+                else:
+                    # Search for similar content using Pinecone
+                    search_results = vs.search_similar(user_message, top_k=3)
+                    pinecone_results = search_results
+                    set_cached_vector_search(user_message, search_results, 3)
+                    print(f"🔍 Pinecone search found {len(search_results)} results for: {user_message}")
             except Exception as e:
                 print(f"⚠️ Pinecone search failed: {e}")
                 pinecone_results = []
@@ -4374,4 +4392,15 @@ if __name__ == "__main__":
     print("- POST /api/auth/reset-password : Reset user password (admin only)")
     print("=========================================\n")
     
-    app.run(host="0.0.0.0", port=int(os.getenv("PORT", 5000)), debug=True)
+    # Production-optimized configuration
+    is_production = os.getenv('FLASK_ENV') == 'production' or os.getenv('RAILWAY_ENVIRONMENT') is not None
+    debug_mode = not is_production
+    
+    if is_production:
+        # Use Gunicorn for production (configured in Procfile)
+        print("🚀 Starting in production mode with Gunicorn")
+        app.run(host="0.0.0.0", port=int(os.getenv("PORT", 5000)), debug=False, threaded=True)
+    else:
+        # Development mode
+        print("🔧 Starting in development mode")
+        app.run(host="0.0.0.0", port=int(os.getenv("PORT", 5000)), debug=debug_mode, threaded=True)

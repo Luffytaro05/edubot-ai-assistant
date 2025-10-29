@@ -36,6 +36,14 @@ class Chatbox {
         this.isTyping = false;
         this.typingTimeout = null;
         
+        // Performance optimizations
+        this.isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+        this.requestCache = new Map();
+        this.cacheTimeout = 30000; // 30 seconds cache
+        this.maxCacheSize = 50;
+        this.requestTimeout = this.isProduction ? 15000 : 30000; // Shorter timeout for production
+        this.connectionPool = new Map(); // Connection pooling for reuse
+        
         // Translation system state (✅ ENGLISH AND FILIPINO ONLY)
         this.userLanguage = "en"; // Default language ('en' or 'fil')
         this.translationEnabled = true; // Enable automatic translation (English ↔ Filipino only)
@@ -136,11 +144,96 @@ class Chatbox {
         window.sendMessage = (text) => this.sendMessage(text);  // ✅ For office switch buttons
     }
 
+    // Performance optimization methods
+    log(message, ...args) {
+        if (!this.isProduction) {
+            console.log(message, ...args);
+        }
+    }
+
+    getCachedRequest(key) {
+        const cached = this.requestCache.get(key);
+        if (cached && Date.now() - cached.timestamp < this.cacheTimeout) {
+            this.log('📦 Cache hit for:', key);
+            return cached.data;
+        }
+        return null;
+    }
+
+    setCachedRequest(key, data) {
+        // Limit cache size
+        if (this.requestCache.size >= this.maxCacheSize) {
+            const firstKey = this.requestCache.keys().next().value;
+            this.requestCache.delete(firstKey);
+        }
+        this.requestCache.set(key, {
+            data,
+            timestamp: Date.now()
+        });
+    }
+
+    async optimizedFetch(url, options = {}) {
+        const cacheKey = `${url}_${JSON.stringify(options.body || {})}`;
+        const cached = this.getCachedRequest(cacheKey);
+        if (cached) {
+            return cached;
+        }
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), this.requestTimeout);
+
+        try {
+            const response = await fetch(url, {
+                ...options,
+                signal: controller.signal,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Connection': 'keep-alive',
+                    ...options.headers
+                }
+            });
+
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            
+            // Cache successful responses
+            if (response.ok) {
+                this.setCachedRequest(cacheKey, data);
+            }
+
+            return data;
+        } catch (error) {
+            clearTimeout(timeoutId);
+            if (error.name === 'AbortError') {
+                throw new Error('Request timeout - please try again');
+            }
+            throw error;
+        }
+    }
+
+    // Async, non-blocking save method for bot messages
+    async saveBotMessageAsync(messageData) {
+        try {
+            await this.optimizedFetch("/save_bot_message", {
+                method: "POST",
+                body: JSON.stringify(messageData)
+            });
+            this.log('✅ Bot message saved successfully');
+        } catch (saveError) {
+            this.log('⚠️ Failed to save bot message to MongoDB:', saveError);
+            // Don't fail the whole request if saving fails
+        }
+    }
+
     // Load bot settings from backend and apply to UI/theme
     async loadBotSettings() {
         try {
-            const res = await fetch('/api/bot/settings', { method: 'GET' });
-            const data = await res.json();
+            const data = await this.optimizedFetch('/api/bot/settings', { method: 'GET' });
             this.botSettings = data || {};
 
             // Apply primary color theme if present
@@ -359,8 +452,7 @@ class Chatbox {
         
         try {
             const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`;
-            const response = await fetch(url);
-            const data = await response.json();
+            const data = await this.optimizedFetch(url, { method: 'GET' });
             
             // Google Translate API returns array: [[["translated", "original", null, null, ...], ...], ...]
             if (data && data[0] && data[0][0] && data[0][0][0]) {
@@ -466,12 +558,14 @@ class Chatbox {
             console.log(`✅ Message is in English, no translation needed`);
         }
         
-        // Send to backend chatbot (in English)
+        // Send to backend chatbot (in English) with optimized request
         // Pass both original message (for MongoDB) and translated message (for processing)
         try {
-            const response = await fetch("/chat", {
+            const startTime = performance.now();
+            this.log(`🚀 Starting optimized chat request for: "${translatedMsg}"`);
+            
+            const data = await this.optimizedFetch("/chat", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ 
                     message: translatedMsg,           // Translated message for chatbot processing
                     original_message: userMsg,         // Original message in user's language for MongoDB
@@ -479,41 +573,35 @@ class Chatbox {
                 }),
             });
             
-            const data = await response.json();
+            const endTime = performance.now();
+            this.log(`⚡ Chat response received in ${(endTime - startTime).toFixed(2)}ms`);
+            
             let botResponse = data.response;
             let botResponseOriginal = botResponse; // Keep English version
             const status = data.status || 'resolved';
             const office = data.office || 'General';
             
-            // Log status for debugging
-            console.log(`Status: ${status}, Office: ${office}`);
+            // Log status for debugging (only in development)
+            this.log(`Status: ${status}, Office: ${office}`);
             
             // ✅ Translate response back to Filipino if user's language is Filipino
             if (this.userLanguage === "fil") {
+                const translateStart = performance.now();
                 botResponse = await this.translateText(botResponse, "fil");
-                console.log(`🌐 Translated response from English to Filipino: ${botResponse}`);
+                const translateEnd = performance.now();
+                this.log(`🌐 Translation completed in ${(translateEnd - translateStart).toFixed(2)}ms`);
             } else {
-                console.log(`✅ Response kept in English`);
+                this.log(`✅ Response kept in English`);
             }
             
-            // Save bot response to MongoDB (in user's language) with status
-            // This ensures the conversation history shows messages in the language they were sent/received
-            try {
-                await fetch("/save_bot_message", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        user_id: this.user_id,
-                        message: botResponse,  // Save translated version
-                        original_message: botResponseOriginal,  // Also save English version
-                        status: status,  // Add status tracking
-                        office: office   // Add office tracking
-                    })
-                });
-            } catch (saveError) {
-                console.warn('Failed to save bot message to MongoDB:', saveError);
-                // Don't fail the whole request if saving fails
-            }
+            // Save bot response to MongoDB (in user's language) with status - async, non-blocking
+            this.saveBotMessageAsync({
+                user_id: this.user_id,
+                message: botResponse,  // Save translated version
+                original_message: botResponseOriginal,  // Also save English version
+                status: status,  // Add status tracking
+                office: office   // Add office tracking
+            });
             
             return {
                 response: botResponse,
@@ -783,8 +871,7 @@ class Chatbox {
     // Load announcements from backend (MongoDB + Pinecone only)
     async loadAnnouncements() {
         try {
-            const response = await fetch('/announcements');
-            const data = await response.json();
+            const data = await this.optimizedFetch('/announcements', { method: 'GET' });
             this.announcements = data.announcements || [];
             this.renderAnnouncements();
             console.log(`Loaded ${this.announcements.length} announcements from MongoDB/Pinecone`);
@@ -1144,16 +1231,6 @@ class Chatbox {
 
     // Reset conversation context with office-aware welcome
    resetContext() {
-    // Remember current office selection/label before clearing
-    const officeMap = {
-        admission: 'Admissions',
-        registrar: 'Registrar',
-        ict: 'ICT',
-        guidance: 'Guidance',
-        osa: 'Office of Student Affairs'
-    };
-    const prevLabel = this.selectedCategoryLabel || officeMap[this.currentContext] || null;
-    
     // Map frontend context to backend office tags
     const officeTagMap = {
         'admission': 'admission_office',
@@ -1166,9 +1243,16 @@ class Chatbox {
     // Get the current office tag for backend
     const currentOfficeTag = this.currentContext ? officeTagMap[this.currentContext] : null;
 
-    // Clear context indicator first
-    const previousContext = this.currentContext;
+    // Clear chat messages immediately
+    this.messages = [];
+    
+    // Reset all context and flags
     this.currentContext = null;
+    this.selectedCategoryLabel = null;
+    this.lastInlineBotIndex = null;
+    this.showInitialSuggestions = true; // Re-enable initial suggestions
+    
+    // Clear context indicator
     this.updateContextIndicator();
     
     // Reset backend context if available (office-specific)
@@ -1185,40 +1269,17 @@ class Chatbox {
         .then(response => response.json())
         .then(data => {
             console.log("✅ Context reset successfully:", data);
-            // Show success message with office-specific info
-            if (currentOfficeTag) {
-                const officeName = this.officeNames[previousContext] || 'the current office';
-                const resetMsg = { 
-                    name: "System", 
-                    message: `✅ ${officeName} context has been reset. You can continue with a fresh conversation.` 
-                };
-                this.messages.push(resetMsg);
-            } else {
-                const resetMsg = { 
-                    name: "System", 
-                    message: "✅ Context reset. You can now ask about any office." 
-                };
-                this.messages.push(resetMsg);
-            }
-            this.updateChatText();
         })
         .catch(err => {
             console.log("Context reset error:", err);
-            const errorMsg = { 
-                name: "System", 
-                message: "Context cleared locally. You can start a new conversation." 
-            };
-            this.messages.push(errorMsg);
-            this.updateChatText();
         });
     }
     
+    // Show Suggested Topics section immediately
     this.resetToMainSuggestions();
-
-    // If an office/category was selected before reset, immediately respond with its welcome
-    if (prevLabel) {
-        this.showOfficeWelcomeByLabel(prevLabel);
-    }
+    
+    // Re-render chat with welcome message and suggestions
+    this.updateChatText();
 }
 
     // Highlight reset button to draw user attention
@@ -1532,8 +1593,15 @@ showProgressMessage(current, total, operation = "Processing") {
         if (subSuggestions) {
             subSuggestions.innerHTML = "";
         }
-        document.querySelector('.chatbox__suggestions').style.display = 'flex';
-        document.querySelector('.suggestions-label').textContent = 'Suggested topics:';
+        const mainSuggestions = document.querySelector('.chatbox__suggestions');
+        if (mainSuggestions) {
+            mainSuggestions.style.display = 'flex';
+        }
+        const label = document.querySelector('.suggestions-label');
+        if (label) {
+            label.textContent = 'Suggested topics:';
+            label.style.display = 'block'; // Ensure label is visible
+        }
     }
 
     sendSuggestion(text) {
@@ -1576,21 +1644,19 @@ showProgressMessage(current, total, operation = "Processing") {
             const startTime = performance.now();
             console.log(`🚀 Starting request for: "${text1}"`);
             
-            fetch('/predict', {
+            this.optimizedFetch('/predict', {
                 method: 'POST',
                 body: JSON.stringify({ 
                     message: text1, 
                     user: this.user_id,  // ✅ Backend expects 'user' not 'user_id'
                     user_id: this.user_id  // Keep for backward compatibility
                 }),
-                mode: 'cors',
-                headers: { 'Content-Type': 'application/json' },
                 signal: controller.signal
             })
             .then(r => {
                 // Clear the timeout since we got a response
                 clearTimeout(timeoutId);
-                return r.json();
+                return r;
             })
             .then(r => {
                 // Hide typing indicator
@@ -2241,15 +2307,27 @@ showProgressMessage(current, total, operation = "Processing") {
             return result;
         }
 
-        // Fallback: Define the specific keywords requested by the user
+        // Fallback: Include both English and Filipino farewell patterns
         const farewellKeywords = [
-            'thanks', 'thank you', 'goodbye!', 'bye!'
+            // English patterns
+            'thanks', 'thank you', 'goodbye!', 'bye!', 'see you', 'farewell', 'take care', 
+            'have a good day', 'have a nice day', 'that\'s all', 'that\'s it', 'nothing else', 
+            'all done', 'finished', 'done', 'good night', 'good evening', 'see you later',
+            'talk to you later', 'catch you later', 'until next time', 'until we meet again',
+            'so long', 'adios', 'ciao',
+            
+            // Filipino patterns
+            'salamat', 'maraming salamat', 'salamat po', 'salamat sa inyo', 'salamat sa tulong',
+            'paalam', 'babay', 'ingat', 'mag-ingat ka', 'ingat ka', 'ingat po',
+            'hanggang sa muli', 'hanggang sa susunod', 'sige', 'sige na', 'ok na',
+            'tapos na', 'wala na', 'yun na yun', 'yun lang', 'ganun lang',
+            'magandang gabi', 'magandang araw', 'magandang umaga', 'magandang hapon'
         ];
 
         // Convert message to lowercase for case-insensitive matching
         const messageLower = userMessage.toLowerCase().trim();
         
-        // Check if message contains any of the specific farewell keywords
+        // Check if message contains any of the farewell keywords
         const hasFarewellKeyword = farewellKeywords.some(keyword => 
             messageLower.includes(keyword.toLowerCase())
         );
@@ -2380,12 +2458,10 @@ showProgressMessage(current, total, operation = "Processing") {
                         user_id: this.user_id,
                         session_id: getSessionId()
                     };
-                    const res = await fetch('/api/feedback', {
+                    const result = await this.optimizedFetch('/api/feedback', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload)
                     });
-                    const result = await res.json();
                     if (result && result.success) {
                         showToast(result.message || 'Thank you for your feedback!', 'success');
                         // Replace widget content (keep parent node to avoid detaching events on others)

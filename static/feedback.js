@@ -468,21 +468,39 @@ class FeedbackManager {
 
     // Enhanced method to check for farewell patterns in user messages
     checkForFarewellTrigger(userMessage) {
-        // Define the EXACT specific keywords requested by the user
-        const farewellKeywords = [
-            'thanks', 'thank you', 'goodbye!', 'bye!'
-        ];
-
-        // Convert message to lowercase for case-insensitive matching
+        // Use the comprehensive goodbye patterns that include both English and Filipino
         const messageLower = userMessage.toLowerCase().trim();
         
-        // Check if message contains any of the specific farewell keywords
-        const hasFarewellKeyword = farewellKeywords.some(keyword => 
-            messageLower.includes(keyword.toLowerCase())
-        );
+        // Check for exact matches and partial matches using the comprehensive patterns
+        for (const pattern of this.goodbyePatterns) {
+            if (messageLower.includes(pattern.toLowerCase())) {
+                console.log('Filipino/English pattern matched:', pattern, 'in message:', userMessage);
+                return true;
+            }
+        }
 
-        console.log('Checking farewell trigger for:', userMessage, 'Result:', hasFarewellKeyword);
-        return hasFarewellKeyword;
+        // Check for common goodbye combinations
+        const goodbyeCombinations = [
+            /(bye|goodbye|see you|farewell).*(thanks?|thank you)/i,
+            /(thanks?|thank you).*(bye|goodbye|see you|farewell)/i,
+            /(that's all|that's it|nothing else|all done|finished|done)/i,
+            /(good night|good evening|see you later|talk to you later)/i,
+            // Filipino combinations
+            /(salamat|maraming salamat).*(paalam|babay|ingat)/i,
+            /(paalam|babay|ingat).*(salamat|maraming salamat)/i,
+            /(tapos na|wala na|yun na yun|yun lang|ganun lang)/i,
+            /(magandang gabi|magandang araw|magandang umaga|magandang hapon)/i
+        ];
+
+        for (const regex of goodbyeCombinations) {
+            if (regex.test(messageLower)) {
+                console.log('Goodbye combination matched in message:', userMessage);
+                return true;
+            }
+        }
+
+        console.log('No farewell pattern matched for:', userMessage);
+        return false;
     }
 
     // Reset feedback state (for new sessions)
@@ -498,6 +516,28 @@ document.addEventListener('DOMContentLoaded', () => {
     // Add manual trigger for testing (remove in production)
     window.testFeedback = () => {
         window.feedbackManager.triggerFeedback();
+    };
+    
+    // Add test function for Filipino patterns
+    window.testFilipinoPatterns = () => {
+        const testMessages = [
+            'salamat po',
+            'maraming salamat',
+            'paalam',
+            'ingat po',
+            'tapos na',
+            'wala na',
+            'yun lang',
+            'magandang gabi',
+            'sige na',
+            'ok na'
+        ];
+        
+        console.log('Testing Filipino patterns:');
+        testMessages.forEach(msg => {
+            const result = window.feedbackManager.checkForFarewellTrigger(msg);
+            console.log(`"${msg}" -> ${result ? '✅ TRIGGERS' : '❌ NO TRIGGER'}`);
+        });
     };
     
     // Add keyboard shortcut for testing (Ctrl+Shift+F)

@@ -244,17 +244,7 @@
                                                     <h5 class="card-title mb-0">Conversation Settings</h5>
                                                 </div>
                                                 <div class="card-body">
-                                                    <div class="row">
-                                                        <div class="col-md-6">
-                                                            <div class="form-group">
-                                                                <label>Response Timeout (seconds)</label>
-                                                                <div class="d-flex align-items-center">
-                                                                    <input type="range" id="response-timeout" class="form-range me-2" min="5" max="60" value="30" oninput="updateTimeoutValue(this)">
-                                                                    <span class="text-muted" id="timeout-value">Current: 30s</span>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
+                                                    
                                                     <div class="row mt-3">
                                                         <div class="col-md-6">
                                                         <div class="form-check">
@@ -288,23 +278,14 @@
                                                     <div class="row">
                                                         <div class="col-md-6">
                                                             <div class="form-group">
-                                                                <label>Confidence Threshold</label>
-                                                                <div class="d-flex align-items-center">
-                                                                    <input type="range" id="confidence-threshold" class="form-range me-2" min="0" max="100" value="70" oninput="updateConfidenceValue(this)">
-                                                                    <span class="text-muted" id="confidence-value">70%</span>
-                                                                </div>
-                                                                <small class="form-text text-muted">Minimum confidence level before using default response.</small>
+                                                                <label>AI Model</label>
+                                                                <select id="language-model" class="form-control">
+                                                                    <option selected>(Default)</option>
+                                                                </select>
                                                             </div>
                                                         </div>
                                                         <div class="col-md-6">
-                                                            <div class="form-group">
-                                                                <label>Language Model</label>
-                                                                <select id="language-model" class="form-control">
-                                                                    <option selected>GPT-3.5 (Default)</option>
-                                                                    <option>GPT-4</option>
-                                                                    <option>Claude</option>
-                                                                </select>
-                                                            </div>
+                                                            
                                                         </div>
                                                     </div>
                                                     <div class="form-group mt-3">
@@ -362,18 +343,6 @@
                                                             <div class="summary-item">
                                                                 <span class="summary-label">Bot Name:</span>
                                                                 <span class="summary-value" id="summary-bot-name">EduChat Assistant</span>
-                                                            </div>
-                                                            <div class="summary-item">
-                                                                <span class="summary-label">Response Timeout:</span>
-                                                                <span class="summary-value" id="summary-timeout">30 seconds</span>
-                                                            </div>
-                                                            <div class="summary-item">
-                                                                <span class="summary-label">Confidence Threshold:</span>
-                                                                <span class="summary-value" id="summary-confidence">70%</span>
-                                                            </div>
-                                                            <div class="summary-item">
-                                                                <span class="summary-label">Language Model:</span>
-                                                                <span class="summary-value" id="summary-model">GPT-3.5 (Default)</span>
                                                             </div>
                                                             <div class="summary-item">
                                                                 <span class="summary-label">Primary Color:</span>

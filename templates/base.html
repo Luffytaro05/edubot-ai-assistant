@@ -5,6 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tanauan City College - TCC Assistant</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/TCC2014 Logo.png') }}">
+    
+    <!-- Preload critical resources for faster loading -->
+    <link rel="preload" href="{{ url_for('static', filename='style.css') }}" as="style">
+    <link rel="preload" href="{{ url_for('static', filename='app.js') }}" as="script">
+    <link rel="preload" href="{{ url_for('static', filename='images/EduChat.png') }}" as="image">
+    <link rel="preload" href="{{ url_for('static', filename='images/TCC2014 Logo.png') }}" as="image">
+    
+    <!-- DNS prefetch for external resources -->
+    <link rel="dns-prefetch" href="//translate.googleapis.com">
+    <link rel="dns-prefetch" href="//fonts.googleapis.com">
+    
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     {{ moment.include_moment() }}
 </head>
@@ -1020,10 +1031,12 @@
         }
     </style>
     
-    <script src="{{ url_for('static', filename='app.js') }}"></script>
+    <!-- Load main app script with async for non-blocking loading -->
+    <script src="{{ url_for('static', filename='app.js') }}" async></script>
     
-    <!-- Mobile Menu JavaScript -->
+    <!-- Mobile Menu JavaScript - Optimized for performance -->
     <script>
+        // Use requestAnimationFrame for smooth animations
         document.addEventListener('DOMContentLoaded', function() {
             const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
             const navLinks = document.getElementById('nav-links');

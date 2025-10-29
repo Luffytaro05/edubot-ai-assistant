@@ -33,6 +33,8 @@ body {
     height: 100vh;
     overflow-y: auto;
     z-index: 1000;
+    display: flex;
+    flex-direction: column;
 }
 
 .sidebar-header {
@@ -61,6 +63,14 @@ body {
 
 .sidebar-nav li {
     margin-bottom: 0.25rem;
+}
+
+/* Ensure space for the user profile card at the bottom to avoid overlap */
+.sidebar-nav {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    min-height: 0; /* Allow flex item to shrink */
+    padding-bottom: 120px; /* reserve space for profile block height + margin */
 }
 
 .sidebar-nav a {
@@ -421,8 +431,16 @@ body {
         font-size: 1.125rem;
     }
     
+    .sidebar-nav {
+        padding-bottom: 120px; /* Ensure space for profile on mobile */
+    }
+    
     .sidebar-nav a {
         padding: 0.625rem 0.875rem;
+    }
+    
+    .sidebar-user-profile {
+        padding: 0.875rem;
     }
 }
 
@@ -1389,16 +1407,70 @@ body {
 
 /* Sidebar User Profile */
 .sidebar-user-profile {
-    position: absolute;
-    bottom: 1.5rem;
-    left: 1.5rem;
-    right: 1.5rem;
+    position: relative;
+    margin-top: auto; /* Push to bottom in flex container */
     display: flex;
     align-items: center;
     gap: 0.75rem;
     padding: 1rem;
     background: rgba(59, 130, 246, 0.1);
     border-radius: 8px;
+    z-index: 1001; /* above sidebar items but below global overlays */
+    flex-shrink: 0; /* Prevent profile from shrinking */
+}
+
+/* Improve dropdown layering and alignment for header user menu */
+.user-info-dropdown {
+    position: relative;
+}
+
+.user-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+    z-index: 1500; /* above fixed sidebar (1000) */
+    overflow: visible;
+    min-width: 200px;
+    display: none; /* Hidden by default, shown via JavaScript */
+}
+
+.user-dropdown-menu.show {
+    display: block;
+}
+
+.user-dropdown-menu .dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    color: #1e293b;
+    text-decoration: none;
+    font-size: 0.875rem;
+    transition: background-color 0.2s ease;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.user-dropdown-menu .dropdown-item:last-child {
+    border-bottom: none;
+}
+
+.user-dropdown-menu .dropdown-item:hover {
+    background-color: #f8fafc;
+    color: #3b82f6;
+}
+
+.user-dropdown-menu .dropdown-item i {
+    width: 16px;
+    text-align: center;
+    color: #64748b;
+}
+
+.user-dropdown-menu .dropdown-item:hover i {
+    color: #3b82f6;
 }
 
 .sidebar-user-profile .user-avatar {
