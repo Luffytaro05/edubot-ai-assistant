@@ -241,13 +241,18 @@ class Chatbox {
     }
 
     getResponseTimeoutMs() {
-		// Get response timeout from settings (in seconds) and convert to milliseconds
+		// Get timeout (seconds) from bot settings, default to 15 if undefined
 		const configured = Number(this.botSettings?.response_timeout);
 		const defaultSeconds = 15;
 		const seconds = Number.isFinite(configured) ? configured : defaultSeconds;
-		// Enforce global min/max regardless of environment
+		// Keep timeout consistent on both localhost and production (Railway)
+		// Enforce limits: minimum 10s, maximum 60s
 		const clamped = Math.max(10, Math.min(60, seconds));
-		return clamped * 1000; // Convert to milliseconds
+
+		console.log("Response timeout set to:", clamped, "seconds");
+
+		// Convert to milliseconds
+		return clamped * 1000;
     }
 
     handleResponseTimeout() {
@@ -1544,172 +1549,172 @@ showProgressMessage(current, total, operation = "Processing") {
         // Show typing indicator
         this.showTypingIndicator();
 
-        // ✅ Always use /predict endpoint with Google Translate integration
-        if (typeof fetch !== 'undefined') {
-            // Create AbortController for timeout handling
-            const controller = new AbortController();
-            const timeoutMs = this.getResponseTimeoutMs();
-            
-            // Set up timeout
-            const timeoutId = setTimeout(() => {
-                controller.abort();
-            }, timeoutMs);
-            
-            // Proceed without performance timing logs
-            
-            fetch('/predict', {
-                method: 'POST',
-                body: JSON.stringify({ 
-                    message: text1, 
-                    user: this.user_id,  // ✅ Backend expects 'user' not 'user_id'
-                    user_id: this.user_id  // Keep for backward compatibility
-                }),
-                mode: 'cors',
-                headers: { 'Content-Type': 'application/json' },
-                signal: controller.signal
-            })
+		// ✅ Always use /predict endpoint with Google Translate integration
+		if (typeof fetch !== 'undefined') {
+			// Create AbortController for timeout handling
+			const controller = new AbortController();
+			const timeoutMs = this.getResponseTimeoutMs();
+			
+			// Set up timeout
+			const timeoutId = setTimeout(() => {
+				controller.abort();
+			}, timeoutMs);
+			
+			// Proceed without performance timing logs
+			
+			fetch('/predict', {
+				method: 'POST',
+				body: JSON.stringify({ 
+					message: text1, 
+					user: this.user_id,  // ✅ Backend expects 'user' not 'user_id'
+					user_id: this.user_id  // Keep for backward compatibility
+				}),
+				mode: 'cors',
+				headers: { 'Content-Type': 'application/json' },
+				signal: controller.signal
+			})
 				.then(r => {
-                // Clear the timeout since we got a response
-                clearTimeout(timeoutId);
+				// Clear the timeout since we got a response
+				clearTimeout(timeoutId);
 					return r.json();
-            })
-            .then(r => {
-                // Hide typing indicator
-                this.hideTypingIndicator();
-                
-                // Skip performance timing logs
-                
-                // ✅ CONTEXT SWITCH WARNING HANDLER
-                // Check if backend is warning about office context switch
-                if (r.status === 'context_switch_warning' && r.requires_reset) {
-                    console.warn(`⚠️ Context switch blocked: ${r.current_office} → ${r.attempted_office}`);
-                    
-                    // Display the warning message from backend
-                    let msg2 = { 
-                        name: "Bot", 
-                        message: r.answer,
-                        status: 'context_switch_warning',
-                        office: r.current_office || 'General',
-                        isContextWarning: true,
-                        currentOffice: r.current_office,
-                        currentOfficeTag: r.current_office_tag,
-                        attemptedOffice: r.attempted_office,
-                        attemptedOfficeTag: r.attempted_office_tag
-                    };
-                    this.messages.push(msg2);
-                    this.updateChatText();
-                    
-                    // Clear input field
-                    textField.value = '';
-                    this.args.characterCount.textContent = '0/500';
-                    
-                    // Highlight reset button if exists
-                    this.highlightResetButton();
-                    
-                    return; // Stop processing, don't proceed with normal flow
-                }
-                
-                // ✅ Google Translate Integration - Log translation info
-                if (r.detected_language && r.detected_language !== 'en') {
-                    console.log(`🌐 Language detected: ${r.detected_language}`);
-                    console.log(`📝 Original message: "${r.original_message}"`);
-                    if (r.translated_message) {
-                        console.log(`📝 Translated to English: "${r.translated_message}"`);
-                    }
-                    console.log(`💬 Response in ${r.detected_language}: "${r.answer}"`);
-                    if (r.original_answer) {
-                        console.log(`💬 Original English response: "${r.original_answer}"`);
-                    }
-                }
-                
-                // ✅ Handle office switch confirmation
-                if (r.office_switched && r.new_office_tag) {
-                    const officeTagToContext = {
-                        'admission_office': 'admission',
-                        'registrar_office': 'registrar',
-                        'ict_office': 'ict',
-                        'guidance_office': 'guidance',
-                        'osa_office': 'osa'
-                    };
-                    this.currentContext = officeTagToContext[r.new_office_tag];
-                    this.updateContextIndicator();
-                    console.log(`🔄 Office switched to: ${r.new_office}`);
-                }
-                
-                let msg2 = { 
-                    name: "Bot", 
-                    message: r.answer,
-                    status: r.status || 'resolved',
-                    office: r.office || 'General',
-                    language: r.detected_language || 'en',
-                    suggested_office: r.suggested_office || null,  // ✅ Store suggested office
-                    suggested_office_tag: r.suggested_office_tag || null
-                };
-                this.messages.push(msg2);
-                
-                // Log status and office for analytics
-                console.log(`✅ Status: ${r.status || 'resolved'} | Office: ${r.office || 'General'}`);
-                
-                // ✅ Show office switch suggestion hint
-                if (r.suggested_office && !r.office_switched) {
-                    console.log(`💡 Office switch suggested: ${r.suggested_office}`);
-                    console.log(`   Tag: ${r.suggested_office_tag}`);
-                    console.log(`   💬 Click button or type "yes" to switch to ${r.suggested_office}`);
-                } else if (r.office_switched) {
-                    console.log(`✅ Office switch confirmed and completed`);
-                } else {
-                    console.log(`ℹ️ No office switch suggestion in this response`);
-                }
-                
-                // Mark this index as the place to render inline suggestions if pending
-                if (this.pendingInlineAfterResponse) {
-                    this.lastInlineBotIndex = this.messages.length - 1;
-                    this.pendingInlineAfterResponse = false;
-                } else {
-                    this.lastInlineBotIndex = null;
-                }
-                // Check for user farewell message BEFORE adding bot message
-                const shouldShowFeedback = this.checkForUserFarewellMessage(text1);
-                
-                // Decide on feedback AFTER adding bot message
-                this.checkForConversationEnd(r.answer);
-                this.updateChatText();
-                
-                // Show feedback form if user sent farewell message
-                if (shouldShowFeedback) {
-                    setTimeout(() => {
-                        this.showFeedbackForm();
-                    }, 1000); // Show after bot response
-                }
-                textField.value = '';
-                this.args.characterCount.textContent = '0/500';
-                
-                // Speak response if TTS is enabled
-                if (this.ttsEnabled) {
-                    setTimeout(() => this.speakMessage(r.answer), 500);
-                }
-                
-                // Update context based on response (unless office switch was just confirmed)
-                if (!r.office_switched) {
-                    this.updateContextFromMessage(text1, r.answer);
-                }
-                
-                // Show contextual suggested messages from backend
-                if (r.suggested_messages && r.suggested_messages.length > 0) {
-                    setTimeout(() => this.showBackendSuggestions(r.suggested_messages), 500);
-                } else {
-                    // Fallback to main suggestions
-                    setTimeout(() => this.resetToMainSuggestions(), 1000);
-                }
-            })
+			})
+			.then(r => {
+				// Hide typing indicator
+				this.hideTypingIndicator();
+				
+				// Skip performance timing logs
+				
+				// ✅ CONTEXT SWITCH WARNING HANDLER
+				// Check if backend is warning about office context switch
+				if (r.status === 'context_switch_warning' && r.requires_reset) {
+					console.warn(`⚠️ Context switch blocked: ${r.current_office} → ${r.attempted_office}`);
+					
+					// Display the warning message from backend
+					let msg2 = { 
+						name: "Bot", 
+						message: r.answer,
+						status: 'context_switch_warning',
+						office: r.current_office || 'General',
+						isContextWarning: true,
+						currentOffice: r.current_office,
+						currentOfficeTag: r.current_office_tag,
+						attemptedOffice: r.attempted_office,
+						attemptedOfficeTag: r.attempted_office_tag
+					};
+					this.messages.push(msg2);
+					this.updateChatText();
+					
+					// Clear input field
+					textField.value = '';
+					this.args.characterCount.textContent = '0/500';
+					
+					// Highlight reset button if exists
+					this.highlightResetButton();
+					
+					return; // Stop processing, don't proceed with normal flow
+				}
+				
+				// ✅ Google Translate Integration - Log translation info
+				if (r.detected_language && r.detected_language !== 'en') {
+					console.log(`🌐 Language detected: ${r.detected_language}`);
+					console.log(`📝 Original message: "${r.original_message}"`);
+					if (r.translated_message) {
+						console.log(`📝 Translated to English: "${r.translated_message}"`);
+					}
+					console.log(`💬 Response in ${r.detected_language}: "${r.answer}"`);
+					if (r.original_answer) {
+						console.log(`💬 Original English response: "${r.original_answer}"`);
+					}
+				}
+				
+				// ✅ Handle office switch confirmation
+				if (r.office_switched && r.new_office_tag) {
+					const officeTagToContext = {
+						'admission_office': 'admission',
+						'registrar_office': 'registrar',
+						'ict_office': 'ict',
+						'guidance_office': 'guidance',
+						'osa_office': 'osa'
+					};
+					this.currentContext = officeTagToContext[r.new_office_tag];
+					this.updateContextIndicator();
+					console.log(`🔄 Office switched to: ${r.new_office}`);
+				}
+				
+				let msg2 = { 
+					name: "Bot", 
+					message: r.answer,
+					status: r.status || 'resolved',
+					office: r.office || 'General',
+					language: r.detected_language || 'en',
+					suggested_office: r.suggested_office || null,  // ✅ Store suggested office
+					suggested_office_tag: r.suggested_office_tag || null
+				};
+				this.messages.push(msg2);
+				
+				// Log status and office for analytics
+				console.log(`✅ Status: ${r.status || 'resolved'} | Office: ${r.office || 'General'}`);
+				
+				// ✅ Show office switch suggestion hint
+				if (r.suggested_office && !r.office_switched) {
+					console.log(`💡 Office switch suggested: ${r.suggested_office}`);
+					console.log(`   Tag: ${r.suggested_office_tag}`);
+					console.log(`   💬 Click button or type "yes" to switch to ${r.suggested_office}`);
+				} else if (r.office_switched) {
+					console.log(`✅ Office switch confirmed and completed`);
+				} else {
+					console.log(`ℹ️ No office switch suggestion in this response`);
+				}
+				
+				// Mark this index as the place to render inline suggestions if pending
+				if (this.pendingInlineAfterResponse) {
+					this.lastInlineBotIndex = this.messages.length - 1;
+					this.pendingInlineAfterResponse = false;
+				} else {
+					this.lastInlineBotIndex = null;
+				}
+				// Check for user farewell message BEFORE adding bot message
+				const shouldShowFeedback = this.checkForUserFarewellMessage(text1);
+				
+				// Decide on feedback AFTER adding bot message
+				this.checkForConversationEnd(r.answer);
+				this.updateChatText();
+				
+				// Show feedback form if user sent farewell message
+				if (shouldShowFeedback) {
+					setTimeout(() => {
+						this.showFeedbackForm();
+					}, 1000); // Show after bot response
+				}
+				textField.value = '';
+				this.args.characterCount.textContent = '0/500';
+				
+				// Speak response if TTS is enabled
+				if (this.ttsEnabled) {
+					setTimeout(() => this.speakMessage(r.answer), 500);
+				}
+				
+				// Update context based on response (unless office switch was just confirmed)
+				if (!r.office_switched) {
+					this.updateContextFromMessage(text1, r.answer);
+				}
+				
+				// Show contextual suggested messages from backend
+				if (r.suggested_messages && r.suggested_messages.length > 0) {
+					setTimeout(() => this.showBackendSuggestions(r.suggested_messages), 500);
+				} else {
+					// Fallback to main suggestions
+					setTimeout(() => this.resetToMainSuggestions(), 1000);
+				}
+			})
 				.catch((error) => {
-                // Clear the timeout
-                clearTimeout(timeoutId);
-                
-                // Hide typing indicator on error
-                this.hideTypingIndicator();
-                
-                // ✅ Always use /predict endpoint - show error message instead of local response
+				// Clear the timeout
+				clearTimeout(timeoutId);
+				
+				// Hide typing indicator on error
+				this.hideTypingIndicator();
+				
+				// ✅ Always use /predict endpoint - show error message instead of local response
 						if (error.name === 'AbortError') {
 							console.log('Request timed out');
 							// Use the dedicated timeout UX
@@ -1729,7 +1734,7 @@ showProgressMessage(current, total, operation = "Processing") {
 					
 					textField.value = '';
 					this.args.characterCount.textContent = '0/500';
-            });
+			});
         } else {
             // Fetch is not available - show error
             this.hideTypingIndicator();
