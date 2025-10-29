@@ -233,6 +233,8 @@ try:
     # Initialize hybrid model
     hybrid_model = HybridChatModel(model, vector_store, tags)
     print("[OK] Neural network and vector store loaded successfully")
+    # Mark model as loaded to avoid redundant lazy reload
+    model_loaded = True
     
 except FileNotFoundError:
     print("[WARNING] Neural network model not found. Using fallback mode.")
@@ -249,11 +251,9 @@ except Exception as e:
     tags = ["greeting", "help", "thanks", "goodbye"]
 
 # Global variables for lazy loading
-model = None
-hybrid_model = None
-all_words = None
-tags = None
-model_loaded = False
+# Note: if the eager load above succeeded, these will already be set and
+# model_loaded will be True. Otherwise, lazy loading will populate them.
+model_loaded = 'model_loaded' in globals() and globals()['model_loaded'] is True
 
 def load_model():
     """Lazy load the neural network model"""

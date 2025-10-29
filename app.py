@@ -181,21 +181,12 @@ EMAIL_CONFIG = {
 # STEP 7: Paste it in the line below (remove spaces: "abcdefghijklmnop")
 # ===========================
 
-# Set your Gmail App Password here
-if not EMAIL_CONFIG['SENDER_PASSWORD']:
-    # ⚠️ REPLACE THE PLACEHOLDER BELOW WITH YOUR ACTUAL GMAIL APP PASSWORD
-    EMAIL_CONFIG['SENDER_PASSWORD'] = 'nyvxkulmdzxhybhk'
-    
-    # Enable email notifications (set to True after adding your password above)
-    EMAIL_CONFIG['ENABLE_EMAIL'] = True  # Change to True after setting password above
-
-# Auto-enable if password is set and not placeholder
-if EMAIL_CONFIG['SENDER_PASSWORD'] and EMAIL_CONFIG['SENDER_PASSWORD'] not in ['', 'PASTE_YOUR_16_CHAR_APP_PASSWORD_HERE', 'your-app-password-here']:
-    EMAIL_CONFIG['ENABLE_EMAIL'] = True
+# Email should only be enabled if credentials are provided via environment variables
+if EMAIL_CONFIG['SENDER_PASSWORD'] and EMAIL_CONFIG['ENABLE_EMAIL']:
     print(f"✅ Email notifications ENABLED - Emails will be sent from {EMAIL_CONFIG['SENDER_EMAIL']}")
 else:
     EMAIL_CONFIG['ENABLE_EMAIL'] = False
-    print(f"⚠️ Email notifications DISABLED - Set SENDER_PASSWORD in app.py to enable")
+    print("⚠️ Email notifications DISABLED - Configure SMTP credentials in environment variables to enable")
 
 def send_password_change_email(user_email, user_name):
     """Send email notification when password is changed"""

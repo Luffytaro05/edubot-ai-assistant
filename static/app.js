@@ -1708,27 +1708,25 @@ showProgressMessage(current, total, operation = "Processing") {
                 this.hideTypingIndicator();
                 
                 // ✅ Always use /predict endpoint - show error message instead of local response
-					let errorMessage = '';
-					if (error.name === 'AbortError') {
-						console.log('Request timed out');
-						errorMessage = 'Sorry, the request timed out. Please try again or rephrase your question.';
-					} else {
-						console.log('Backend error:', error);
-						errorMessage = 'Sorry, I encountered an error. Please check your connection and try again.';
-					}
-                
-                // Show error message to user
-                let msg2 = { 
-                    name: "Bot", 
-                    message: errorMessage,
-                    status: 'error',
-                    office: 'System'
-                };
-                this.messages.push(msg2);
-                this.updateChatText();
-                
-                textField.value = '';
-                this.args.characterCount.textContent = '0/500';
+						if (error.name === 'AbortError') {
+							console.log('Request timed out');
+							// Use the dedicated timeout UX
+							this.handleResponseTimeout();
+						} else {
+							console.log('Backend error:', error);
+							// Show generic backend error
+							let msg2 = { 
+								name: "Bot", 
+								message: 'Sorry, I encountered an error. Please check your connection and try again.',
+								status: 'error',
+								office: 'System'
+							};
+							this.messages.push(msg2);
+							this.updateChatText();
+						}
+					
+					textField.value = '';
+					this.args.characterCount.textContent = '0/500';
             });
         } else {
             // Fetch is not available - show error
