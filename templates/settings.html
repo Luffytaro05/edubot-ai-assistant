@@ -249,8 +249,8 @@
                                                             <div class="form-group">
                                                                 <label>Response Timeout (seconds)</label>
                                                                 <div class="d-flex align-items-center">
-                                                                <input type="range" id="response-timeout" class="form-range me-2" min="30" max="60" value="30" oninput="updateTimeoutValue(this)">
-                                                                    <span class="text-muted" id="timeout-value">Current: 30s</span>
+                                                                <input type="range" id="response-timeout" class="form-range me-2" min="10" max="60" value="15" oninput="updateTimeoutValue(this)">
+                                                                    <span class="text-muted" id="timeout-value">Current: 15s</span>
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -568,7 +568,7 @@
                     // Reset form values to defaults
                     document.getElementById('bot-name').value = 'EduChat Assistant';
                     document.getElementById('welcome-message').value = 'Hello! I\'m EduChat, your virtual assistant. How can I help you today?';
-                    document.getElementById('response-timeout').value = 30;
+                    document.getElementById('response-timeout').value = 15;
                     document.getElementById('confidence-threshold').value = 70;
                     document.getElementById('language-model').value = 'GPT-3.5 (Default)';
                     document.getElementById('primary-color').value = '#3B82F6';

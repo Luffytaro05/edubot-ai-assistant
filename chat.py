@@ -31,161 +31,30 @@ print()
 sub_announcements_collection = None
 admin_announcements_collection = None
 
-# MongoDB connection with improved error handling and SSL settings
+# Secure MongoDB connection using environment variable and TLS
 def create_mongo_connection():
-    """Create MongoDB connection with multiple fallback strategies"""
-    
-    # Base connection string without parameters
-    base_connection = "mongodb+srv://dxtrzpc26:w1frwdiwmW9VRItO@cluster0.gskdq3p.mongodb.net/"
-    
-    # Strategy 1: Simple connection with just TLS disabled for testing
+    """Create a secure MongoDB connection using MONGODB_URI and TLS."""
+    mongodb_uri = os.getenv("MONGODB_URI")
+    if not mongodb_uri:
+        print("[WARNING] MONGODB_URI is not set. Database features will be disabled.")
+        return None
     try:
-        print("Attempting MongoDB connection (Method 1: TLS disabled - testing only)...")
-        # Note: This is for testing only - not recommended for production
         client = MongoClient(
-            base_connection + "?ssl=false&retryWrites=true&w=majority",
-            serverSelectionTimeoutMS=15000,
-            connectTimeoutMS=10000,
-            socketTimeoutMS=10000,
-            maxPoolSize=5
-        )
-        # Test the connection
-        client.admin.command('ping')
-        print("MongoDB connected successfully using Method 1")
-        return client
-    except Exception as e:
-        print(f"Method 1 failed: {e}")
-    
-    # Strategy 2: Use TLS with certificate verification disabled
-    try:
-        print("Attempting MongoDB connection (Method 2: TLS with no cert verification)...")
-        client = MongoClient(
-            base_connection,
+            mongodb_uri,
             tls=True,
-            tlsAllowInvalidCertificates=True,
+            tlsCAFile=certifi.where(),
             serverSelectionTimeoutMS=15000,
             connectTimeoutMS=10000,
             socketTimeoutMS=10000,
             maxPoolSize=5,
             retryWrites=True
         )
-        # Test the connection
         client.admin.command('ping')
-        print("MongoDB connected successfully using Method 2")
+        print("✅ MongoDB connected securely (TLS enabled)")
         return client
     except Exception as e:
-        print(f"Method 2 failed: {e}")
-    
-    # Strategy 3: Use older SSL parameter instead of TLS
-    try:
-        print("Attempting MongoDB connection (Method 3: Legacy SSL parameters)...")
-        client = MongoClient(
-            base_connection,
-            ssl=True,
-            ssl_cert_reqs=ssl.CERT_NONE,
-            ssl_match_hostname=False,
-            serverSelectionTimeoutMS=15000,
-            connectTimeoutMS=10000,
-            socketTimeoutMS=10000,
-            maxPoolSize=5,
-            retryWrites=True
-        )
-        # Test the connection
-        client.admin.command('ping')
-        print("MongoDB connected successfully using Method 3")
-        return client
-    except Exception as e:
-        print(f"Method 3 failed: {e}")
-    
-    # Strategy 4: Try with explicit SSL context using ssl_ca_certs parameter
-    try:
-        print("Attempting MongoDB connection (Method 4: SSL with CA certs)...")
-        client = MongoClient(
-            base_connection,
-            ssl=True,
-            ssl_ca_certs=certifi.where(),
-            ssl_cert_reqs=ssl.CERT_REQUIRED,
-            ssl_match_hostname=True,
-            serverSelectionTimeoutMS=15000,
-            connectTimeoutMS=10000,
-            socketTimeoutMS=10000,
-            maxPoolSize=5,
-            retryWrites=True
-        )
-        # Test the connection
-        client.admin.command('ping')
-        print("MongoDB connected successfully using Method 4")
-        return client
-    except Exception as e:
-        print(f"Method 4 failed: {e}")
-    
-    # Strategy 5: Try using direct connection string with parameters
-    try:
-        print("Attempting MongoDB connection (Method 5: Connection string parameters)...")
-        connection_string = base_connection + "?retryWrites=true&w=majority&ssl=true&ssl_cert_reqs=CERT_NONE"
-        client = MongoClient(
-            connection_string,
-            serverSelectionTimeoutMS=15000,
-            connectTimeoutMS=10000,
-            socketTimeoutMS=10000,
-            maxPoolSize=5
-        )
-        # Test the connection
-        client.admin.command('ping')
-        print("MongoDB connected successfully using Method 5")
-        return client
-    except Exception as e:
-        print(f"Method 5 failed: {e}")
-    
-    # Strategy 6: Try with Python OpenSSL instead of system SSL
-    try:
-        print("Attempting MongoDB connection (Method 6: Force SSL version)...")
-        import ssl
-        ssl_context = ssl.create_default_context()
-        ssl_context.minimum_version = ssl.TLSVersion.TLSv1_2
-        ssl_context.maximum_version = ssl.TLSVersion.TLSv1_3
-        ssl_context.check_hostname = False
-        ssl_context.verify_mode = ssl.CERT_NONE
-        
-        client = MongoClient(
-            base_connection,
-            ssl=True,
-            ssl_cert_reqs=ssl.CERT_NONE,
-            ssl_match_hostname=False,
-            serverSelectionTimeoutMS=15000,
-            connectTimeoutMS=10000,
-            socketTimeoutMS=10000,
-            maxPoolSize=5,
-            retryWrites=True
-        )
-        # Test the connection
-        client.admin.command('ping')
-        print("MongoDB connected successfully using Method 6")
-        return client
-    except Exception as e:
-        print(f"Method 6 failed: {e}")
-    
-    # Strategy 7: Last resort - try with minimal settings
-    try:
-        print("Attempting MongoDB connection (Method 7: Minimal settings)...")
-        client = MongoClient(base_connection)
-        # Test the connection with longer timeout
-        client.admin.command('ping')
-        print("MongoDB connected successfully using Method 7")
-        return client
-    except Exception as e:
-        print(f"Method 7 failed: {e}")
-    
-    print("All connection methods failed!")
-    print("Possible solutions:")
-    print("   1. Check your internet connection")
-    print("   2. Verify MongoDB Atlas cluster is running")
-    print("   3. Check Network Access settings in MongoDB Atlas")
-    print("   4. Update Python and pymongo: pip install --upgrade pymongo")
-    print("   5. Try connecting from a different network")
-    print("   6. Contact your system administrator about SSL/TLS settings")
-    
-    return None
+        print(f"❌ Secure MongoDB connection failed: {e}")
+        return None
 
 # Initialize MongoDB connection
 print("Initializing MongoDB connection...")
@@ -214,95 +83,49 @@ vector_store = VectorStore()
 # Note: Announcements are now stored exclusively in MongoDB and Pinecone
 # No JSON file fallback - all announcements come from database
 
-# Load trained model with Railway fallback
-FILE = "data.pth"
-try:
-    data = torch.load(FILE)
-
-    input_size = data["input_size"]
-    hidden_size = data["hidden_size"]
-    output_size = data["output_size"]
-    all_words = data["all_words"]
-    tags = data["tags"]
-    model_state = data["model_state"]
-
-    model = NeuralNet(input_size, hidden_size, output_size)
-    model.load_state_dict(model_state)
-    model.eval()
-    
-    # Initialize hybrid model
-    hybrid_model = HybridChatModel(model, vector_store, tags)
-    print("[OK] Neural network and vector store loaded successfully")
-    # Mark model as loaded to avoid redundant lazy reload
-    model_loaded = True
-    
-except FileNotFoundError:
-    print("[WARNING] Neural network model not found. Using fallback mode.")
-    model = None
-    hybrid_model = None
-    # Create minimal fallback data
-    all_words = ["hello", "help", "thanks", "goodbye"] * 25
-    tags = ["greeting", "help", "thanks", "goodbye"]
-except Exception as e:
-    print(f"[ERROR] Error loading model: {e}. Using fallback mode.")
-    model = None
-    hybrid_model = None
-    all_words = ["hello", "help", "thanks", "goodbye"] * 25
-    tags = ["greeting", "help", "thanks", "goodbye"]
-
+"""
+Model loading (lazy, global single initialization)
+"""
 # Global variables for lazy loading
-# Note: if the eager load above succeeded, these will already be set and
-# model_loaded will be True. Otherwise, lazy loading will populate them.
-model_loaded = 'model_loaded' in globals() and globals()['model_loaded'] is True
+model_loaded = False
+model = None
+hybrid_model = None
+all_words = []
+tags = []
 
-def load_model():
-    """Lazy load the neural network model"""
-    global model, hybrid_model, all_words, tags, model_loaded
-    
+def load_models_if_needed():
+    """Load models once globally if not already loaded."""
+    global model_loaded, model, hybrid_model, all_words, tags
     if model_loaded:
         return model, hybrid_model, all_words, tags
-    
-    print("🔄 Loading neural network model...")
+    print("🔄 Loading neural network model (lazy)...")
     load_start = time.time()
-    
-    FILE = "data.pth"
     try:
-        data = torch.load(FILE)
-
+        data = torch.load("data.pth")
         input_size = data["input_size"]
         hidden_size = data["hidden_size"]
         output_size = data["output_size"]
         all_words = data["all_words"]
         tags = data["tags"]
         model_state = data["model_state"]
-
         model = NeuralNet(input_size, hidden_size, output_size)
         model.load_state_dict(model_state)
         model.eval()
-        
-        # Initialize hybrid model
         hybrid_model = HybridChatModel(model, vector_store, tags)
-        
-        load_time = time.time() - load_start
-        print(f"✅ Neural network loaded successfully (took {load_time:.2f}s)")
-        model_loaded = True
-        
+        print(f"✅ Neural network loaded successfully (took {time.time()-load_start:.2f}s)")
     except FileNotFoundError:
         print("[WARNING] Model file not found. Using fallback mode.")
         model = None
         hybrid_model = None
-        # Create minimal fallback data
         all_words = ["hello", "help", "thanks", "goodbye"] * 25
         tags = ["greeting", "help", "thanks", "goodbye"]
-        model_loaded = True
     except Exception as e:
         print(f"[ERROR] Error loading model: {e}. Using fallback mode.")
         model = None
         hybrid_model = None
         all_words = ["hello", "help", "thanks", "goodbye"] * 25
         tags = ["greeting", "help", "thanks", "goodbye"]
-        model_loaded = True
-    
+    model_loaded = True
     return model, hybrid_model, all_words, tags
 
 # Store conversation contexts for each user per office
@@ -460,7 +283,7 @@ def save_message(user_id, sender, message, detected_office=None):
         try:
             # Create document with office field and date instead of timestamp
             document = {
-                "user": user,
+                "user": user_id,
                 "sender": sender,
                 "message": message,
                 "office": office,
@@ -774,8 +597,8 @@ def get_fallback_response(msg, user_id="guest"):
 def get_response(msg, user_id="guest"):
     # Lazy load model if not already loaded
     global model, hybrid_model, all_words, tags
-    if model is None or hybrid_model is None:
-        model, hybrid_model, all_words, tags = load_model()
+    if model is None or hybrid_model is None or not model_loaded:
+        model, hybrid_model, all_words, tags = load_models_if_needed()
     
     # Check if model is available, use fallback if not
     if model is None or hybrid_model is None:

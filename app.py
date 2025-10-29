@@ -38,6 +38,7 @@ except ImportError:
     JWT_AVAILABLE = False
 import os
 from dotenv import load_dotenv
+import certifi
 load_dotenv()
 import time
 from functools import wraps
@@ -122,16 +123,26 @@ except Exception as e:
     print("⚠️ Running without Pinecone vector search capabilities")
     pinecone_available = False
 
-# MongoDB connection with Railway environment variable support
-MONGODB_URI = os.getenv('MONGODB_URI', 'mongodb+srv://dxtrzpc26:w1frwdiwmW9VRItO@cluster0.gskdq3p.mongodb.net/')
+# MongoDB connection with environment variable and TLS
+MONGODB_URI = os.getenv('MONGODB_URI')
 try:
-    client = MongoClient(MONGODB_URI, serverSelectionTimeoutMS=5000)
-    # Test connection
+    if not MONGODB_URI:
+        raise RuntimeError('MONGODB_URI is not set')
+    client = MongoClient(
+        MONGODB_URI,
+        tls=True,
+        tlsCAFile=certifi.where(),
+        serverSelectionTimeoutMS=15000,
+        connectTimeoutMS=10000,
+        socketTimeoutMS=10000,
+        maxPoolSize=5,
+        retryWrites=True
+    )
     client.admin.command('ping')
     db = client["chatbot_db"]
-    print("✅ MongoDB connected successfully")
+    print("✅ MongoDB connected securely (TLS enabled)")
 except Exception as e:
-    print(f"❌ MongoDB connection failed: {e}")
+    print(f"❌ Secure MongoDB connection failed: {e}")
     # Create a mock database for Railway deployment without MongoDB
     class MockDB:
         def __getattr__(self, name):

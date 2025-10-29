@@ -4,7 +4,11 @@ import uuid
 from typing import List, Dict, Any, Optional
 import numpy as np
 from sentence_transformers import SentenceTransformer
-from pinecone import Pinecone, ServerlessSpec
+try:
+    from pinecone import Pinecone, ServerlessSpec
+except Exception as _pinecone_import_error:
+    Pinecone = None
+    ServerlessSpec = None
 import time
 from dotenv import load_dotenv
 load_dotenv()  
@@ -29,9 +33,14 @@ class VectorStore:
         self.dimension = dimension
         self.enhanced_embeddings = enhanced_embeddings
         
-        # Initialize embedding model
-        print(f"Loading embedding model: {model_name}")
-        self.embedding_model = SentenceTransformer(model_name)
+        # Initialize embedding model (resilient to offline/deploy environments)
+        self.embedding_model = None
+        try:
+            print(f"Loading embedding model: {model_name}")
+            self.embedding_model = SentenceTransformer(model_name)
+        except Exception as e:
+            print(f"WARNING: Failed to load SentenceTransformer '{model_name}': {e}")
+            print("Running without embeddings - vector features will be disabled")
         
         # Enhanced similarity thresholds
         self.similarity_thresholds = {
@@ -48,6 +57,9 @@ class VectorStore:
     def _initialize_pinecone(self):
         """Initialize Pinecone client and index with performance optimizations"""
         try:
+            if Pinecone is None or ServerlessSpec is None:
+                print("WARNING: pinecone client not installed; running in offline mode")
+                return
             # Get API key from environment
             api_key = os.getenv('PINECONE_API_KEY')
             if not api_key:
@@ -92,6 +104,9 @@ class VectorStore:
     def generate_embedding(self, text: str) -> List[float]:
         """Generate enhanced embedding for text using SentenceTransformers"""
         try:
+            if not self.embedding_model:
+                # No embedding model available; return zero vector
+                return [0.0] * self.dimension
             if self.enhanced_embeddings:
                 # Enhanced embedding with multiple strategies
                 # 1. Original text

@@ -242,11 +242,12 @@ class Chatbox {
 
     getResponseTimeoutMs() {
 		// Get response timeout from settings (in seconds) and convert to milliseconds
-		const configuredSeconds = this.botSettings?.response_timeout || 30;
-		const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname);
-		// Enforce a minimum of 15s online to avoid premature aborts on slower networks/backends
-		const effectiveSeconds = isLocal ? configuredSeconds : Math.max(configuredSeconds, 30);
-		return effectiveSeconds * 1000; // Convert to milliseconds
+		const configured = Number(this.botSettings?.response_timeout);
+		const defaultSeconds = 15;
+		const seconds = Number.isFinite(configured) ? configured : defaultSeconds;
+		// Enforce global min/max regardless of environment
+		const clamped = Math.max(10, Math.min(60, seconds));
+		return clamped * 1000; // Convert to milliseconds
     }
 
     handleResponseTimeout() {
@@ -268,11 +269,12 @@ class Chatbox {
     }
 
     applyResponseTimeoutSetting() {
-        const timeoutSeconds = this.botSettings?.response_timeout || 30;
-        console.log('Response timeout setting applied:', timeoutSeconds + ' seconds');
-        
-        // Store the timeout setting for use in requests
-        this.responseTimeoutSeconds = timeoutSeconds;
+        const configured = Number(this.botSettings?.response_timeout);
+        const defaultSeconds = 15;
+        const seconds = Number.isFinite(configured) ? configured : defaultSeconds;
+        const clamped = Math.max(10, Math.min(60, seconds));
+        console.log('Response timeout setting applied:', clamped + ' seconds');
+        this.responseTimeoutSeconds = clamped;
     }
 
     applyPrimaryColor(color) {
