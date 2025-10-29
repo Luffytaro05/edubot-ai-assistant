@@ -36,14 +36,6 @@ class Chatbox {
         this.isTyping = false;
         this.typingTimeout = null;
         
-        // Performance optimizations
-        this.isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
-        this.requestCache = new Map();
-        this.cacheTimeout = 30000; // 30 seconds cache
-        this.maxCacheSize = 50;
-        this.requestTimeout = this.isProduction ? 15000 : 30000; // Shorter timeout for production
-        this.connectionPool = new Map(); // Connection pooling for reuse
-        
         // Translation system state (✅ ENGLISH AND FILIPINO ONLY)
         this.userLanguage = "en"; // Default language ('en' or 'fil')
         this.translationEnabled = true; // Enable automatic translation (English ↔ Filipino only)
@@ -144,96 +136,11 @@ class Chatbox {
         window.sendMessage = (text) => this.sendMessage(text);  // ✅ For office switch buttons
     }
 
-    // Performance optimization methods
-    log(message, ...args) {
-        if (!this.isProduction) {
-            console.log(message, ...args);
-        }
-    }
-
-    getCachedRequest(key) {
-        const cached = this.requestCache.get(key);
-        if (cached && Date.now() - cached.timestamp < this.cacheTimeout) {
-            this.log('📦 Cache hit for:', key);
-            return cached.data;
-        }
-        return null;
-    }
-
-    setCachedRequest(key, data) {
-        // Limit cache size
-        if (this.requestCache.size >= this.maxCacheSize) {
-            const firstKey = this.requestCache.keys().next().value;
-            this.requestCache.delete(firstKey);
-        }
-        this.requestCache.set(key, {
-            data,
-            timestamp: Date.now()
-        });
-    }
-
-    async optimizedFetch(url, options = {}) {
-        const cacheKey = `${url}_${JSON.stringify(options.body || {})}`;
-        const cached = this.getCachedRequest(cacheKey);
-        if (cached) {
-            return cached;
-        }
-
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), this.requestTimeout);
-
-        try {
-            const response = await fetch(url, {
-                ...options,
-                signal: controller.signal,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Connection': 'keep-alive',
-                    ...options.headers
-                }
-            });
-
-            clearTimeout(timeoutId);
-
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-
-            const data = await response.json();
-            
-            // Cache successful responses
-            if (response.ok) {
-                this.setCachedRequest(cacheKey, data);
-            }
-
-            return data;
-        } catch (error) {
-            clearTimeout(timeoutId);
-            if (error.name === 'AbortError') {
-                throw new Error('Request timeout - please try again');
-            }
-            throw error;
-        }
-    }
-
-    // Async, non-blocking save method for bot messages
-    async saveBotMessageAsync(messageData) {
-        try {
-            await this.optimizedFetch("/save_bot_message", {
-                method: "POST",
-                body: JSON.stringify(messageData)
-            });
-            this.log('✅ Bot message saved successfully');
-        } catch (saveError) {
-            this.log('⚠️ Failed to save bot message to MongoDB:', saveError);
-            // Don't fail the whole request if saving fails
-        }
-    }
-
     // Load bot settings from backend and apply to UI/theme
     async loadBotSettings() {
         try {
-            const data = await this.optimizedFetch('/api/bot/settings', { method: 'GET' });
+            const res = await fetch('/api/bot/settings', { method: 'GET' });
+            const data = await res.json();
             this.botSettings = data || {};
 
             // Apply primary color theme if present
@@ -452,7 +359,8 @@ class Chatbox {
         
         try {
             const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`;
-            const data = await this.optimizedFetch(url, { method: 'GET' });
+            const response = await fetch(url);
+            const data = await response.json();
             
             // Google Translate API returns array: [[["translated", "original", null, null, ...], ...], ...]
             if (data && data[0] && data[0][0] && data[0][0][0]) {
@@ -558,14 +466,12 @@ class Chatbox {
             console.log(`✅ Message is in English, no translation needed`);
         }
         
-        // Send to backend chatbot (in English) with optimized request
+        // Send to backend chatbot (in English)
         // Pass both original message (for MongoDB) and translated message (for processing)
         try {
-            const startTime = performance.now();
-            this.log(`🚀 Starting optimized chat request for: "${translatedMsg}"`);
-            
-            const data = await this.optimizedFetch("/chat", {
+            const response = await fetch("/chat", {
                 method: "POST",
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ 
                     message: translatedMsg,           // Translated message for chatbot processing
                     original_message: userMsg,         // Original message in user's language for MongoDB
@@ -573,35 +479,41 @@ class Chatbox {
                 }),
             });
             
-            const endTime = performance.now();
-            this.log(`⚡ Chat response received in ${(endTime - startTime).toFixed(2)}ms`);
-            
+            const data = await response.json();
             let botResponse = data.response;
             let botResponseOriginal = botResponse; // Keep English version
             const status = data.status || 'resolved';
             const office = data.office || 'General';
             
-            // Log status for debugging (only in development)
-            this.log(`Status: ${status}, Office: ${office}`);
+            // Log status for debugging
+            console.log(`Status: ${status}, Office: ${office}`);
             
             // ✅ Translate response back to Filipino if user's language is Filipino
             if (this.userLanguage === "fil") {
-                const translateStart = performance.now();
                 botResponse = await this.translateText(botResponse, "fil");
-                const translateEnd = performance.now();
-                this.log(`🌐 Translation completed in ${(translateEnd - translateStart).toFixed(2)}ms`);
+                console.log(`🌐 Translated response from English to Filipino: ${botResponse}`);
             } else {
-                this.log(`✅ Response kept in English`);
+                console.log(`✅ Response kept in English`);
             }
             
-            // Save bot response to MongoDB (in user's language) with status - async, non-blocking
-            this.saveBotMessageAsync({
-                user_id: this.user_id,
-                message: botResponse,  // Save translated version
-                original_message: botResponseOriginal,  // Also save English version
-                status: status,  // Add status tracking
-                office: office   // Add office tracking
-            });
+            // Save bot response to MongoDB (in user's language) with status
+            // This ensures the conversation history shows messages in the language they were sent/received
+            try {
+                await fetch("/save_bot_message", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        user_id: this.user_id,
+                        message: botResponse,  // Save translated version
+                        original_message: botResponseOriginal,  // Also save English version
+                        status: status,  // Add status tracking
+                        office: office   // Add office tracking
+                    })
+                });
+            } catch (saveError) {
+                console.error("Failed to save bot response:", saveError);
+                // Continue execution - don't block user experience
+            }
             
             return {
                 response: botResponse,
@@ -871,7 +783,8 @@ class Chatbox {
     // Load announcements from backend (MongoDB + Pinecone only)
     async loadAnnouncements() {
         try {
-            const data = await this.optimizedFetch('/announcements', { method: 'GET' });
+            const response = await fetch('/announcements');
+            const data = await response.json();
             this.announcements = data.announcements || [];
             this.renderAnnouncements();
             console.log(`Loaded ${this.announcements.length} announcements from MongoDB/Pinecone`);
@@ -1644,19 +1557,21 @@ showProgressMessage(current, total, operation = "Processing") {
             const startTime = performance.now();
             console.log(`🚀 Starting request for: "${text1}"`);
             
-            this.optimizedFetch('/predict', {
+            fetch('/predict', {
                 method: 'POST',
                 body: JSON.stringify({ 
                     message: text1, 
                     user: this.user_id,  // ✅ Backend expects 'user' not 'user_id'
                     user_id: this.user_id  // Keep for backward compatibility
                 }),
+                mode: 'cors',
+                headers: { 'Content-Type': 'application/json' },
                 signal: controller.signal
             })
             .then(r => {
                 // Clear the timeout since we got a response
                 clearTimeout(timeoutId);
-                return r;
+                return r.json();
             })
             .then(r => {
                 // Hide typing indicator
@@ -2458,10 +2373,12 @@ showProgressMessage(current, total, operation = "Processing") {
                         user_id: this.user_id,
                         session_id: getSessionId()
                     };
-                    const result = await this.optimizedFetch('/api/feedback', {
+                    const res = await fetch('/api/feedback', {
                         method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload)
                     });
+                    const result = await res.json();
                     if (result && result.success) {
                         showToast(result.message || 'Thank you for your feedback!', 'success');
                         // Replace widget content (keep parent node to avoid detaching events on others)
