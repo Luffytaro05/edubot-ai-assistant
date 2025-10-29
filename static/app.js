@@ -241,12 +241,11 @@ class Chatbox {
     }
 
     getResponseTimeoutMs() {
-        // Get response timeout from settings (in seconds) and convert to milliseconds
-        const configuredSeconds = this.botSettings?.response_timeout || 30;
-        const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname);
-        // Enforce a minimum of 15s online to avoid premature aborts on slower networks/backends
-        const effectiveSeconds = isLocal ? configuredSeconds : Math.max(configuredSeconds, 15);
-        return effectiveSeconds * 1000; // Convert to milliseconds
+		// Get response timeout from settings (in seconds) and convert to milliseconds
+		// Default to 10 seconds; allow settings to override if provided
+		const configuredSeconds = (this.botSettings?.response_timeout ?? 10);
+		const effectiveSeconds = configuredSeconds;
+		return effectiveSeconds * 1000; // Convert to milliseconds
     }
 
     handleResponseTimeout() {
@@ -1566,10 +1565,13 @@ showProgressMessage(current, total, operation = "Processing") {
                 headers: { 'Content-Type': 'application/json' },
                 signal: controller.signal
             })
-            .then(r => {
+				.then(r => {
                 // Clear the timeout since we got a response
                 clearTimeout(timeoutId);
-                return r.json();
+					if (!r.ok) {
+						throw new Error(`HTTP ${r.status} ${r.statusText}`);
+					}
+					return r.json();
             })
             .then(r => {
                 // Hide typing indicator
@@ -1700,7 +1702,7 @@ showProgressMessage(current, total, operation = "Processing") {
                     setTimeout(() => this.resetToMainSuggestions(), 1000);
                 }
             })
-            .catch((error) => {
+				.catch((error) => {
                 // Clear the timeout
                 clearTimeout(timeoutId);
                 
@@ -1708,14 +1710,14 @@ showProgressMessage(current, total, operation = "Processing") {
                 this.hideTypingIndicator();
                 
                 // ✅ Always use /predict endpoint - show error message instead of local response
-                let errorMessage = '';
-                if (error.name === 'AbortError') {
-                    console.log('Request timed out');
-                    errorMessage = 'Sorry, the request timed out. Please try again or rephrase your question.';
-                } else {
-                    console.log('Backend error:', error);
-                    errorMessage = 'Sorry, I encountered an error. Please check your connection and try again.';
-                }
+					let errorMessage = '';
+					if (error && error.name === 'AbortError') {
+						console.log('Backend error: Request timeout - please try again');
+						errorMessage = 'Hmm, my connection seems slow — please try again.';
+					} else {
+						console.log('Backend error:', error);
+						errorMessage = 'Hmm, my connection seems slow — please try again.';
+					}
                 
                 // Show error message to user
                 let msg2 = { 
