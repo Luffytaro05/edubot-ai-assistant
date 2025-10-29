@@ -1553,9 +1553,7 @@ showProgressMessage(current, total, operation = "Processing") {
                 controller.abort();
             }, timeoutMs);
             
-            // Add performance timing
-            const startTime = performance.now();
-            console.log(`🚀 Starting request for: "${text1}"`);
+            // Proceed without performance timing logs
             
             fetch('/predict', {
                 method: 'POST',
@@ -1577,18 +1575,7 @@ showProgressMessage(current, total, operation = "Processing") {
                 // Hide typing indicator
                 this.hideTypingIndicator();
                 
-                // Log performance metrics
-                const endTime = performance.now();
-                const responseTime = endTime - startTime;
-                console.log(`⚡ Response received in ${responseTime.toFixed(2)}ms`);
-                
-                // Log backend performance metrics if available
-                if (r.response_time) {
-                    console.log(`🔧 Backend processing time: ${r.response_time}ms`);
-                }
-                if (r.vector_stats) {
-                    console.log(`📊 Vector search stats:`, r.vector_stats);
-                }
+                // Skip performance timing logs
                 
                 // ✅ CONTEXT SWITCH WARNING HANDLER
                 // Check if backend is warning about office context switch

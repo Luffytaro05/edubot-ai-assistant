@@ -54,9 +54,6 @@ from langdetect import detect, DetectorFactory
 # Ensure consistent language detection results
 DetectorFactory.seed = 0
 # In-memory cache for user conversations
-# Simple response cache to improve performance
-response_cache = {}
-CACHE_SIZE_LIMIT = 100  # Maximum number of cached responses
 
 app = Flask(__name__)
 moment = Moment(app)
@@ -1718,14 +1715,8 @@ def predict():
         if not text or not text.strip():
             return jsonify({"answer": "Please type something."})
 
-        # Check cache first for performance optimization
+        # Proceed without response caching
         cache_key = f"{user}:{text.lower().strip()}"
-        if cache_key in response_cache:
-            cached_response = response_cache[cache_key]
-            print(f"⚡ Cache hit for: '{text[:30]}...'")
-            # Update cache access time
-            response_cache[cache_key]['last_accessed'] = time.time()
-            return jsonify(cached_response)
 
         # Store original message for later use
         original_message = text
@@ -2144,14 +2135,7 @@ def predict():
             "suggested_office_tag": suggested_office_tag  # ✅ Office tag for switching
         }
         
-        # Cache the response for future use (only for common queries)
-        if len(response_cache) < CACHE_SIZE_LIMIT and status == "resolved":
-            response_cache[cache_key] = {
-                **response_data,
-                'last_accessed': time.time(),
-                'cached_at': time.time()
-            }
-            print(f"💾 Cached response for: '{text[:30]}...'")
+        # Do not cache responses; return directly
         
         return jsonify(response_data)
 
