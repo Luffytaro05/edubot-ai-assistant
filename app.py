@@ -1758,9 +1758,9 @@ def predict():
 
         detected_language = "en"
         
-        # ✅ Skip translation network calls on Railway to reduce timeouts
+        # ✅ Run translation even on Railway; set DISABLE_TRANSLATION=true to skip
         translation_start = time.time()
-        if not os.getenv('RAILWAY_ENVIRONMENT') and os.getenv('DISABLE_TRANSLATION', '').lower() != 'true':
+        if os.getenv('DISABLE_TRANSLATION', '').lower() != 'true':
             try:
                 filipino_keywords = [
                     'ako', 'ikaw', 'siya', 'kami', 'tayo', 'kayo', 'sila',
@@ -1797,7 +1797,7 @@ def predict():
                 print(f"⚠️ Translation detection error: {translate_error}")
                 detected_language = "en"
         else:
-            print("🛑 Translation disabled in this environment (RAILWAY_ENVIRONMENT or DISABLE_TRANSLATION)")
+            print("🛑 Translation disabled via DISABLE_TRANSLATION env var")
         
         translation_time = time.time() - translation_start
         print(f"⏱️ Translation processing took {translation_time:.3f}s")
