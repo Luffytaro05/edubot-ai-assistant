@@ -241,9 +241,18 @@ class Chatbox {
     }
 
     getResponseTimeoutMs() {
-        // Get response timeout from settings (in seconds) and convert to milliseconds
-        const timeoutSeconds = this.botSettings?.response_timeout || 30;
-        return timeoutSeconds * 1000; // Convert to milliseconds
+		// Get timeout (seconds) from bot settings, default to 15 if undefined
+		const configured = Number(this.botSettings?.response_timeout);
+		const defaultSeconds = 15;
+		const seconds = Number.isFinite(configured) ? configured : defaultSeconds;
+		// Keep timeout consistent on both localhost and production (Railway)
+		// Enforce limits: minimum 10s, maximum 60s
+		const clamped = Math.max(10, Math.min(60, seconds));
+
+		console.log("Response timeout set to:", clamped, "seconds");
+
+		// Convert to milliseconds
+		return clamped * 1000;
     }
 
     handleResponseTimeout() {
@@ -265,11 +274,12 @@ class Chatbox {
     }
 
     applyResponseTimeoutSetting() {
-        const timeoutSeconds = this.botSettings?.response_timeout || 30;
-        console.log('Response timeout setting applied:', timeoutSeconds + ' seconds');
-        
-        // Store the timeout setting for use in requests
-        this.responseTimeoutSeconds = timeoutSeconds;
+        const configured = Number(this.botSettings?.response_timeout);
+        const defaultSeconds = 15;
+        const seconds = Number.isFinite(configured) ? configured : defaultSeconds;
+        const clamped = Math.max(10, Math.min(60, seconds));
+        console.log('Response timeout setting applied:', clamped + ' seconds');
+        this.responseTimeoutSeconds = clamped;
     }
 
     applyPrimaryColor(color) {
@@ -508,8 +518,8 @@ class Chatbox {
                     })
                 });
             } catch (saveError) {
-                console.warn('Failed to save bot message to MongoDB:', saveError);
-                // Don't fail the whole request if saving fails
+                console.error("Failed to save bot response:", saveError);
+                // Continue execution - don't block user experience
             }
             
             return {
@@ -1141,16 +1151,6 @@ class Chatbox {
 
     // Reset conversation context with office-aware welcome
    resetContext() {
-    // Remember current office selection/label before clearing
-    const officeMap = {
-        admission: 'Admissions',
-        registrar: 'Registrar',
-        ict: 'ICT',
-        guidance: 'Guidance',
-        osa: 'Office of Student Affairs'
-    };
-    const prevLabel = this.selectedCategoryLabel || officeMap[this.currentContext] || null;
-    
     // Map frontend context to backend office tags
     const officeTagMap = {
         'admission': 'admission_office',
@@ -1163,9 +1163,16 @@ class Chatbox {
     // Get the current office tag for backend
     const currentOfficeTag = this.currentContext ? officeTagMap[this.currentContext] : null;
 
-    // Clear context indicator first
-    const previousContext = this.currentContext;
+    // Clear chat messages immediately
+    this.messages = [];
+    
+    // Reset all context and flags
     this.currentContext = null;
+    this.selectedCategoryLabel = null;
+    this.lastInlineBotIndex = null;
+    this.showInitialSuggestions = true; // Re-enable initial suggestions
+    
+    // Clear context indicator
     this.updateContextIndicator();
     
     // Reset backend context if available (office-specific)
@@ -1182,40 +1189,17 @@ class Chatbox {
         .then(response => response.json())
         .then(data => {
             console.log("✅ Context reset successfully:", data);
-            // Show success message with office-specific info
-            if (currentOfficeTag) {
-                const officeName = this.officeNames[previousContext] || 'the current office';
-                const resetMsg = { 
-                    name: "System", 
-                    message: `✅ ${officeName} context has been reset. You can continue with a fresh conversation.` 
-                };
-                this.messages.push(resetMsg);
-            } else {
-                const resetMsg = { 
-                    name: "System", 
-                    message: "✅ Context reset. You can now ask about any office." 
-                };
-                this.messages.push(resetMsg);
-            }
-            this.updateChatText();
         })
         .catch(err => {
             console.log("Context reset error:", err);
-            const errorMsg = { 
-                name: "System", 
-                message: "Context cleared locally. You can start a new conversation." 
-            };
-            this.messages.push(errorMsg);
-            this.updateChatText();
         });
     }
     
+    // Show Suggested Topics section immediately
     this.resetToMainSuggestions();
-
-    // If an office/category was selected before reset, immediately respond with its welcome
-    if (prevLabel) {
-        this.showOfficeWelcomeByLabel(prevLabel);
-    }
+    
+    // Re-render chat with welcome message and suggestions
+    this.updateChatText();
 }
 
     // Highlight reset button to draw user attention
@@ -1525,9 +1509,19 @@ showProgressMessage(current, total, operation = "Processing") {
     }
 
     resetToMainSuggestions() {
-        document.getElementById("sub-suggestions").innerHTML = "";
-        document.querySelector('.chatbox__suggestions').style.display = 'flex';
-        document.querySelector('.suggestions-label').textContent = 'Suggested topics:';
+        const subSuggestions = document.getElementById("sub-suggestions");
+        if (subSuggestions) {
+            subSuggestions.innerHTML = "";
+        }
+        const mainSuggestions = document.querySelector('.chatbox__suggestions');
+        if (mainSuggestions) {
+            mainSuggestions.style.display = 'flex';
+        }
+        const label = document.querySelector('.suggestions-label');
+        if (label) {
+            label.textContent = 'Suggested topics:';
+            label.style.display = 'block'; // Ensure label is visible
+        }
     }
 
     sendSuggestion(text) {
@@ -1555,190 +1549,192 @@ showProgressMessage(current, total, operation = "Processing") {
         // Show typing indicator
         this.showTypingIndicator();
 
-        // ✅ Always use /predict endpoint with Google Translate integration
-        if (typeof fetch !== 'undefined') {
-            // Create AbortController for timeout handling
-            const controller = new AbortController();
-            const timeoutMs = this.getResponseTimeoutMs();
-            
-            // Set up timeout
-            const timeoutId = setTimeout(() => {
-                controller.abort();
-            }, timeoutMs);
-            
-            fetch('/predict', {
-                method: 'POST',
-                body: JSON.stringify({ 
-                    message: text1, 
-                    user: this.user_id,  // ✅ Backend expects 'user' not 'user_id'
-                    user_id: this.user_id  // Keep for backward compatibility
-                }),
-                mode: 'cors',
-                headers: { 'Content-Type': 'application/json' },
-                signal: controller.signal
-            })
-            .then(r => {
-                // Clear the timeout since we got a response
-                clearTimeout(timeoutId);
-                return r.json();
-            })
-            .then(r => {
-                // Hide typing indicator
-                this.hideTypingIndicator();
-                
-                // ✅ CONTEXT SWITCH WARNING HANDLER
-                // Check if backend is warning about office context switch
-                if (r.status === 'context_switch_warning' && r.requires_reset) {
-                    console.warn(`⚠️ Context switch blocked: ${r.current_office} → ${r.attempted_office}`);
-                    
-                    // Display the warning message from backend
-                    let msg2 = { 
-                        name: "Bot", 
-                        message: r.answer,
-                        status: 'context_switch_warning',
-                        office: r.current_office || 'General',
-                        isContextWarning: true,
-                        currentOffice: r.current_office,
-                        currentOfficeTag: r.current_office_tag,
-                        attemptedOffice: r.attempted_office,
-                        attemptedOfficeTag: r.attempted_office_tag
-                    };
-                    this.messages.push(msg2);
-                    this.updateChatText();
-                    
-                    // Clear input field
-                    textField.value = '';
-                    this.args.characterCount.textContent = '0/500';
-                    
-                    // Highlight reset button if exists
-                    this.highlightResetButton();
-                    
-                    return; // Stop processing, don't proceed with normal flow
-                }
-                
-                // ✅ Google Translate Integration - Log translation info
-                if (r.detected_language && r.detected_language !== 'en') {
-                    console.log(`🌐 Language detected: ${r.detected_language}`);
-                    console.log(`📝 Original message: "${r.original_message}"`);
-                    if (r.translated_message) {
-                        console.log(`📝 Translated to English: "${r.translated_message}"`);
-                    }
-                    console.log(`💬 Response in ${r.detected_language}: "${r.answer}"`);
-                    if (r.original_answer) {
-                        console.log(`💬 Original English response: "${r.original_answer}"`);
-                    }
-                }
-                
-                // ✅ Handle office switch confirmation
-                if (r.office_switched && r.new_office_tag) {
-                    const officeTagToContext = {
-                        'admission_office': 'admission',
-                        'registrar_office': 'registrar',
-                        'ict_office': 'ict',
-                        'guidance_office': 'guidance',
-                        'osa_office': 'osa'
-                    };
-                    this.currentContext = officeTagToContext[r.new_office_tag];
-                    this.updateContextIndicator();
-                    console.log(`🔄 Office switched to: ${r.new_office}`);
-                }
-                
-                let msg2 = { 
-                    name: "Bot", 
-                    message: r.answer,
-                    status: r.status || 'resolved',
-                    office: r.office || 'General',
-                    language: r.detected_language || 'en',
-                    suggested_office: r.suggested_office || null,  // ✅ Store suggested office
-                    suggested_office_tag: r.suggested_office_tag || null
-                };
-                this.messages.push(msg2);
-                
-                // Log status and office for analytics
-                console.log(`✅ Status: ${r.status || 'resolved'} | Office: ${r.office || 'General'}`);
-                
-                // ✅ Show office switch suggestion hint
-                if (r.suggested_office && !r.office_switched) {
-                    console.log(`💡 Office switch suggested: ${r.suggested_office}`);
-                    console.log(`   Tag: ${r.suggested_office_tag}`);
-                    console.log(`   💬 Click button or type "yes" to switch to ${r.suggested_office}`);
-                } else if (r.office_switched) {
-                    console.log(`✅ Office switch confirmed and completed`);
-                } else {
-                    console.log(`ℹ️ No office switch suggestion in this response`);
-                }
-                
-                // Mark this index as the place to render inline suggestions if pending
-                if (this.pendingInlineAfterResponse) {
-                    this.lastInlineBotIndex = this.messages.length - 1;
-                    this.pendingInlineAfterResponse = false;
-                } else {
-                    this.lastInlineBotIndex = null;
-                }
-                // Check for user farewell message BEFORE adding bot message
-                const shouldShowFeedback = this.checkForUserFarewellMessage(text1);
-                
-                // Decide on feedback AFTER adding bot message
-                this.checkForConversationEnd(r.answer);
-                this.updateChatText();
-                
-                // Show feedback form if user sent farewell message
-                if (shouldShowFeedback) {
-                    setTimeout(() => {
-                        this.showFeedbackForm();
-                    }, 1000); // Show after bot response
-                }
-                textField.value = '';
-                this.args.characterCount.textContent = '0/500';
-                
-                // Speak response if TTS is enabled
-                if (this.ttsEnabled) {
-                    setTimeout(() => this.speakMessage(r.answer), 500);
-                }
-                
-                // Update context based on response (unless office switch was just confirmed)
-                if (!r.office_switched) {
-                    this.updateContextFromMessage(text1, r.answer);
-                }
-                
-                // Show contextual suggested messages from backend
-                if (r.suggested_messages && r.suggested_messages.length > 0) {
-                    setTimeout(() => this.showBackendSuggestions(r.suggested_messages), 500);
-                } else {
-                    // Fallback to main suggestions
-                    setTimeout(() => this.resetToMainSuggestions(), 1000);
-                }
-            })
-            .catch((error) => {
-                // Clear the timeout
-                clearTimeout(timeoutId);
-                
-                // Hide typing indicator on error
-                this.hideTypingIndicator();
-                
-                // ✅ Always use /predict endpoint - show error message instead of local response
-                let errorMessage = '';
-                if (error.name === 'AbortError') {
-                    console.log('Request timed out');
-                    errorMessage = 'Sorry, the request timed out. Please try again or rephrase your question.';
-                } else {
-                    console.log('Backend error:', error);
-                    errorMessage = 'Sorry, I encountered an error. Please check your connection and try again.';
-                }
-                
-                // Show error message to user
-                let msg2 = { 
-                    name: "Bot", 
-                    message: errorMessage,
-                    status: 'error',
-                    office: 'System'
-                };
-                this.messages.push(msg2);
-                this.updateChatText();
-                
-                textField.value = '';
-                this.args.characterCount.textContent = '0/500';
-            });
+		// ✅ Always use /predict endpoint with Google Translate integration
+		if (typeof fetch !== 'undefined') {
+			// Create AbortController for timeout handling
+			const controller = new AbortController();
+			const timeoutMs = this.getResponseTimeoutMs();
+			
+			// Set up timeout
+			const timeoutId = setTimeout(() => {
+				controller.abort();
+			}, timeoutMs);
+			
+			// Proceed without performance timing logs
+			
+			fetch('/predict', {
+				method: 'POST',
+				body: JSON.stringify({ 
+					message: text1, 
+					user: this.user_id,  // ✅ Backend expects 'user' not 'user_id'
+					user_id: this.user_id  // Keep for backward compatibility
+				}),
+				mode: 'cors',
+				headers: { 'Content-Type': 'application/json' },
+				signal: controller.signal
+			})
+				.then(r => {
+				// Clear the timeout since we got a response
+				clearTimeout(timeoutId);
+					return r.json();
+			})
+			.then(r => {
+				// Hide typing indicator
+				this.hideTypingIndicator();
+				
+				// Skip performance timing logs
+				
+				// ✅ CONTEXT SWITCH WARNING HANDLER
+				// Check if backend is warning about office context switch
+				if (r.status === 'context_switch_warning' && r.requires_reset) {
+					console.warn(`⚠️ Context switch blocked: ${r.current_office} → ${r.attempted_office}`);
+					
+					// Display the warning message from backend
+					let msg2 = { 
+						name: "Bot", 
+						message: r.answer,
+						status: 'context_switch_warning',
+						office: r.current_office || 'General',
+						isContextWarning: true,
+						currentOffice: r.current_office,
+						currentOfficeTag: r.current_office_tag,
+						attemptedOffice: r.attempted_office,
+						attemptedOfficeTag: r.attempted_office_tag
+					};
+					this.messages.push(msg2);
+					this.updateChatText();
+					
+					// Clear input field
+					textField.value = '';
+					this.args.characterCount.textContent = '0/500';
+					
+					// Highlight reset button if exists
+					this.highlightResetButton();
+					
+					return; // Stop processing, don't proceed with normal flow
+				}
+				
+				// ✅ Google Translate Integration - Log translation info
+				if (r.detected_language && r.detected_language !== 'en') {
+					console.log(`🌐 Language detected: ${r.detected_language}`);
+					console.log(`📝 Original message: "${r.original_message}"`);
+					if (r.translated_message) {
+						console.log(`📝 Translated to English: "${r.translated_message}"`);
+					}
+					console.log(`💬 Response in ${r.detected_language}: "${r.answer}"`);
+					if (r.original_answer) {
+						console.log(`💬 Original English response: "${r.original_answer}"`);
+					}
+				}
+				
+				// ✅ Handle office switch confirmation
+				if (r.office_switched && r.new_office_tag) {
+					const officeTagToContext = {
+						'admission_office': 'admission',
+						'registrar_office': 'registrar',
+						'ict_office': 'ict',
+						'guidance_office': 'guidance',
+						'osa_office': 'osa'
+					};
+					this.currentContext = officeTagToContext[r.new_office_tag];
+					this.updateContextIndicator();
+					console.log(`🔄 Office switched to: ${r.new_office}`);
+				}
+				
+				let msg2 = { 
+					name: "Bot", 
+					message: r.answer,
+					status: r.status || 'resolved',
+					office: r.office || 'General',
+					language: r.detected_language || 'en',
+					suggested_office: r.suggested_office || null,  // ✅ Store suggested office
+					suggested_office_tag: r.suggested_office_tag || null
+				};
+				this.messages.push(msg2);
+				
+				// Log status and office for analytics
+				console.log(`✅ Status: ${r.status || 'resolved'} | Office: ${r.office || 'General'}`);
+				
+				// ✅ Show office switch suggestion hint
+				if (r.suggested_office && !r.office_switched) {
+					console.log(`💡 Office switch suggested: ${r.suggested_office}`);
+					console.log(`   Tag: ${r.suggested_office_tag}`);
+					console.log(`   💬 Click button or type "yes" to switch to ${r.suggested_office}`);
+				} else if (r.office_switched) {
+					console.log(`✅ Office switch confirmed and completed`);
+				} else {
+					console.log(`ℹ️ No office switch suggestion in this response`);
+				}
+				
+				// Mark this index as the place to render inline suggestions if pending
+				if (this.pendingInlineAfterResponse) {
+					this.lastInlineBotIndex = this.messages.length - 1;
+					this.pendingInlineAfterResponse = false;
+				} else {
+					this.lastInlineBotIndex = null;
+				}
+				// Check for user farewell message BEFORE adding bot message
+				const shouldShowFeedback = this.checkForUserFarewellMessage(text1);
+				
+				// Decide on feedback AFTER adding bot message
+				this.checkForConversationEnd(r.answer);
+				this.updateChatText();
+				
+				// Show feedback form if user sent farewell message
+				if (shouldShowFeedback) {
+					setTimeout(() => {
+						this.showFeedbackForm();
+					}, 1000); // Show after bot response
+				}
+				textField.value = '';
+				this.args.characterCount.textContent = '0/500';
+				
+				// Speak response if TTS is enabled
+				if (this.ttsEnabled) {
+					setTimeout(() => this.speakMessage(r.answer), 500);
+				}
+				
+				// Update context based on response (unless office switch was just confirmed)
+				if (!r.office_switched) {
+					this.updateContextFromMessage(text1, r.answer);
+				}
+				
+				// Show contextual suggested messages from backend
+				if (r.suggested_messages && r.suggested_messages.length > 0) {
+					setTimeout(() => this.showBackendSuggestions(r.suggested_messages), 500);
+				} else {
+					// Fallback to main suggestions
+					setTimeout(() => this.resetToMainSuggestions(), 1000);
+				}
+			})
+				.catch((error) => {
+				// Clear the timeout
+				clearTimeout(timeoutId);
+				
+				// Hide typing indicator on error
+				this.hideTypingIndicator();
+				
+				// ✅ Always use /predict endpoint - show error message instead of local response
+						if (error.name === 'AbortError') {
+							console.log('Request timed out');
+							// Use the dedicated timeout UX
+							this.handleResponseTimeout();
+						} else {
+							console.log('Backend error:', error);
+							// Show generic backend error
+							let msg2 = { 
+								name: "Bot", 
+								message: 'Sorry, I encountered an error. Please check your connection and try again.',
+								status: 'error',
+								office: 'System'
+							};
+							this.messages.push(msg2);
+							this.updateChatText();
+						}
+					
+					textField.value = '';
+					this.args.characterCount.textContent = '0/500';
+			});
         } else {
             // Fetch is not available - show error
             this.hideTypingIndicator();
@@ -2218,15 +2214,27 @@ showProgressMessage(current, total, operation = "Processing") {
             return result;
         }
 
-        // Fallback: Define the specific keywords requested by the user
+        // Fallback: Include both English and Filipino farewell patterns
         const farewellKeywords = [
-            'thanks', 'thank you', 'goodbye!', 'bye!'
+            // English patterns
+            'thanks', 'thank you', 'goodbye!', 'bye!', 'see you', 'farewell', 'take care', 
+            'have a good day', 'have a nice day', 'that\'s all', 'that\'s it', 'nothing else', 
+            'all done', 'finished', 'done', 'good night', 'good evening', 'see you later',
+            'talk to you later', 'catch you later', 'until next time', 'until we meet again',
+            'so long', 'adios', 'ciao',
+            
+            // Filipino patterns
+            'salamat', 'maraming salamat', 'salamat po', 'salamat sa inyo', 'salamat sa tulong',
+            'paalam', 'babay', 'ingat', 'mag-ingat ka', 'ingat ka', 'ingat po',
+            'hanggang sa muli', 'hanggang sa susunod', 'sige', 'sige na', 'ok na',
+            'tapos na', 'wala na', 'yun na yun', 'yun lang', 'ganun lang',
+            'magandang gabi', 'magandang araw', 'magandang umaga', 'magandang hapon'
         ];
 
         // Convert message to lowercase for case-insensitive matching
         const messageLower = userMessage.toLowerCase().trim();
         
-        // Check if message contains any of the specific farewell keywords
+        // Check if message contains any of the farewell keywords
         const hasFarewellKeyword = farewellKeywords.some(keyword => 
             messageLower.includes(keyword.toLowerCase())
         );
