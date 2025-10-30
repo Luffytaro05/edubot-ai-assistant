@@ -183,6 +183,10 @@ EMAIL_CONFIG = {
     'ENABLE_EMAIL': os.getenv('ENABLE_EMAIL', 'False').lower() == 'true'  # Toggle email on/off
 }
 
+# Optional HTTP email provider (works on hosts that block SMTP)
+SENDGRID_API_KEY = os.getenv('SENDGRID_API_KEY')
+EMAIL_CONFIG['METHOD'] = 'smtp'
+
 # Quick reachability check for environments that block SMTP egress (e.g., some PaaS)
 def smtp_reachable(host, port, timeout=3):
     try:
@@ -203,14 +207,22 @@ def smtp_reachable(host, port, timeout=3):
 # STEP 7: Paste it in the line below (remove spaces: "abcdefghijklmnop")
 # ===========================
 
-# Email should only be enabled if credentials are provided and SMTP is reachable
-if EMAIL_CONFIG['SENDER_PASSWORD'] and EMAIL_CONFIG['ENABLE_EMAIL'] and smtp_reachable(EMAIL_CONFIG['SMTP_SERVER'], EMAIL_CONFIG['SMTP_PORT']):
-    print(f"✅ Email notifications ENABLED - Emails will be sent from {EMAIL_CONFIG['SENDER_EMAIL']}")
-else:
-    if EMAIL_CONFIG['ENABLE_EMAIL'] and not smtp_reachable(EMAIL_CONFIG['SMTP_SERVER'], EMAIL_CONFIG['SMTP_PORT']):
-        print(f"⚠️ Email notifications DISABLED - Cannot reach SMTP server {EMAIL_CONFIG['SMTP_SERVER']}:{EMAIL_CONFIG['SMTP_PORT']} (network blocked or host down)")
+# Decide email method and availability once at startup
+_smtp_ok = smtp_reachable(EMAIL_CONFIG['SMTP_SERVER'], EMAIL_CONFIG['SMTP_PORT'])
+if EMAIL_CONFIG['ENABLE_EMAIL']:
+    if SENDGRID_API_KEY:
+        EMAIL_CONFIG['METHOD'] = 'sendgrid'
+        print("✅ Email notifications ENABLED via SendGrid API")
+    elif EMAIL_CONFIG['SENDER_PASSWORD'] and _smtp_ok:
+        EMAIL_CONFIG['METHOD'] = 'smtp'
+        print(f"✅ Email notifications ENABLED - Emails will be sent from {EMAIL_CONFIG['SENDER_EMAIL']}")
     else:
-        print("⚠️ Email notifications DISABLED - Configure SMTP credentials in environment variables to enable")
+        EMAIL_CONFIG['ENABLE_EMAIL'] = False
+        if not _smtp_ok:
+            print(f"⚠️ Email notifications DISABLED - Cannot reach SMTP server {EMAIL_CONFIG['SMTP_SERVER']}:{EMAIL_CONFIG['SMTP_PORT']} (network blocked or host down)")
+        else:
+            print("⚠️ Email notifications DISABLED - Configure SMTP credentials in environment variables to enable")
+else:
     EMAIL_CONFIG['ENABLE_EMAIL'] = False
 
 def send_password_change_email(user_email, user_name):
@@ -220,10 +232,11 @@ def send_password_change_email(user_email, user_name):
         print("Email notifications are disabled. Set ENABLE_EMAIL=True to enable.")
         return False
     
-    # Validate email configuration
-    if not EMAIL_CONFIG.get('SENDER_PASSWORD') or EMAIL_CONFIG['SENDER_PASSWORD'] == 'your-app-password-here':
-        print("⚠️ WARNING: Email password not configured! Please set SENDER_PASSWORD in EMAIL_CONFIG.")
-        return False
+    # Validate email configuration by method
+    if EMAIL_CONFIG.get('METHOD') == 'smtp':
+        if not EMAIL_CONFIG.get('SENDER_PASSWORD') or EMAIL_CONFIG['SENDER_PASSWORD'] == 'your-app-password-here':
+            print("⚠️ WARNING: Email password not configured! Please set SENDER_PASSWORD in EMAIL_CONFIG.")
+            return False
     
     if not user_email or not validate_email(user_email):
         print(f"Invalid recipient email: {user_email}")
@@ -388,21 +401,40 @@ def send_password_change_email(user_email, user_name):
 
         # Send email with detailed error handling
         try:
-            print(f"Connecting to {EMAIL_CONFIG['SMTP_SERVER']}:{EMAIL_CONFIG['SMTP_PORT']}...")
-            server = smtplib.SMTP(EMAIL_CONFIG['SMTP_SERVER'], EMAIL_CONFIG['SMTP_PORT'], timeout=10)
-            print("✓ Connected to SMTP server")
-            
-            server.starttls()
-            print("✓ TLS enabled")
-            
-            server.login(EMAIL_CONFIG['SENDER_EMAIL'], EMAIL_CONFIG['SENDER_PASSWORD'])
-            print("✓ Authenticated with email server")
-            
-            server.send_message(msg)
-            print(f"✓ Email sent successfully to {user_email}")
-            
-            server.quit()
-            return True
+            if EMAIL_CONFIG.get('METHOD') == 'sendgrid':
+                payload = {
+                    "personalizations": [
+                        {"to": [{"email": user_email}], "subject": "Password Changed Successfully - EduChat Admin"}
+                    ],
+                    "from": {"email": EMAIL_CONFIG['SENDER_EMAIL'], "name": EMAIL_CONFIG['SENDER_NAME']},
+                    "content": [
+                        {"type": "text/plain", "value": text_content},
+                        {"type": "text/html", "value": html_content}
+                    ]
+                }
+                headers = {
+                    "Authorization": f"Bearer {SENDGRID_API_KEY}",
+                    "Content-Type": "application/json"
+                }
+                resp = requests.post("https://api.sendgrid.com/v3/mail/send", json=payload, headers=headers, timeout=10)
+                if 200 <= resp.status_code < 300:
+                    print(f"✓ Email sent successfully to {user_email} via SendGrid")
+                    return True
+                else:
+                    print(f"❌ SendGrid error: {resp.status_code} - {resp.text}")
+                    return False
+            else:
+                print(f"Connecting to {EMAIL_CONFIG['SMTP_SERVER']}:{EMAIL_CONFIG['SMTP_PORT']}...")
+                server = smtplib.SMTP(EMAIL_CONFIG['SMTP_SERVER'], EMAIL_CONFIG['SMTP_PORT'], timeout=10)
+                print("✓ Connected to SMTP server")
+                server.starttls()
+                print("✓ TLS enabled")
+                server.login(EMAIL_CONFIG['SENDER_EMAIL'], EMAIL_CONFIG['SENDER_PASSWORD'])
+                print("✓ Authenticated with email server")
+                server.send_message(msg)
+                print(f"✓ Email sent successfully to {user_email}")
+                server.quit()
+                return True
             
         except smtplib.SMTPAuthenticationError as e:
             print(f"❌ SMTP Authentication Error: {e}")
