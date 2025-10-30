@@ -49,6 +49,7 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import socket
+from openai import OpenAI
 # Google Translate API integration (using deep-translator for stability)
 from deep_translator import GoogleTranslator
 from deep_translator.exceptions import LanguageNotSupportedException
@@ -59,6 +60,7 @@ DetectorFactory.seed = 0
 
 app = Flask(__name__)
 moment = Moment(app)
+openai_client = OpenAI()
 
 # Pinecone Configuration (needed before VectorStore initialization)
 PINECONE_API_KEY = os.getenv('PINECONE_API_KEY')
@@ -4322,6 +4324,31 @@ def get_sub_admin_notifications():
             'total_count': 0,
             'unread_count': 0
         }), 500
+
+# ===========================
+# Chat Completions Endpoint (GPT-4o-mini)
+# ===========================
+@app.route("/chat", methods=["POST"])
+def chat_endpoint():
+    try:
+        payload = request.get_json(silent=True) or {}
+        user_message = str(payload.get("message", "")).strip()
+        office = payload.get("office")
+        response_timeout = payload.get("response_timeout")
+        try:
+            response_timeout = int(response_timeout) if response_timeout is not None else 15
+        except Exception:
+            response_timeout = 15
+
+        if not user_message:
+            return jsonify({"response": "Please provide a message."}), 400
+
+        from chat import generate_response
+        bot_response = generate_response(user_message, office, timeout=response_timeout)
+        return jsonify({"response": bot_response})
+    except Exception as e:
+        print("Chat error:", e)
+        return jsonify({"response": "Sorry, I encountered an error. Please try again later."}), 500
 
 # Add some debugging information on startup
 def startup_info():

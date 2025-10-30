@@ -405,3 +405,53 @@ class VectorStore:
         except Exception as e:
             print(f"Error clearing index: {e}")
             return False
+
+# ============ Convenience helpers for GPT context ============
+_singleton_store: Optional[VectorStore] = None
+
+def _get_store() -> VectorStore:
+    global _singleton_store
+    if _singleton_store is None:
+        _singleton_store = VectorStore()
+    return _singleton_store
+
+def get_relevant_context(query: str, office: Optional[str] = None, top_k: int = 3) -> str:
+    try:
+        store = _get_store()
+        if not store.index:
+            return ""
+        filter_dict = {
+            "$or": [
+                {"intent_type": {"$eq": "faq"}},
+                {"intent_type": {"$eq": "announcement"}},
+                {"type": {"$eq": "faq"}},
+                {"type": {"$eq": "announcement"}}
+            ],
+            "status": {"$eq": "published"}
+        }
+        if office:
+            # Support either office field or category metadata
+            filter_dict = {
+                "$and": [
+                    filter_dict,
+                    {"$or": [
+                        {"office": {"$eq": office}},
+                        {"category": {"$eq": office}}
+                    ]}
+                ]
+            }
+
+        results = store.search_similar(query, top_k=top_k, filter_dict=filter_dict, score_threshold=0.6)
+        if not results:
+            return ""
+        snippets = []
+        for r in results:
+            md = r.get("metadata", {})
+            # Prefer explicit answers; fallback to stored text
+            snippet = md.get("answer") or md.get("description") or md.get("text") or ""
+            if snippet:
+                snippets.append(snippet.strip())
+        return "\n\n".join(snippets[:top_k])
+    except Exception as e:
+        print("Vector fetch error:", e)
+        return ""

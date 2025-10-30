@@ -15,6 +15,55 @@ from pymongo.errors import ServerSelectionTimeoutError, ConnectionFailure
 from datetime import datetime, UTC, date
 import certifi
 import time
+from openai import OpenAI
+from vector_store import get_relevant_context
+
+# Initialize OpenAI client once (uses OPENAI_API_KEY from env)
+_openai_client = OpenAI()
+
+def generate_response(user_message, office=None, timeout=15):
+    try:
+        # Retrieve FAQ/KB context from Pinecone
+        context = get_relevant_context(user_message, office)
+        prompt = f"""
+        You are TCC Assistant Chatbot.
+        Use the following context to answer the question accurately and briefly.
+        Context: {context}
+        User: {user_message}
+        Answer in the same language as the user.
+        """
+
+        # First attempt
+        resp = _openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant for TCC."},
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=250,
+            temperature=0.7,
+            timeout=timeout
+        )
+        content = resp.choices[0].message.content.strip()
+        return content
+    except Exception as e:
+        print("OpenAI error (first attempt):", e)
+        # Simple one-time retry with shorter timeout
+        try:
+            resp = _openai_client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": "You are a helpful assistant for TCC."},
+                    {"role": "user", "content": user_message}
+                ],
+                max_tokens=200,
+                temperature=0.7,
+                timeout=max(5, int(timeout) if isinstance(timeout, int) else 10)
+            )
+            return resp.choices[0].message.content.strip()
+        except Exception as e2:
+            print("OpenAI error (retry):", e2)
+            return "I'm having trouble responding right now. Please try again later."
 
 # Load environment variables
 load_dotenv()
