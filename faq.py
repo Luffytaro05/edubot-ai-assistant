@@ -30,6 +30,8 @@ def get_db():
         class MockDB:
             def __getattr__(self, name):
                 return MockCollection()
+            def __getitem__(self, name):
+                return MockCollection()
         class MockCollection:
             def find_one(self, *args, **kwargs): return None
             def find(self, *args, **kwargs): return []
