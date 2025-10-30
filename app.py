@@ -1758,57 +1758,46 @@ def predict():
 
         detected_language = "en"
         
-        # ✅ Google Translate Integration - Detect and translate user message (English and Filipino only)
+        # ✅ Skip translation network calls on Railway to reduce timeouts
         translation_start = time.time()
-        try:
-            # ✅ Check for Filipino keywords first (more reliable than auto-detect)
-            filipino_keywords = [
-                'ako', 'ikaw', 'siya', 'kami', 'tayo', 'kayo', 'sila',
-                'ang', 'ng', 'mga', 'sa', 'na', 'ay', 'po', 'opo',
-                'magandang', 'salamat', 'paano', 'ano', 'saan', 'kailan',
-                'kumusta', 'mabuti', 'hindi', 'oo', 'wala', 'mayroon',
-                'naman', 'lang', 'din', 'rin', 'ba', 'kasi', 'pero',
-                'gusto', 'kailangan', 'pwede', 'paki'
-            ]
-            
-            text_lower = text.lower()
-            has_filipino = any(word in text_lower.split() for word in filipino_keywords)
-            
-            if has_filipino:
-                # Message contains Filipino keywords
-                detected_language = 'tl'
-                print(f"🌐 Detected Filipino keywords in message")
-            else:
-                # Try automatic language detection
-                detected_language = detect(text)
-                print(f"🌐 Auto-detected language: {detected_language}")
-                
-                # ✅ Restrict to English and Filipino only
-                ALLOWED_LANGUAGES = ['en', 'tl', 'fil']  # English, Tagalog, Filipino
-                
-                if detected_language not in ALLOWED_LANGUAGES:
-                    print(f"⚠️ Language '{detected_language}' not in supported list. Treating as English.")
-                    # Default to English if unsupported language detected
-                    detected_language = 'en'
-                elif detected_language == 'fil':
-                    # 'fil' is another code for Filipino, normalize to 'tl'
+        if not os.getenv('RAILWAY_ENVIRONMENT') and os.getenv('DISABLE_TRANSLATION', '').lower() != 'true':
+            try:
+                filipino_keywords = [
+                    'ako', 'ikaw', 'siya', 'kami', 'tayo', 'kayo', 'sila',
+                    'ang', 'ng', 'mga', 'sa', 'na', 'ay', 'po', 'opo',
+                    'magandang', 'salamat', 'paano', 'ano', 'saan', 'kailan',
+                    'kumusta', 'mabuti', 'hindi', 'oo', 'wala', 'mayroon',
+                    'naman', 'lang', 'din', 'rin', 'ba', 'kasi', 'pero',
+                    'gusto', 'kailangan', 'pwede', 'paki'
+                ]
+                text_lower = text.lower()
+                has_filipino = any(word in text_lower.split() for word in filipino_keywords)
+                if has_filipino:
                     detected_language = 'tl'
-            
-            # Translate Filipino to English if needed
-            if detected_language == 'tl':
-                translated = GoogleTranslator(source='tl', target='en').translate(text)
-                print(f"📝 Translated Filipino to English: '{original_message}' → '{translated}'")
-                text = translated
-            else:
-                print(f"✅ Message in English: {text}")
-                
-        except LanguageNotSupportedException as lang_error:
-            print(f"⚠️ Language not supported: {lang_error}, defaulting to English")
-            detected_language = "en"
-        except Exception as translate_error:
-            print(f"⚠️ Translation detection error: {translate_error}")
-            # Continue with original text if translation fails
-            detected_language = "en"
+                    print(f"🌐 Detected Filipino keywords in message")
+                else:
+                    detected_language = detect(text)
+                    print(f"🌐 Auto-detected language: {detected_language}")
+                    ALLOWED_LANGUAGES = ['en', 'tl', 'fil']
+                    if detected_language not in ALLOWED_LANGUAGES:
+                        print(f"⚠️ Language '{detected_language}' not in supported list. Treating as English.")
+                        detected_language = 'en'
+                    elif detected_language == 'fil':
+                        detected_language = 'tl'
+                if detected_language == 'tl':
+                    translated = GoogleTranslator(source='tl', target='en').translate(text)
+                    print(f"📝 Translated Filipino to English: '{original_message}' → '{translated}'")
+                    text = translated
+                else:
+                    print(f"✅ Message in English: {text}")
+            except LanguageNotSupportedException as lang_error:
+                print(f"⚠️ Language not supported: {lang_error}, defaulting to English")
+                detected_language = "en"
+            except Exception as translate_error:
+                print(f"⚠️ Translation detection error: {translate_error}")
+                detected_language = "en"
+        else:
+            print("🛑 Translation disabled in this environment (RAILWAY_ENVIRONMENT or DISABLE_TRANSLATION)")
         
         translation_time = time.time() - translation_start
         print(f"⏱️ Translation processing took {translation_time:.3f}s")

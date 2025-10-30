@@ -14,7 +14,8 @@ def get_default_settings():
         "welcome_message": "Hello! How can I assist you today?",
         "office_specific_messages": {},
         "suggested_messages": [],
-        "response_timeout": 30,
+        # Increase default timeout to better accommodate cold starts on Railway
+        "response_timeout": 90,
         "show_typing_indicator": True,
         "show_suggested_questions": True,
         "tone_of_voice": "Professional",
