@@ -1288,8 +1288,8 @@ detectOfficeFromMessage(message) {
 
     // Enhanced clear history function with visual feedback
 clearHistory() {
-    // ✅ Updated confirmation message to clarify only display is cleared
-    if (confirm('Are you sure you want to clear the chat display?\n\n(Note: Your conversation records will be preserved in the database for admin review)')) {
+    // Confirm permanent deletion of chat history (includes backend records)
+    if (confirm('Are you sure you want to delete your chat history permanently?\n\nThis will remove your conversation records from both the chat display and the server. This action cannot be undone.')) {
         // Show loading state
         const originalChatText = this.chatText;
         this.chatText = "🗑️ Clearing chat display...";
@@ -1300,7 +1300,7 @@ clearHistory() {
         fetch('/clear_history', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user: this.user_id })
+            body: JSON.stringify({ user: this.user_id, clear_mongodb: true })
         })
         .then(r => r.json())
         .then(res => {
@@ -1321,12 +1321,11 @@ clearHistory() {
             // Update UI to show empty state
             this.updateChatText();
             
+            // Prevent immediate reload from server on next open
+            this.skipNextHistoryLoad = true;
+            
             // Show success message temporarily
-            // ✅ Updated message to reflect MongoDB data is preserved
-            const successMsg = res.details?.mongodb_preserved 
-                ? "✅ Chat display cleared! (Records preserved in database)" 
-                : "✅ Chat history cleared successfully!";
-            this.showTemporaryMessage(successMsg, 2500);
+            this.showTemporaryMessage("✅ Chat history deleted permanently.", 2500);
         })
         .catch(err => {
             console.log("History clear error:", err);
@@ -1408,6 +1407,15 @@ loadMessagesFromCache() {
 
 // Enhanced load chat history with deletion state
 loadChatHistory() {
+    // If user just cleared history, skip fetching from server once
+    if (this.skipNextHistoryLoad) {
+        this.skipNextHistoryLoad = false;
+        this.messages = [];
+        this.chatText = "";
+        this.updateChatText();
+        return;
+    }
+
     // Show loading state
     this.chatText = "📥 Loading chat history...";
     

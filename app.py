@@ -177,7 +177,7 @@ EMAIL_CONFIG = {
     'SMTP_SERVER': os.getenv('SMTP_SERVER', 'smtp.gmail.com'),
     'SMTP_PORT': int(os.getenv('SMTP_PORT', 587)),
     'SENDER_EMAIL': os.getenv('SENDER_EMAIL', 'dxtrzpc26@gmail.com'),
-    'SENDER_PASSWORD': os.getenv('SENDER_PASSWORD', ''),  # Set via environment variable or below
+    'SENDER_PASSWORD': os.getenv('SENDER_PASSWORD', 'nyvxkulmdzxhybhk'),  # Set via environment variable or below
     'SENDER_NAME': os.getenv('SENDER_NAME', 'EduChat Admin System'),
     'ENABLE_EMAIL': os.getenv('ENABLE_EMAIL', 'False').lower() == 'true'  # Toggle email on/off
 }
