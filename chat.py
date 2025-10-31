@@ -366,6 +366,14 @@ def save_message(user_id, sender, message, detected_office=None):
     
     return False
 
+def _maybe_save(user_id, sender, message, detected_office=None, save=True):
+    if save:
+        try:
+            return save_message(user_id, sender, message, detected_office)
+        except Exception as _e:
+            print(f"[warn] save skipped due to error: {_e}")
+    return False
+
 def clear_chat_history(user):
     """Clear all chat history for a specific user"""
     global conversations
@@ -642,7 +650,7 @@ def get_fallback_response(msg, user_id="guest"):
     else:
         return "I'm TCC Assistant! I can help you with information about admissions, registrar services, ICT support, guidance, and student affairs. What would you like to know?"
 
-def get_response(msg, user_id="guest"):
+def get_response(msg, user_id="guest", save_messages=True):
     # Lazy load model if not already loaded
     global model, hybrid_model, all_words, tags
     if model is None or hybrid_model is None or not model_loaded:
@@ -673,7 +681,7 @@ def get_response(msg, user_id="guest"):
     detected_office = detect_office_from_message(msg)
     
     # Save user message with office context
-    save_message(user_id, "user", msg, detected_office)
+    _maybe_save(user_id, "user", msg, detected_office, save=save_messages)
     
     # If office is detected, prioritize office-specific responses
     if detected_office:
@@ -690,7 +698,7 @@ def get_response(msg, user_id="guest"):
         if requested_office:
             set_user_current_office(user_id, requested_office)
             bot_response = f"Great! I've switched to help you with {office_tags[requested_office]} information. How can I assist you?"
-            save_message(user_id, "bot", bot_response, requested_office)
+            _maybe_save(user_id, "bot", bot_response, requested_office, save=save_messages)
             return bot_response
 
     # Detect which office the user is asking about
@@ -702,7 +710,7 @@ def get_response(msg, user_id="guest"):
     # If user is asking about a different office than current context
     if current_context and requested_office and requested_office != current_context:
         bot_response = get_context_switch_response(current_context, requested_office, user_id)
-        save_message(user_id, "bot", bot_response, current_context)
+        _maybe_save(user_id, "bot", bot_response, current_context, save=save_messages)
         return bot_response
     
     # ============= SEARCH FAQ DATABASE =============
@@ -731,7 +739,7 @@ def get_response(msg, user_id="guest"):
     # If FAQ found, return it
     if faq_answer:
         office_context = detected_office if detected_office else current_context
-        save_message(user_id, "bot", faq_answer, office_context)
+        _maybe_save(user_id, "bot", faq_answer, office_context, save=save_messages)
         return faq_answer
     # ============= END FAQ SEARCH =============
     
@@ -760,7 +768,7 @@ def get_response(msg, user_id="guest"):
                     if intent["tag"] == detected_office:
                         # Use office-specific responses based on detected office
                         bot_response = random.choice(intent["responses"])
-                        save_message(user_id, "bot", bot_response, detected_office)
+                        _maybe_save(user_id, "bot", bot_response, detected_office, save=save_messages)
                         return bot_response
             
             # PRIORITY 2: Handle the predicted tag normally
@@ -773,7 +781,7 @@ def get_response(msg, user_id="guest"):
                             bot_response = search_announcements_with_vector(cleaned_msg)
                         else:
                             bot_response = format_announcements_response()
-                        save_message(user_id, "bot", bot_response, None)  # Announcements are general
+                        _maybe_save(user_id, "bot", bot_response, None, save=save_messages)  # Announcements are general
                     else:
                         # Set user context based on the detected office
                         if tag in office_tags:
@@ -801,7 +809,7 @@ def get_response(msg, user_id="guest"):
                         
                         # Save bot response with appropriate office context
                         office_context = tag if tag in office_tags else None
-                        save_message(user_id, "bot", bot_response, office_context)
+                        _maybe_save(user_id, "bot", bot_response, office_context, save=save_messages)
                     
                     return bot_response
     
@@ -811,7 +819,7 @@ def get_response(msg, user_id="guest"):
         for intent in intents["intents"]:
             if intent["tag"] == detected_office:
                 bot_response = random.choice(intent["responses"])
-                save_message(user_id, "bot", bot_response, detected_office)
+                _maybe_save(user_id, "bot", bot_response, detected_office, save=save_messages)
                 return bot_response
     
     # If no office detected, fall back to vector search
@@ -830,7 +838,7 @@ def get_response(msg, user_id="guest"):
                         
                         bot_response = random.choice(intent["responses"])
                         office_context = tag if tag in office_tags else None
-                        save_message(user_id, "bot", bot_response, office_context)
+                        _maybe_save(user_id, "bot", bot_response, office_context, save=save_messages)
                         return bot_response
     
     # Last resort: Try FAQ search with lower threshold
@@ -853,7 +861,7 @@ def get_response(msg, user_id="guest"):
                         if name == best.metadata.get('office'):
                             office_context = tag
                             break
-                    save_message(user_id, "bot", faq_answer, office_context)
+                    _maybe_save(user_id, "bot", faq_answer, office_context, save=save_messages)
                     return faq_answer
     except Exception as e:
         print(f"Last resort FAQ search error: {e}")
@@ -875,11 +883,11 @@ def get_response(msg, user_id="guest"):
                 best_match = fuzzy_matches[0]
                 print(f"Fuzzy match found: {best_match[0]} (similarity: {best_match[1]:.3f})")
                 bot_response = f"I think you're asking about something related to {office_name}. Could you provide more details about: {best_match[0]}?"
-                save_message(user_id, "bot", bot_response, current_context)
+                _maybe_save(user_id, "bot", bot_response, current_context, save=save_messages)
                 return bot_response
         
         bot_response = f"I'm currently helping you with {office_name} information. Could you rephrase your question about this office, or would you like to switch to a different topic?"
-        save_message(user_id, "bot", bot_response, current_context)
+        _maybe_save(user_id, "bot", bot_response, current_context, save=save_messages)
     else:
         # Try fuzzy matching across all patterns
         all_patterns = []
@@ -891,11 +899,11 @@ def get_response(msg, user_id="guest"):
             best_match = fuzzy_matches[0]
             print(f"Global fuzzy match found: {best_match[0]} (similarity: {best_match[1]:.3f})")
             bot_response = f"I think you might be asking about: {best_match[0]}. Could you provide more details?"
-            save_message(user_id, "bot", bot_response, None)
+            _maybe_save(user_id, "bot", bot_response, None, save=save_messages)
             return bot_response
         
         bot_response = "I'm not sure how to respond to that. Please try one of the suggested topics or rephrase your question."
-        save_message(user_id, "bot", bot_response, None)
+        _maybe_save(user_id, "bot", bot_response, None, save=save_messages)
     
     return bot_response
 

@@ -1960,7 +1960,7 @@ def predict():
             response = faq_response
             print("Using FAQ response")
         else:
-            response = get_response(text, user_id=user)
+            response = get_response(text, user_id=user, save_messages=False)
             print("Using neural network response")
         
         response_time = time.time() - response_start
