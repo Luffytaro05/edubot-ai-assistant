@@ -15,6 +15,10 @@ from pymongo.errors import ServerSelectionTimeoutError, ConnectionFailure
 from datetime import datetime, UTC, date
 import certifi
 import time
+from deep_translator import GoogleTranslator
+from deep_translator.exceptions import LanguageNotSupportedException
+from langdetect import detect, DetectorFactory
+DetectorFactory.seed = 0
 
 # Load environment variables
 load_dotenv()
@@ -39,6 +43,29 @@ def create_mongo_connection():
         print("[WARNING] MONGODB_URI is not set. Database features will be disabled.")
         return None
     try:
+        # Translation: detect language and translate inbound to English if needed
+        detected_language = 'en'
+        original_msg = msg
+        try:
+            if os.getenv('DISABLE_TRANSLATION', '').lower() != 'true':
+                filipino_keywords = [
+                    'ako','ikaw','siya','kami','tayo','kayo','sila','ang','ng','mga','sa','na','ay','po','opo',
+                    'magandang','salamat','paano','ano','saan','kailan','kumusta','mabuti','hindi','oo','wala','mayroon',
+                    'naman','lang','din','rin','ba','kasi','pero','gusto','kailangan','pwede','paki'
+                ]
+                lower_text = msg.lower()
+                if any(w in lower_text.split() for w in filipino_keywords):
+                    detected_language = 'tl'
+                else:
+                    detected_language = detect(msg)
+                    if detected_language == 'fil':
+                        detected_language = 'tl'
+                    if detected_language not in ['en','tl']:
+                        detected_language = 'en'
+                if detected_language == 'tl':
+                    msg = GoogleTranslator(source='tl', target='en').translate(msg)
+        except Exception:
+            detected_language = 'en'
         client = MongoClient(
             mongodb_uri,
             tls=True,
@@ -595,16 +622,132 @@ def get_fallback_response(msg, user_id="guest"):
         return "I'm TCC Assistant! I can help you with information about admissions, registrar services, ICT support, guidance, and student affairs. What would you like to know?"
 
 def get_response(msg, user_id="guest"):
-    # Lazy load model if not already loaded
-    global model, hybrid_model, all_words, tags
-    if model is None or hybrid_model is None or not model_loaded:
-        model, hybrid_model, all_words, tags = load_models_if_needed()
+    detected_language = 'en'
+    original_msg = msg
+    # Vector-only retrieval: prefer Pinecone responses over any local model
+    try:
+        # Ensure vector store is available
+        if not vector_store or not vector_store.index:
+            print("Vector store not available; using fallback response")
+            return get_fallback_response(msg, user_id)
+
+        # Translation: detect language and translate inbound to English if needed
+        try:
+            if os.getenv('DISABLE_TRANSLATION', '').lower() != 'true':
+                filipino_keywords = [
+                    'ako','ikaw','siya','kami','tayo','kayo','sila','ang','ng','mga','sa','na','ay','po','opo',
+                    'magandang','salamat','paano','ano','saan','kailan','kumusta','mabuti','hindi','oo','wala','mayroon',
+                    'naman','lang','din','rin','ba','kasi','pero','gusto','kailangan','pwede','paki'
+                ]
+                lower_text = msg.lower()
+                if any(w in lower_text.split() for w in filipino_keywords):
+                    detected_language = 'tl'
+                else:
+                    detected_language = detect(msg)
+                    if detected_language == 'fil':
+                        detected_language = 'tl'
+                    if detected_language not in ['en','tl']:
+                        detected_language = 'en'
+                if detected_language == 'tl':
+                    msg = GoogleTranslator(source='tl', target='en').translate(msg)
+        except Exception:
+            detected_language = 'en'
+
+        def search_by_intent(intent_type: str, threshold: float = 0.6, k: int = 3):
+            try:
+                return vector_store.search_similar(
+                    msg,
+                    top_k=k,
+                    filter_dict={"intent_type": {"$eq": intent_type}},
+                    score_threshold=threshold,
+                    similarity_level='medium'
+                )
+            except Exception as e:
+                print(f"Vector search error ({intent_type}): {e}")
+                return []
+
+        # Priority: responses -> faq -> announcement (wider candidate set)
+        results = search_by_intent("response", threshold=0.6, k=5)
+        if not results:
+            results = search_by_intent("faq", threshold=0.6, k=5)
+        if not results:
+            results = search_by_intent("announcement", threshold=0.6, k=5)
+
+        # Broaden search progressively if nothing found
+        if not results:
+            try:
+                results = vector_store.search_similar(
+                    msg,
+                    top_k=5,
+                    score_threshold=0.55,
+                    similarity_level='medium'
+                )
+            except Exception as e:
+                print(f"Vector broad search error: {e}")
+                results = []
+        if not results:
+            try:
+                results = vector_store.search_similar(
+                    msg,
+                    top_k=5,
+                    score_threshold=0.4,
+                    similarity_level='low'
+                )
+            except Exception as e:
+                print(f"Vector low-threshold search error: {e}")
+                results = []
+
+        if results:
+            # Prefer using `responses` array when provided; else fall back to text/answer
+            def pick_answer(candidates):
+                with_responses = [r for r in candidates if isinstance(r.get('metadata', {}).get('responses'), list) and r['metadata']['responses']]
+                if with_responses:
+                    with_responses.sort(key=lambda x: x.get('score', 0), reverse=True)
+                    return with_responses[0]['metadata']['responses'][0]
+                candidates.sort(key=lambda x: x.get('score', 0), reverse=True)
+                md0 = candidates[0].get('metadata', {})
+                return md0.get('text') or md0.get('answer') or candidates[0].get('text') or ""
+
+            answer = pick_answer(results)
+            # Translate back to user's language if needed
+            try:
+                if detected_language == 'tl' and answer:
+                    answer = GoogleTranslator(source='en', target='tl').translate(answer)
+            except Exception:
+                pass
+            # Save both sides of the exchange
+            try:
+                save_message(user_id, "user", original_msg, detected_office=None)
+                save_message(user_id, "bot", answer, detected_office=None)
+            except Exception as _sv:
+                print(f"save_message error: {_sv}")
+            return answer if answer else get_fallback_response(msg, user_id)
+        else:
+            # Final fallback: provide suggestions from a very low threshold probe
+            try:
+                probe = vector_store.search_similar(msg, top_k=3, score_threshold=0.0, similarity_level='low')
+                if probe:
+                    titles = []
+                    for r in probe:
+                        mdp = r.get('metadata', {})
+                        title = mdp.get('title') or mdp.get('question') or mdp.get('tag') or mdp.get('intent_type')
+                        if title:
+                            titles.append(title)
+                    if titles:
+                        suggestion_text = "I couldn't find an exact match. Related topics: " + ", ".join(titles[:3])
+                        try:
+                            save_message(user_id, "user", msg, detected_office=None)
+                            save_message(user_id, "bot", suggestion_text, detected_office=None)
+                        except Exception:
+                            pass
+                        return suggestion_text
+            except Exception:
+                pass
+    except Exception as e:
+        print(f"Vector-only path error: {e}")
+        # fall through to legacy flow if something breaks
     
-    # Check if model is available, use fallback if not
-    if model is None or hybrid_model is None:
-        print("⚠️ Using fallback response (model not available)")
-        return get_fallback_response(msg, user_id)
-    
+    # Legacy model-based flow (kept as fallback only)
     # Enhanced text preprocessing with error handling
     try:
         cleaned_msg = clean_text(msg)

@@ -1719,40 +1719,157 @@ def get_suggested_messages_from_settings():
         ]
 
 @app.post("/predict")
-async def predict():
+def predict():
     try:
         data = request.get_json()
         user_message = (data or {}).get("message", "").strip() if data else ""
+        user = (data or {}).get("user", "guest") if data else "guest"
 
         if not user_message:
             return jsonify({"answer": "Please enter a message.", "status": "empty"})
 
         start_time = time.time()
 
-        # Non-blocking GPT-4o-mini call with 10s timeout
+        # Language detection and inbound translation (Filipino ↔ English)
+        detected_language = "en"
+        original_message = user_message
+        translation_time = 0.0
         try:
-            completion = await asyncio.wait_for(
-                openai_client.chat.completions.create(
-                    model="gpt-4o-mini",
-                    messages=[{"role": "user", "content": user_message}],
-                    max_tokens=200,
-                    temperature=0.7,
-                ),
-                timeout=10
-            )
-        except asyncio.TimeoutError:
-            return jsonify({"answer": "The server took too long to respond. Please try again.", "status": "timeout"})
+            if os.getenv('DISABLE_TRANSLATION', '').lower() != 'true':
+                t_start = time.time()
+                filipino_keywords = [
+                    'ako','ikaw','siya','kami','tayo','kayo','sila','ang','ng','mga','sa','na','ay','po','opo',
+                    'magandang','salamat','paano','ano','saan','kailan','kumusta','mabuti','hindi','oo','wala','mayroon',
+                    'naman','lang','din','rin','ba','kasi','pero','gusto','kailangan','pwede','paki'
+                ]
+                lower_text = user_message.lower()
+                if any(w in lower_text.split() for w in filipino_keywords):
+                    detected_language = 'tl'
+                else:
+                    detected_language = detect(user_message)
+                    if detected_language == 'fil':
+                        detected_language = 'tl'
+                    if detected_language not in ['en','tl']:
+                        detected_language = 'en'
+                if detected_language == 'tl':
+                    user_message = GoogleTranslator(source='tl', target='en').translate(user_message)
+                translation_time = time.time() - t_start
+        except Exception as _lang_err:
+            # On any translation/detection failure, proceed with English
+            detected_language = 'en'
 
-        # Extract content safely
+        # Ensure Pinecone index is available
+        if not vector_store or not vector_store.index:
+            return jsonify({
+                "answer": "Vector search is not available right now.",
+                "status": "unavailable"
+            }), 503
+
+        # Vector-only retrieval with strict Pinecone sourcing
+        def search_by_intent(intent_type: str, threshold: float = 0.6, k: int = 3):
+            try:
+                return vector_store.search_similar(
+                    user_message,
+                    top_k=k,
+                    filter_dict={"intent_type": {"$eq": intent_type}},
+                    score_threshold=threshold,
+                    similarity_level='medium'
+                )
+            except Exception as e:
+                print(f"Vector search error ({intent_type}): {e}")
+                return []
+
+        # Priority: responses -> faq -> announcement (use richer selection)
+        results = search_by_intent("response", threshold=0.6, k=5)
+        if not results:
+            results = search_by_intent("faq", threshold=0.6, k=5)
+        if not results:
+            results = search_by_intent("announcement", threshold=0.6, k=5)
+
+        # Broaden search if nothing found
+        if not results:
+            try:
+                results = vector_store.search_similar(
+                    user_message,
+                    top_k=5,
+                    score_threshold=0.55,
+                    similarity_level='medium'
+                )
+            except Exception as e:
+                print(f"Vector broad search error: {e}")
+                results = []
+        if not results:
+            try:
+                results = vector_store.search_similar(
+                    user_message,
+                    top_k=5,
+                    score_threshold=0.4,
+                    similarity_level='low'
+                )
+            except Exception as e:
+                print(f"Vector low-threshold search error: {e}")
+                results = []
+
+        if not results:
+            elapsed = round(time.time() - start_time, 2)
+            print(f"ℹ️ No vector hits. time={elapsed}s")
+            # Provide suggestions based on a very low threshold probe
+            suggestions = []
+            try:
+                probe = vector_store.search_similar(user_message, top_k=3, score_threshold=0.0, similarity_level='low')
+                for r in probe:
+                    mdp = r.get('metadata', {})
+                    title = mdp.get('title') or mdp.get('question') or mdp.get('tag') or mdp.get('intent_type') or 'suggestion'
+                    suggestions.append(title)
+            except Exception:
+                pass
+            return jsonify({
+                "answer": "",
+                "status": "no_match",
+                "time": elapsed,
+                "suggestions": suggestions
+            })
+
+        # Choose best answer leveraging Pinecone metadata
+        def pick_answer(candidates):
+            # Prefer items that include a non-empty responses array
+            with_responses = [r for r in candidates if isinstance(r.get('metadata', {}).get('responses'), list) and r['metadata']['responses']]
+            if with_responses:
+                # Pick from the highest score group
+                with_responses.sort(key=lambda x: x.get('score', 0), reverse=True)
+                top_md = with_responses[0]['metadata']
+                # Choose the first response (deterministic) or random if preferred
+                return top_md['responses'][0]
+            # Fallback to explicit answer/text
+            candidates.sort(key=lambda x: x.get('score', 0), reverse=True)
+            md0 = candidates[0].get('metadata', {})
+            return md0.get('text') or md0.get('answer') or candidates[0].get('text') or ""
+
+        answer = pick_answer(results)
+
+        # Outbound translation back to user's language
         try:
-            bot_reply = completion.choices[0].message.content.strip()
+            if detected_language == 'tl' and answer:
+                answer = GoogleTranslator(source='en', target='tl').translate(answer)
         except Exception:
-            bot_reply = "I'm unable to generate a response right now. Please try again."
+            pass
+
+        # Save conversation snapshot
+        try:
+            save_message(user=user, sender="user", message=user_message)
+            save_message(user=user, sender="bot", message=answer)
+        except Exception as _save_err:
+            print(f"save_message error: {_save_err}")
 
         elapsed = round(time.time() - start_time, 2)
-        print(f"✅ GPT-4o mini response time: {elapsed}s")
+        print(f"✅ Vector-only response time: {elapsed}s, hits={len(results)} | translation={translation_time:.3f}s")
 
-        return jsonify({"answer": bot_reply, "status": "success", "time": elapsed})
+        return jsonify({
+            "answer": answer,
+            "status": "success",
+            "time": elapsed,
+            "hits": len(results)
+        })
 
     except Exception as e:
         print("❌ Error in /predict:", e)
