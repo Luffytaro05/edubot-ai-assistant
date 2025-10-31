@@ -15,6 +15,7 @@ from pymongo.errors import ServerSelectionTimeoutError, ConnectionFailure
 from datetime import datetime, UTC, date
 import certifi
 import time
+from openai import OpenAI
 
 # Load environment variables
 load_dotenv()
@@ -150,6 +151,50 @@ office_tags = {
     'guidance_office': 'Guidance Office',
     'osa_office': 'Office of the Student Affairs (OSA)'
 }
+
+# ---------- OpenAI Fallback Integration ----------
+_openai_client = None
+
+def _get_openai_client():
+    global _openai_client
+    if _openai_client is not None:
+        return _openai_client
+    try:
+        # API key is read from environment (OPENAI_API_KEY)
+        _openai_client = OpenAI()
+        return _openai_client
+    except Exception as e:
+        print(f"[OpenAI] Client init failed: {e}")
+        return None
+
+def get_openai_fallback(message, user_id="guest"):
+    """Generate a response using OpenAI GPT-4o mini as a fallback.
+
+    Returns a plain string response or None if unavailable.
+    """
+    client = _get_openai_client()
+    if client is None:
+        return None
+    try:
+        system_prompt = (
+            "You are TCC Assistant, a helpful college information bot. "
+            "Answer concisely and accurately about admissions, registrar, ICT, guidance, and student affairs. "
+            "If the question is unrelated, politely guide the user back to supported topics."
+        )
+        completion = client.chat.completions.create(
+            model="gpt-4o-mini",
+            temperature=0.2,
+            max_tokens=300,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": message}
+            ]
+        )
+        content = completion.choices[0].message.content if completion and completion.choices else None
+        return content.strip() if content else None
+    except Exception as e:
+        print(f"[OpenAI] Fallback error: {e}")
+        return None
 
 def get_user_current_office(user_id):
     """Get the current office context for a user"""

@@ -1727,7 +1727,13 @@ def predict():
 
         # Check if required modules are available
         try:
-            from chat import get_response, user_contexts, office_tags, detect_office_from_message
+            from chat import (
+                get_response,
+                user_contexts,
+                office_tags,
+                detect_office_from_message,
+                get_openai_fallback
+            )
         except ImportError as e:
             print(f"[ERROR] Chat module import error: {e}")
             return jsonify({
@@ -1740,17 +1746,19 @@ def predict():
             import torch
             import os
             if not os.path.exists("data.pth"):
-                print("[WARNING] Model file not found, using fallback response")
+                print("[WARNING] Model file not found, using OpenAI fallback")
+                ai_answer = get_openai_fallback(text) or "Hello! I'm TCC Assistant. How can I help you today?"
                 return jsonify({
-                    "answer": "Hello! I'm TCC Assistant. How can I help you today?",
+                    "answer": ai_answer,
                     "office": "General",
                     "status": "resolved",
                     "model_available": False
                 })
         except ImportError:
-            print("[WARNING] PyTorch not available, using fallback response")
+            print("[WARNING] PyTorch not available, using OpenAI fallback")
+            ai_answer = get_openai_fallback(text) or "Hello! I'm TCC Assistant. How can I help you today?"
             return jsonify({
-                "answer": "Hello! I'm TCC Assistant. How can I help you today?",
+                "answer": ai_answer,
                 "office": "General", 
                 "status": "resolved",
                 "model_available": False
@@ -2012,8 +2020,15 @@ def predict():
             status = "escalated"
             print(f"✅ STATUS SET TO ESCALATED for response: {response[:100]}...")
         elif response and any(p in response.lower() for p in unresolved_patterns):
-            status = "unresolved"
-            print(f"❌ STATUS SET TO UNRESOLVED for response: {response[:100]}...")
+            # Try OpenAI fallback for unresolved responses
+            ai_answer = get_openai_fallback(text)
+            if ai_answer:
+                response = ai_answer
+                status = "resolved"
+                print("🤝 OpenAI fallback resolved the response")
+            else:
+                status = "unresolved"
+                print(f"❌ STATUS SET TO UNRESOLVED for response: {response[:100]}...")
         else:
             status = "resolved"
             print(f"✅ STATUS SET TO RESOLVED for response: {response[:100]}...")
