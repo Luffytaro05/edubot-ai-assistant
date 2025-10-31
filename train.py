@@ -8,7 +8,6 @@ from torch.utils.data import Dataset, DataLoader
 from nltk_utils import bag_of_words, tokenize, stem, enhanced_bag_of_words
 from model import NeuralNet
 from vector_store import VectorStore
-from openai import OpenAI
 
 # Load intents
 with open('intents.json', 'r') as f:
@@ -198,19 +197,3 @@ vector_store.save_index("vector_index")
 print(f'Training complete. Neural network saved to {FILE}')
 print(f'Vector database saved with {vector_store.get_stats()["total_vectors"]} vectors')
 print("Vector database statistics:", vector_store.get_stats())
-
-# =====================
-# OpenAI Embedding helper for future use
-# =====================
-def generate_embedding(text: str):
-    """Generate OpenAI embedding (text-embedding-3-small)."""
-    try:
-        client = OpenAI()
-        resp = client.embeddings.create(
-            model="text-embedding-3-small",
-            input=text
-        )
-        return resp.data[0].embedding
-    except Exception as e:
-        print("Embedding generation error:", e)
-        return None

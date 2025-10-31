@@ -37,6 +37,7 @@ except ImportError:
     print("[WARNING] JWT module not available. Authentication features will be disabled.")
     JWT_AVAILABLE = False
 import os
+import asyncio
 from dotenv import load_dotenv
 import certifi
 load_dotenv()
@@ -48,8 +49,7 @@ import traceback
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-import socket
-from openai import OpenAI
+from openai import AsyncOpenAI
 # Google Translate API integration (using deep-translator for stability)
 from deep_translator import GoogleTranslator
 from deep_translator.exceptions import LanguageNotSupportedException
@@ -60,7 +60,6 @@ DetectorFactory.seed = 0
 
 app = Flask(__name__)
 moment = Moment(app)
-openai_client = OpenAI()
 
 # Pinecone Configuration (needed before VectorStore initialization)
 PINECONE_API_KEY = os.getenv('PINECONE_API_KEY')
@@ -87,6 +86,21 @@ app.register_blueprint(usage_bp)
 CORS(app)
 # Railway-compatible configuration
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your-secret-key-change-this-in-production')
+
+# Initialize a single AsyncOpenAI client for the app lifecycle
+openai_client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+# Optional warmup to avoid cold starts for local models/vector store
+try:
+    from chat import load_models_if_needed
+    with app.app_context():
+        try:
+            load_models_if_needed()
+        except Exception as _warmup_err:
+            print(f"Warmup skipped: {_warmup_err}")
+except Exception:
+    # If chat module shape changes, skip warmup silently
+    pass
 
 # Initialize Pinecone client
 pinecone_client = None
@@ -185,18 +199,6 @@ EMAIL_CONFIG = {
     'ENABLE_EMAIL': os.getenv('ENABLE_EMAIL', 'False').lower() == 'true'  # Toggle email on/off
 }
 
-# Optional HTTP email provider (works on hosts that block SMTP)
-SENDGRID_API_KEY = os.getenv('SENDGRID_API_KEY')
-EMAIL_CONFIG['METHOD'] = 'smtp'
-
-# Quick reachability check for environments that block SMTP egress (e.g., some PaaS)
-def smtp_reachable(host, port, timeout=3):
-    try:
-        with socket.create_connection((host, port), timeout=timeout):
-            return True
-    except OSError:
-        return False
-
 # ===========================
 # 🔧 GMAIL APP PASSWORD SETUP INSTRUCTIONS
 # ===========================
@@ -209,23 +211,12 @@ def smtp_reachable(host, port, timeout=3):
 # STEP 7: Paste it in the line below (remove spaces: "abcdefghijklmnop")
 # ===========================
 
-# Decide email method and availability once at startup
-_smtp_ok = smtp_reachable(EMAIL_CONFIG['SMTP_SERVER'], EMAIL_CONFIG['SMTP_PORT'])
-if EMAIL_CONFIG['ENABLE_EMAIL']:
-    if SENDGRID_API_KEY:
-        EMAIL_CONFIG['METHOD'] = 'sendgrid'
-        print("✅ Email notifications ENABLED via SendGrid API")
-    elif EMAIL_CONFIG['SENDER_PASSWORD'] and _smtp_ok:
-        EMAIL_CONFIG['METHOD'] = 'smtp'
-        print(f"✅ Email notifications ENABLED - Emails will be sent from {EMAIL_CONFIG['SENDER_EMAIL']}")
-    else:
-        EMAIL_CONFIG['ENABLE_EMAIL'] = False
-        if not _smtp_ok:
-            print(f"⚠️ Email notifications DISABLED - Cannot reach SMTP server {EMAIL_CONFIG['SMTP_SERVER']}:{EMAIL_CONFIG['SMTP_PORT']} (network blocked or host down)")
-        else:
-            print("⚠️ Email notifications DISABLED - Configure SMTP credentials in environment variables to enable")
+# Email should only be enabled if credentials are provided via environment variables
+if EMAIL_CONFIG['SENDER_PASSWORD'] and EMAIL_CONFIG['ENABLE_EMAIL']:
+    print(f"✅ Email notifications ENABLED - Emails will be sent from {EMAIL_CONFIG['SENDER_EMAIL']}")
 else:
     EMAIL_CONFIG['ENABLE_EMAIL'] = False
+    print("⚠️ Email notifications DISABLED - Configure SMTP credentials in environment variables to enable")
 
 def send_password_change_email(user_email, user_name):
     """Send email notification when password is changed"""
@@ -234,11 +225,10 @@ def send_password_change_email(user_email, user_name):
         print("Email notifications are disabled. Set ENABLE_EMAIL=True to enable.")
         return False
     
-    # Validate email configuration by method
-    if EMAIL_CONFIG.get('METHOD') == 'smtp':
-        if not EMAIL_CONFIG.get('SENDER_PASSWORD') or EMAIL_CONFIG['SENDER_PASSWORD'] == 'your-app-password-here':
-            print("⚠️ WARNING: Email password not configured! Please set SENDER_PASSWORD in EMAIL_CONFIG.")
-            return False
+    # Validate email configuration
+    if not EMAIL_CONFIG.get('SENDER_PASSWORD') or EMAIL_CONFIG['SENDER_PASSWORD'] == 'your-app-password-here':
+        print("⚠️ WARNING: Email password not configured! Please set SENDER_PASSWORD in EMAIL_CONFIG.")
+        return False
     
     if not user_email or not validate_email(user_email):
         print(f"Invalid recipient email: {user_email}")
@@ -403,40 +393,21 @@ def send_password_change_email(user_email, user_name):
 
         # Send email with detailed error handling
         try:
-            if EMAIL_CONFIG.get('METHOD') == 'sendgrid':
-                payload = {
-                    "personalizations": [
-                        {"to": [{"email": user_email}], "subject": "Password Changed Successfully - EduChat Admin"}
-                    ],
-                    "from": {"email": EMAIL_CONFIG['SENDER_EMAIL'], "name": EMAIL_CONFIG['SENDER_NAME']},
-                    "content": [
-                        {"type": "text/plain", "value": text_content},
-                        {"type": "text/html", "value": html_content}
-                    ]
-                }
-                headers = {
-                    "Authorization": f"Bearer {SENDGRID_API_KEY}",
-                    "Content-Type": "application/json"
-                }
-                resp = requests.post("https://api.sendgrid.com/v3/mail/send", json=payload, headers=headers, timeout=10)
-                if 200 <= resp.status_code < 300:
-                    print(f"✓ Email sent successfully to {user_email} via SendGrid")
-                    return True
-                else:
-                    print(f"❌ SendGrid error: {resp.status_code} - {resp.text}")
-                    return False
-            else:
-                print(f"Connecting to {EMAIL_CONFIG['SMTP_SERVER']}:{EMAIL_CONFIG['SMTP_PORT']}...")
-                server = smtplib.SMTP(EMAIL_CONFIG['SMTP_SERVER'], EMAIL_CONFIG['SMTP_PORT'], timeout=10)
-                print("✓ Connected to SMTP server")
-                server.starttls()
-                print("✓ TLS enabled")
-                server.login(EMAIL_CONFIG['SENDER_EMAIL'], EMAIL_CONFIG['SENDER_PASSWORD'])
-                print("✓ Authenticated with email server")
-                server.send_message(msg)
-                print(f"✓ Email sent successfully to {user_email}")
-                server.quit()
-                return True
+            print(f"Connecting to {EMAIL_CONFIG['SMTP_SERVER']}:{EMAIL_CONFIG['SMTP_PORT']}...")
+            server = smtplib.SMTP(EMAIL_CONFIG['SMTP_SERVER'], EMAIL_CONFIG['SMTP_PORT'], timeout=10)
+            print("✓ Connected to SMTP server")
+            
+            server.starttls()
+            print("✓ TLS enabled")
+            
+            server.login(EMAIL_CONFIG['SENDER_EMAIL'], EMAIL_CONFIG['SENDER_PASSWORD'])
+            print("✓ Authenticated with email server")
+            
+            server.send_message(msg)
+            print(f"✓ Email sent successfully to {user_email}")
+            
+            server.quit()
+            return True
             
         except smtplib.SMTPAuthenticationError as e:
             print(f"❌ SMTP Authentication Error: {e}")
@@ -1748,443 +1719,44 @@ def get_suggested_messages_from_settings():
         ]
 
 @app.post("/predict")
-def predict():
-    start_time = time.time()
+async def predict():
     try:
-        # Validate request data
         data = request.get_json()
-        if not data:
-            return jsonify({"answer": "Invalid request data."}), 400
-            
-        text = data.get("message")
-        user = data.get("user", "guest")
-        user_language = data.get("language", "en")
-        
-        print(f"🚀 Processing request for user '{user}': '{text[:50]}...'")
+        user_message = (data or {}).get("message", "").strip() if data else ""
 
-        if not text or not text.strip():
-            return jsonify({"answer": "Please type something."})
+        if not user_message:
+            return jsonify({"answer": "Please enter a message.", "status": "empty"})
 
-        # Proceed without response caching
-        cache_key = f"{user}:{text.lower().strip()}"
+        start_time = time.time()
 
-        # Store original message for later use
-        original_message = text
-
-        # Check if required modules are available
+        # Non-blocking GPT-4o-mini call with 10s timeout
         try:
-            from chat import get_response, user_contexts, office_tags, detect_office_from_message
-        except ImportError as e:
-            print(f"[ERROR] Chat module import error: {e}")
-            return jsonify({
-                "answer": "Chatbot is temporarily unavailable. Please try again later.",
-                "error": "Module import failed"
-            }), 500
-
-        # Check if model is available
-        try:
-            import torch
-            import os
-            if not os.path.exists("data.pth"):
-                print("[WARNING] Model file not found, using fallback response")
-                return jsonify({
-                    "answer": "Hello! I'm TCC Assistant. How can I help you today?",
-                    "office": "General",
-                    "status": "resolved",
-                    "model_available": False
-                })
-        except ImportError:
-            print("[WARNING] PyTorch not available, using fallback response")
-            return jsonify({
-                "answer": "Hello! I'm TCC Assistant. How can I help you today?",
-                "office": "General", 
-                "status": "resolved",
-                "model_available": False
-            })
-
-        detected_language = "en"
-        
-        # ✅ Run translation even on Railway; set DISABLE_TRANSLATION=true to skip
-        translation_start = time.time()
-        if os.getenv('DISABLE_TRANSLATION', '').lower() != 'true':
-            try:
-                filipino_keywords = [
-                    'ako', 'ikaw', 'siya', 'kami', 'tayo', 'kayo', 'sila',
-                    'ang', 'ng', 'mga', 'sa', 'na', 'ay', 'po', 'opo',
-                    'magandang', 'salamat', 'paano', 'ano', 'saan', 'kailan',
-                    'kumusta', 'mabuti', 'hindi', 'oo', 'wala', 'mayroon',
-                    'naman', 'lang', 'din', 'rin', 'ba', 'kasi', 'pero',
-                    'gusto', 'kailangan', 'pwede', 'paki'
-                ]
-                text_lower = text.lower()
-                has_filipino = any(word in text_lower.split() for word in filipino_keywords)
-                if has_filipino:
-                    detected_language = 'tl'
-                    print(f"🌐 Detected Filipino keywords in message")
-                else:
-                    detected_language = detect(text)
-                    print(f"🌐 Auto-detected language: {detected_language}")
-                    ALLOWED_LANGUAGES = ['en', 'tl', 'fil']
-                    if detected_language not in ALLOWED_LANGUAGES:
-                        print(f"⚠️ Language '{detected_language}' not in supported list. Treating as English.")
-                        detected_language = 'en'
-                    elif detected_language == 'fil':
-                        detected_language = 'tl'
-                if detected_language == 'tl':
-                    translated = GoogleTranslator(source='tl', target='en').translate(text)
-                    print(f"📝 Translated Filipino to English: '{original_message}' → '{translated}'")
-                    text = translated
-                else:
-                    print(f"✅ Message in English: {text}")
-            except LanguageNotSupportedException as lang_error:
-                print(f"⚠️ Language not supported: {lang_error}, defaulting to English")
-                detected_language = "en"
-            except Exception as translate_error:
-                print(f"⚠️ Translation detection error: {translate_error}")
-                detected_language = "en"
-        else:
-            print("🛑 Translation disabled via DISABLE_TRANSLATION env var")
-        
-        translation_time = time.time() - translation_start
-        print(f"⏱️ Translation processing took {translation_time:.3f}s")
-        
-        print(f"User {user} asked: {text}")
-
-        # ✅ CHECK FOR PENDING OFFICE SWITCH CONFIRMATION
-        pending_switch_office = None
-        if user in user_contexts:
-            # ✅ Handle both dict and string formats
-            if isinstance(user_contexts[user], dict):
-                pending_switch_office = user_contexts[user].get('pending_switch')
-            else:
-                # Old format (string) doesn't have pending_switch
-                pending_switch_office = None
-        
-        if pending_switch_office:
-            print(f"🔍 Found pending office switch for user '{user}': {pending_switch_office}")
-        
-        # Check if user is confirming the office switch
-        confirmation_keywords = ['yes', 'yeah', 'sure', 'okay', 'ok', 'yep', 'yup', 'please', 'switch', 'connect', 'go ahead', 'proceed']
-        confirmation_keywords_filipino = ['oo', 'sige', 'okay', 'opo', 'ge']
-        all_confirmation_keywords = confirmation_keywords + confirmation_keywords_filipino
-        
-        text_lower = text.lower().strip()
-        is_confirming = any(keyword == text_lower or text_lower.startswith(keyword + ' ') for keyword in all_confirmation_keywords)
-        
-        if is_confirming:
-            print(f"✅ User confirmation detected: '{text_lower}'")
-        
-        if pending_switch_office and is_confirming:
-            # ✅ AUTO-SWITCH: User confirmed the office switch
-            from chat import set_user_current_office
-            set_user_current_office(user, pending_switch_office)
-            
-            # Clear pending switch and update current office
-            if isinstance(user_contexts[user], dict):
-                user_contexts[user].pop('pending_switch', None)
-                user_contexts[user]['current_office'] = pending_switch_office
-            
-            office_name = office_tags.get(pending_switch_office, pending_switch_office)
-            switch_confirmation = f"Great! I've switched to help you with {office_name} information. How can I assist you?"
-            
-            # Translate confirmation if needed
-            if detected_language == 'tl':
-                try:
-                    switch_confirmation = GoogleTranslator(source='en', target='tl').translate(switch_confirmation)
-                except:
-                    pass  # Keep English if translation fails
-            
-            print(f"✅ Office switch confirmed: {office_name} for user '{user}'")
-            
-            # Save the confirmation exchange
-            save_message(user=user, sender="user", message=original_message, detected_office=pending_switch_office)
-            save_message(user=user, sender="bot", message=switch_confirmation, detected_office=pending_switch_office)
-            
-            return jsonify({
-                "answer": switch_confirmation,
-                "office": office_name,
-                "status": "resolved",
-                "detected_language": detected_language,
-                "office_switched": True,
-                "new_office": office_name,
-                "new_office_tag": pending_switch_office
-            })
-
-        # ✅ Detect office from the message FIRST (using improved detection)
-        detected_office_tag = detect_office_from_message(text)
-        detected_office = office_tags.get(detected_office_tag, "General") if detected_office_tag else "General"
-        print(f"🎯 Detected office: {detected_office}")
-
-        # ✅ OFFICE CONTEXT SWITCHING PROTECTION
-        # Check if user is trying to switch to a different office without resetting
-        current_office_tag = None
-        if user in user_contexts:
-            if isinstance(user_contexts[user], dict):
-                current_office_tag = user_contexts[user].get('current_office')
-            else:
-                # Old format: string is the office tag
-                current_office_tag = user_contexts[user] if isinstance(user_contexts[user], str) else None
-        
-        # Debug logging
-        print(f"🔍 Context Switch Check:")
-        print(f"   User: {user}")
-        print(f"   Current office in context: {current_office_tag}")
-        print(f"   Detected office from message: {detected_office_tag}")
-        print(f"   User contexts: {user_contexts.get(user, 'Not set')}")
-        
-        # If user has an active office context and is trying to switch to a different office
-        if current_office_tag and detected_office_tag and current_office_tag != detected_office_tag:
-            current_office_name = office_tags.get(current_office_tag, current_office_tag)
-            new_office_name = office_tags.get(detected_office_tag, detected_office_tag)
-            
-            print(f"⚠️ Office context switch detected: {current_office_name} → {new_office_name}")
-            
-            # Create warning message
-            warning_message = (
-                f"⚠️ **Context Switch Detected**\n\n"
-                f"You're currently in the **{current_office_name}** context. "
-                f"I noticed you're now asking about the **{new_office_name}**.\n\n"
-                f"To ensure clear and accurate responses, please **reset the {current_office_name} context** first before switching to the {new_office_name}.\n\n"
-                f"💡 **How to reset:**\n"
-                f"• Click the **'Reset Context'** button at the top of the chat\n\n"
-                f"This helps me provide you with the most relevant information for each office! 😊"
+            completion = await asyncio.wait_for(
+                openai_client.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=[{"role": "user", "content": user_message}],
+                    max_tokens=200,
+                    temperature=0.7,
+                ),
+                timeout=10
             )
-            
-            # Translate warning if user's language is Filipino
-            if detected_language == 'tl':
-                try:
-                    warning_message = GoogleTranslator(source='en', target='tl').translate(warning_message)
-                except Exception as e:
-                    print(f"⚠️ Warning translation failed: {e}")
-                    # Keep English if translation fails
-            
-            # Save the exchange
-            save_message(user=user, sender="user", message=original_message, detected_office=current_office_tag)
-            save_message(user=user, sender="bot", message=warning_message, detected_office=current_office_tag)
-            
-            return jsonify({
-                "answer": warning_message,
-                "office": current_office_name,
-                "status": "context_switch_warning",
-                "detected_language": detected_language,
-                "current_office": current_office_name,
-                "current_office_tag": current_office_tag,
-                "attempted_office": new_office_name,
-                "attempted_office_tag": detected_office_tag,
-                "requires_reset": True
-            })
+        except asyncio.TimeoutError:
+            return jsonify({"answer": "The server took too long to respond. Please try again.", "status": "timeout"})
 
-        # Search FAQs first for relevant answers
-        faq_start = time.time()
-        faq_response = None
+        # Extract content safely
         try:
-            faq_search_result = search_faqs(text, top_k=3)
-            if faq_search_result['success'] and faq_search_result['results']:
-                # Check if any FAQ has high similarity score (above 0.8)
-                best_match = faq_search_result['results'][0]
-                if best_match['score'] > 0.8:
-                    faq_response = best_match['answer']
-                    print(f"FAQ match found with score: {best_match['score']}")
-        except Exception as e:
-            print(f"Error searching FAQs: {e}")
-        
-        faq_time = time.time() - faq_start
-        print(f"⏱️ FAQ search took {faq_time:.3f}s")
+            bot_reply = completion.choices[0].message.content.strip()
+        except Exception:
+            bot_reply = "I'm unable to generate a response right now. Please try again."
 
-        # Get chatbot response (in English)
-        response_start = time.time()
-        if faq_response:
-            response = faq_response
-            print("Using FAQ response")
-        else:
-            response = get_response(text, user_id=user)
-            print("Using neural network response")
-        
-        response_time = time.time() - response_start
-        print(f"⏱️ Response generation took {response_time:.3f}s")
+        elapsed = round(time.time() - start_time, 2)
+        print(f"✅ GPT-4o mini response time: {elapsed}s")
 
-        # ✅ Common unresolved/fallback patterns
-        unresolved_patterns = [
-            "sorry",
-            "contact support",
-            "i'm not sure how to respond",
-            "please try one of the suggested topics",
-            "rephrase your question",
-            "i'm not sure i understand",
-            "could you rephrase your question",
-            "sorry, i don't have that information yet",
-            "i'm still learning",
-            "i might not have understood that correctly",
-            "i don't quite understand that",
-            "would you like to try asking about a specific office or service",
-            "i'm here to help with information about college offices and services"
-        ]
-        # ✅ Escalation patterns (hand-off to human/office)
-        escalation_patterns = [
-            "escalating to a human agent",
-            "let me connect you to support",
-            "please contact the registrar",
-            "please contact admissions",
-            "please reach out to guidance",
-            "i'm forwarding this to ict",
-            "i think you might be asking about",   # NEW
-            "would you like me to connect you",     # NEW
-            "Context Switch Detected",
-            "Click the **'Reset Context'** button at the top of the chat",
-            "⚠️ **Context Switch Detected**",  # Enhanced pattern for your specific message
-            "reset context",  # Additional pattern for context reset
-            "reset the",  # Pattern for "reset the Admissions Office context"
-            "switching to the",  # Pattern for "switching to the Registrar's Office"
-            "office context",  # Pattern for office context messages
-            "context switch",  # Additional pattern
-            "reset context'",  # Pattern with apostrophe
-            "type 'reset context'",  # Pattern for "type 'reset context'"
-            "clear the current office context",  # Pattern for "clear the current office context"
-            "ensure clear and accurate responses"  # Pattern from your message
-        ]
-
-        # Detect resolved/unresolved/escalated status
-        # First check for escalation patterns (highest priority)
-        is_escalated = False
-        if response:
-            response_lower = response.lower()
-            for pattern in escalation_patterns:
-                if pattern.lower() in response_lower:
-                    is_escalated = True
-                    print(f"🚨 ESCALATION DETECTED: Pattern '{pattern}' found in response")
-                    break
-        
-        if is_escalated:
-            status = "escalated"
-            print(f"✅ STATUS SET TO ESCALATED for response: {response[:100]}...")
-        elif response and any(p in response.lower() for p in unresolved_patterns):
-            status = "unresolved"
-            print(f"❌ STATUS SET TO UNRESOLVED for response: {response[:100]}...")
-        else:
-            status = "resolved"
-            print(f"✅ STATUS SET TO RESOLVED for response: {response[:100]}...")
-        
-        print(f"🎯 FINAL STATUS: {status}")
-
-        # ✅ AUTO-SWITCH: Detect office switch suggestions and extract suggested office
-        suggested_office = None
-        suggested_office_tag = None
-        if "i think you might be asking about" in response.lower() or "would you like me to connect you" in response.lower():
-            # Extract office name from response
-            for office_tag, office_name in office_tags.items():
-                if office_name.lower() in response.lower():
-                    suggested_office = office_name
-                    suggested_office_tag = office_tag
-                    print(f"🔄 Office switch suggested: {office_name} (tag: {office_tag})")
-                    break
-
-        # ✅ Translate response back to user's language (English or Filipino only)
-        response_translation_start = time.time()
-        translated_response = response
-        try:
-            if detected_language == 'tl':
-                # Only translate back to Filipino if user's language was Filipino
-                translated_response = GoogleTranslator(source='en', target='tl').translate(response)
-                print(f"🌐 Translated response back to Filipino: '{response}' → '{translated_response}'")
-            else:
-                print(f"✅ Response kept in English")
-        except LanguageNotSupportedException as lang_error:
-            print(f"⚠️ Language not supported for response: {lang_error}")
-            translated_response = response
-        except Exception as translate_error:
-            print(f"⚠️ Translation error for response: {translate_error}")
-            # Use English response if translation fails
-            translated_response = response
-        
-        response_translation_time = time.time() - response_translation_start
-        print(f"⏱️ Response translation took {response_translation_time:.3f}s")
-
-        # ✅ Save user query (original message in user's language) with detected office
-        save_message(
-            user=user,
-            sender="user",
-            message=original_message,
-            detected_office=detected_office_tag  # Use the tag, not the display name
-        )
-
-        # ✅ Save bot response (translated response in user's language) with resolution status and office
-        save_message(
-            user=user,
-            sender="bot",
-            message=translated_response,
-            detected_office=detected_office_tag,  # Use the tag, not the display name
-            status=status
-        )
-
-        # ✅ STORE OFFICE CONTEXT: Update user_contexts with the detected office
-        if detected_office_tag:
-            if user not in user_contexts:
-                user_contexts[user] = {}
-            elif not isinstance(user_contexts[user], dict):
-                # Convert old string format to new dict format
-                old_office = user_contexts[user]
-                user_contexts[user] = {'current_office': old_office}
-            
-            # Store the current office context
-            user_contexts[user]['current_office'] = detected_office_tag
-            print(f"✅ Stored office context for user '{user}': {detected_office} (tag: {detected_office_tag})")
-
-        # Get suggested messages from bot settings
-        suggested_messages = get_suggested_messages_from_settings()
-        
-        # ✅ Store suggested office in session for next message
-        if suggested_office_tag:
-            # Store pending office switch in user_contexts
-            if user not in user_contexts:
-                user_contexts[user] = {}
-            elif not isinstance(user_contexts[user], dict):
-                # Convert old string format to dict
-                old_office = user_contexts[user]
-                user_contexts[user] = {'current_office': old_office}
-            
-            user_contexts[user]['pending_switch'] = suggested_office_tag
-            print(f"📌 Stored pending office switch for user '{user}': {suggested_office} (tag: {suggested_office_tag})")
-        
-        # Calculate total processing time
-        total_time = time.time() - start_time
-        print(f"⚡ Total processing time: {total_time:.3f}s")
-        
-        # Prepare response data
-        response_data = {
-            "answer": translated_response,
-            "original_answer": response,  # English version for debugging
-            "office": detected_office,  # Return the display name for frontend
-            "status": status,
-            "detected_language": detected_language,
-            "original_message": original_message,
-            "translated_message": text if detected_language != 'en' else None,
-            "context_in_memory": user_contexts.get(user),
-            "vector_enabled": vector_store.index is not None,
-            "vector_stats": vector_store.get_stats(),
-            "suggested_messages": suggested_messages,
-            "response_time": round(total_time * 1000),  # Convert to milliseconds
-            "performance_metrics": {
-                "translation_time": round(translation_time * 1000),
-                "faq_search_time": round(faq_time * 1000),
-                "response_generation_time": round(response_time * 1000),
-                "response_translation_time": round(response_translation_time * 1000),
-                "total_time": round(total_time * 1000)
-            },
-            "suggested_office": suggested_office,  # ✅ Office name for display
-            "suggested_office_tag": suggested_office_tag  # ✅ Office tag for switching
-        }
-        
-        # Do not cache responses; return directly
-        
-        return jsonify(response_data)
+        return jsonify({"answer": bot_reply, "status": "success", "time": elapsed})
 
     except Exception as e:
-        print(f"Error in predict: {e}")
-        traceback.print_exc()
-        return jsonify({
-            "answer": "Sorry, I encountered an error processing your request. Please try again.",
-            "error": str(e)
-        }), 500
+        print("❌ Error in /predict:", e)
+        return jsonify({"answer": "Something went wrong. Please try again later.", "status": "error"})
 
 
 # ===========================
@@ -4324,31 +3896,6 @@ def get_sub_admin_notifications():
             'total_count': 0,
             'unread_count': 0
         }), 500
-
-# ===========================
-# Chat Completions Endpoint (GPT-4o-mini)
-# ===========================
-@app.route("/chat", methods=["POST"])
-def chat_endpoint():
-    try:
-        payload = request.get_json(silent=True) or {}
-        user_message = str(payload.get("message", "")).strip()
-        office = payload.get("office")
-        response_timeout = payload.get("response_timeout")
-        try:
-            response_timeout = int(response_timeout) if response_timeout is not None else 15
-        except Exception:
-            response_timeout = 15
-
-        if not user_message:
-            return jsonify({"response": "Please provide a message."}), 400
-
-        from chat import generate_response
-        bot_response = generate_response(user_message, office, timeout=response_timeout)
-        return jsonify({"response": bot_response})
-    except Exception as e:
-        print("Chat error:", e)
-        return jsonify({"response": "Sorry, I encountered an error. Please try again later."}), 500
 
 # Add some debugging information on startup
 def startup_info():

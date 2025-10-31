@@ -482,9 +482,7 @@ class Chatbox {
                 body: JSON.stringify({ 
                     message: translatedMsg,           // Translated message for chatbot processing
                     original_message: userMsg,         // Original message in user's language for MongoDB
-                    user_id: this.user_id,             // User ID for conversation tracking
-                    office: (this.currentContext && this.officeNames && this.officeNames[this.currentContext]) ? this.officeNames[this.currentContext] : null,
-                    response_timeout: (Number(this.botSettings?.response_timeout) || 15)
+                    user_id: this.user_id              // User ID for conversation tracking
                 }),
             });
             
