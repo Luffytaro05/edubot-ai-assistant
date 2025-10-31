@@ -84,7 +84,7 @@ vector_store = VectorStore()
 # No JSON file fallback - all announcements come from database
 
 """
-Model loading (lazy, global single initialization)
+Model loading (global single initialization)
 """
 # Global variables for lazy loading
 model_loaded = False
@@ -98,7 +98,7 @@ def load_models_if_needed():
     global model_loaded, model, hybrid_model, all_words, tags
     if model_loaded:
         return model, hybrid_model, all_words, tags
-    print("🔄 Loading neural network model (lazy)...")
+    print("🔄 Loading neural network model...")
     load_start = time.time()
     try:
         data = torch.load("data.pth")
@@ -127,6 +127,9 @@ def load_models_if_needed():
         tags = ["greeting", "help", "thanks", "goodbye"]
     model_loaded = True
     return model, hybrid_model, all_words, tags
+
+# Eagerly load models at import time (disable lazy loading)
+model, hybrid_model, all_words, tags = load_models_if_needed()
 
 # Store conversation contexts for each user per office
 # Structure: user_contexts[user_id] = {
