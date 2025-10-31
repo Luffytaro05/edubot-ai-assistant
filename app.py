@@ -5,7 +5,8 @@ from flask_cors import CORS
 from chat import (get_response, reset_user_context, clear_chat_history, 
                   get_active_announcements, add_announcement, get_announcement_by_id,
                   vector_store, get_chatbot_response,
-                  user_contexts, office_tags, detect_office_from_message as chat_detect_office)
+                  user_contexts, office_tags, detect_office_from_message as chat_detect_office,
+                  get_openai_fallback)
 import requests
 from pymongo import MongoClient
 from werkzeug.security import generate_password_hash, check_password_hash
