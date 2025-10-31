@@ -329,13 +329,16 @@ def save_message(user_id, sender, message, detected_office=None):
     
     while retry_count < max_retries:
         try:
-            # Create document with office field and date instead of timestamp
+            # Use UTC datetime for accurate timestamp
+            timestamp = datetime.now(UTC)
+            # Create document with office field and proper UTC timestamp
             document = {
                 "user": user_id,
                 "sender": sender,
                 "message": message,
                 "office": office,
-                "date": date.today().isoformat()  # Convert date to ISO string format
+                "timestamp": timestamp,  # UTC datetime object
+                "date": timestamp.isoformat()  # ISO string for backward compatibility
             }
             
             conversations.insert_one(document)

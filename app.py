@@ -10,7 +10,7 @@ from chat import (get_response, reset_user_context, clear_chat_history,
 import requests
 from pymongo import MongoClient
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta, date, UTC, timezone
 from conversations import conversations_bp
 from dashboard import init_app
 from users import users_bp, authenticate_user
@@ -1636,8 +1636,8 @@ def save_message(user, sender, message, detected_office=None, status=None):
     if not office:
         office = "General"
 
-        # Use proper datetime object for timestamp
-    timestamp = datetime.today()
+    # Use UTC datetime for accurate timestamp
+    timestamp = datetime.now(UTC)
     
     document = {
         "user": user,
