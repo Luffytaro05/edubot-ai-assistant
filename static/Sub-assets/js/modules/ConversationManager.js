@@ -234,26 +234,48 @@ class ConversationManager {
             if (!response.ok) throw new Error("Failed to fetch conversation details");
             const conv = await response.json();
 
-            // Fill modal fields with enhanced date formatting
+            // Fill modal fields with actual stored data
             document.getElementById("viewConversationUser").textContent = conv.user || "Anonymous";
-            document.getElementById("viewConversationStartTime").textContent = conv.start_time ? this.formatDateTime(conv.start_time) : "N/A";
-            document.getElementById("viewConversationMessages").textContent = conv.messages ? conv.messages.length : "0";
+            
+            // Use available date field
+            const dateField = conv.date || conv.timestamp || conv.start_time;
+            document.getElementById("viewConversationStartTime").textContent = dateField ? this.formatDateTime(dateField) : "N/A";
+            
+            // Show 1 message for individual conversation items
+            document.getElementById("viewConversationMessages").textContent = conv.messages && Array.isArray(conv.messages) ? conv.messages.length : "1";
             document.getElementById("viewConversationDuration").textContent = conv.duration || "N/A";
-            document.getElementById("viewConversationCategory").textContent = conv.category || "General";
+            
+            // Use office as category since it's more accurate
+            document.getElementById("viewConversationCategory").textContent = conv.office || conv.category || "General";
             document.getElementById("viewConversationSentiment").textContent = conv.sentiment || "Neutral";
 
             const msgList = document.getElementById("viewConversationMessageList");
             if (msgList) {
                 msgList.innerHTML = "";
-                (conv.messages || []).forEach(m => {
+                
+                // If conv.messages exists and is an array, use it
+                if (conv.messages && Array.isArray(conv.messages) && conv.messages.length > 0) {
+                    conv.messages.forEach(m => {
+                        const li = document.createElement("li");
+                        li.className = `list-group-item ${m.sender === "bot" ? "list-group-item-light" : ""}`;
+                        const messageText = m.text || m.message || "";
+                        li.innerHTML = `<strong>${m.sender === "bot" ? "Bot Response" : "User"}:</strong> ${messageText}`;
+                        msgList.appendChild(li);
+                    });
+                } else {
+                    // Otherwise show the single message from the conversation
                     const li = document.createElement("li");
-                    li.className = `list-group-item ${m.sender === "bot" ? "list-group-item-light" : ""}`;
-                    li.innerHTML = `<strong>${m.sender === "bot" ? "Bot Response" : "User"}:</strong> ${m.text}`;
+                    li.className = `list-group-item ${conv.sender === "bot" ? "list-group-item-light" : ""}`;
+                    const messageText = conv.message || "";
+                    const senderLabel = conv.sender === "bot" ? "Bot Response" : conv.sender === "user" ? "User" : "Unknown";
+                    li.innerHTML = `<strong>${senderLabel}:</strong> ${messageText}`;
                     msgList.appendChild(li);
-                });
+                }
             }
 
-            document.getElementById("viewConversationEscalatedContainer").style.display = conv.escalated ? "block" : "none";
+            // Show escalated badge based on status or escalated field
+            const isEscalated = conv.status === "escalated" || conv.escalated === true;
+            document.getElementById("viewConversationEscalatedContainer").style.display = isEscalated ? "block" : "none";
 
             const modal = new bootstrap.Modal(document.getElementById("viewConversationModal"));
             modal.show();

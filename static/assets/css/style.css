@@ -207,6 +207,9 @@ body {
     border-radius: 10px;
     min-width: 18px;
     text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .user-info {

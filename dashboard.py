@@ -161,7 +161,7 @@ def get_usage(period):
                 {"$sort": {"_id": 1}}
             ]
             results = list(conversations.aggregate(pipeline))
-            labels = [(now - timedelta(days=i)).strftime("%a") for i in range(6, -1, -1)]
+            labels = [(now - timedelta(days=i)).strftime("%b %d") for i in range(6, -1, -1)]
             counts = {r["_id"]: r["count"] for r in results}
             data = [counts.get((now - timedelta(days=i)).strftime("%Y-%m-%d"), 0) for i in range(6, -1, -1)]
 

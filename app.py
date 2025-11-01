@@ -1843,12 +1843,12 @@ def predict():
             
             # Save the exchange
             save_message(user=user, sender="user", message=original_message, detected_office=current_office_tag)
-            save_message(user=user, sender="bot", message=warning_message, detected_office=current_office_tag)
+            save_message(user=user, sender="bot", message=warning_message, detected_office=current_office_tag, status="escalated")
             
             return jsonify({
                 "answer": warning_message,
                 "office": current_office_name,
-                "status": "context_switch_warning",
+                "status": "escalated",
                 "detected_language": detected_language,
                 "current_office": current_office_name,
                 "current_office_tag": current_office_tag,

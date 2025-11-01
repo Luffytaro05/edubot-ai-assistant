@@ -246,27 +246,16 @@
                                                 <div class="card-body">
                                                     <div class="row">
                                                         <div class="col-md-6">
-                                                            <div class="form-group">
-                                                                <label>Response Timeout (seconds)</label>
-                                                                <div class="d-flex align-items-center">
-                                                                <input type="range" id="response-timeout" class="form-range me-2" min="10" max="60" value="15" oninput="updateTimeoutValue(this)">
-                                                                    <span class="text-muted" id="timeout-value">Current: 15s</span>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="row mt-3">
-                                                        <div class="col-md-6">
-                                                        <div class="form-check">
-                                                            <input class="form-check-input" id="show-typing-indicator" type="checkbox" checked>
-                                                            <label class="form-check-label" for="show-typing-indicator">Show Typing Indicator</label>
+                                                            <div class="form-check">
+                                                                <input class="form-check-input" id="show-typing-indicator" type="checkbox" checked>
+                                                                <label class="form-check-label" for="show-typing-indicator">Show Typing Indicator</label>
                                                                 <small class="form-text text-muted d-block">Display 'Bot is typing...' animation.</small>
                                                             </div>
                                                         </div>
                                                         <div class="col-md-6">
-                                                        <div class="form-check">
-                                                            <input class="form-check-input" id="show-suggested-questions" type="checkbox" checked>
-                                                            <label class="form-check-label" for="show-suggested-questions">Show Suggested Questions</label>
+                                                            <div class="form-check">
+                                                                <input class="form-check-input" id="show-suggested-questions" type="checkbox" checked>
+                                                                <label class="form-check-label" for="show-suggested-questions">Show Suggested Questions</label>
                                                                 <small class="form-text text-muted d-block">Display follow-up question suggestions.</small>
                                                             </div>
                                                         </div>
@@ -286,16 +275,6 @@
                                                 </div>
                                                 <div class="card-body">
                                                     <div class="row">
-                                                        <div class="col-md-6">
-                                                            <div class="form-group">
-                                                                <label>Confidence Threshold</label>
-                                                                <div class="d-flex align-items-center">
-                                                                    <input type="range" id="confidence-threshold" class="form-range me-2" min="0" max="100" value="70" oninput="updateConfidenceValue(this)">
-                                                                    <span class="text-muted" id="confidence-value">70%</span>
-                                                                </div>
-                                                                <small class="form-text text-muted">Minimum confidence level before using default response.</small>
-                                                            </div>
-                                                        </div>
                                                         <div class="col-md-6">
                                                             <div class="form-group">
                                                                 <label>AI Model</label>
@@ -360,14 +339,6 @@
                                                             <div class="summary-item">
                                                                 <span class="summary-label">Bot Name:</span>
                                                                 <span class="summary-value" id="summary-bot-name">EduChat Assistant</span>
-                                                            </div>
-                                                            <div class="summary-item">
-                                                                <span class="summary-label">Response Timeout:</span>
-                                                                <span class="summary-value" id="summary-timeout">30 seconds</span>
-                                                            </div>
-                                                            <div class="summary-item">
-                                                                <span class="summary-label">Confidence Threshold:</span>
-                                                                <span class="summary-value" id="summary-confidence">70%</span>
                                                             </div>
                                                             <div class="summary-item">
                                                                 <span class="summary-label">Language Model:</span>
@@ -545,8 +516,6 @@
                     botName: document.getElementById('bot-name').value,
                     botAvatar: document.getElementById('bot-avatar-url').value,
                     welcomeMessage: document.getElementById('welcome-message').value,
-                    responseTimeout: document.getElementById('response-timeout').value,
-                    confidenceThreshold: document.getElementById('confidence-threshold').value,
                     languageModel: document.getElementById('language-model').value,
                     primaryColor: document.getElementById('primary-color').value,
                     showTypingIndicator: document.getElementById('show-typing-indicator').checked,
@@ -568,14 +537,8 @@
                     // Reset form values to defaults
                     document.getElementById('bot-name').value = 'EduChat Assistant';
                     document.getElementById('welcome-message').value = 'Hello! I\'m EduChat, your virtual assistant. How can I help you today?';
-                    document.getElementById('response-timeout').value = 15;
-                    document.getElementById('confidence-threshold').value = 70;
                     document.getElementById('language-model').value = 'GPT-3.5 (Default)';
                     document.getElementById('primary-color').value = '#3B82F6';
-                    
-                    // Update display values
-                    updateTimeoutValue(document.getElementById('response-timeout'));
-                    updateConfidenceValue(document.getElementById('confidence-threshold'));
                     
                     // Reset checkboxes and radio buttons
                     document.querySelectorAll('input[type="checkbox"]').forEach((cb, index) => {
@@ -591,19 +554,6 @@
             }
         }
 
-        // Update timeout value display
-        function updateTimeoutValue(slider) {
-            document.getElementById('timeout-value').textContent = `Current: ${slider.value}s`;
-            // Update summary
-            document.getElementById('summary-timeout').textContent = `${slider.value} seconds`;
-        }
-
-        // Update confidence value display
-        function updateConfidenceValue(slider) {
-            document.getElementById('confidence-value').textContent = `${slider.value}%`;
-            // Update summary
-            document.getElementById('summary-confidence').textContent = `${slider.value}%`;
-        }
 
         // Update primary color
         function updatePrimaryColor(colorPicker) {
@@ -1007,10 +957,6 @@ async function logoutWithModal() {
 
         // Initialize page
         document.addEventListener('DOMContentLoaded', function() {
-            // Set initial values for sliders
-            updateTimeoutValue(document.getElementById('response-timeout'));
-            updateConfidenceValue(document.getElementById('confidence-threshold'));
-            
             // Add event listeners for summary updates
             document.getElementById('bot-name').addEventListener('input', function() {
                 document.getElementById('summary-bot-name').textContent = this.value;
