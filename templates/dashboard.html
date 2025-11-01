@@ -1263,7 +1263,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 const data = await response.json();
                 
                 if (response.ok) {
-                    showToast('Password changed successfully!', 'success');
+                    let message = 'Password changed successfully!';
+                    if (data.email_sent) {
+                        message += ' A confirmation email has been sent. If you don\'t receive it, please check your spam folder.';
+                    }
+                    showToast(message, 'success');
                     closeChangePasswordModal();
                 } else {
                     showToast(data.message || 'Failed to change password', 'error');

@@ -49,6 +49,13 @@ import traceback
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+# Resend email service integration
+try:
+    import resend
+    RESEND_AVAILABLE = True
+except ImportError:
+    print("[WARNING] Resend module not available. Email features will be disabled.")
+    RESEND_AVAILABLE = False
 # Google Translate API integration (using deep-translator for stability)
 from deep_translator import GoogleTranslator
 from deep_translator.exceptions import LanguageNotSupportedException
@@ -171,47 +178,59 @@ init_app(app)
 TOKEN_EXPIRATION_HOURS = 24
 
 # ===========================
-# EMAIL CONFIGURATION
+# EMAIL CONFIGURATION - RESEND
 # ===========================
 # Use environment variables for production, fallback to config for development
 EMAIL_CONFIG = {
-    'SMTP_SERVER': os.getenv('SMTP_SERVER', 'smtp.gmail.com'),
-    'SMTP_PORT': int(os.getenv('SMTP_PORT', 587)),
-    'SENDER_EMAIL': os.getenv('SENDER_EMAIL', 'dxtrzpc26@gmail.com'),
-    'SENDER_PASSWORD': os.getenv('SENDER_PASSWORD', 'nyvxkulmdzxhybhk'),  # Set via environment variable or below
+    'RESEND_API_KEY': os.getenv('RESEND_API_KEY', 're_8KwS33NS_Bx2zWqU4gXHNMyUMpc9LUHVG'),
+    'SENDER_EMAIL': os.getenv('SENDER_EMAIL', 'noreply@tanauancitycollege.com'),  # Use Resend's test domain
     'SENDER_NAME': os.getenv('SENDER_NAME', 'EduChat Admin System'),
-    'ENABLE_EMAIL': os.getenv('ENABLE_EMAIL', 'False').lower() == 'true'  # Toggle email on/off
+    'ENABLE_EMAIL': os.getenv('ENABLE_EMAIL', 'True').lower() == 'true',  # Toggle email on/off
+    'USE_RESEND': True  # Use Resend instead of SMTP
 }
 
+
 # ===========================
-# 🔧 GMAIL APP PASSWORD SETUP INSTRUCTIONS
+# 🔧 RESEND API SETUP INSTRUCTIONS
 # ===========================
-# STEP 1: Go to https://myaccount.google.com/security
-# STEP 2: Enable 2-Factor Authentication (2FA)
-# STEP 3: Go to https://myaccount.google.com/apppasswords
-# STEP 4: Select "Mail" and "Other (Custom name)"
-# STEP 5: Name it "EduChat Admin" and click Generate
-# STEP 6: Copy the 16-character password (e.g., "abcd efgh ijkl mnop")
-# STEP 7: Paste it in the line below (remove spaces: "abcdefghijklmnop")
+# STEP 1: Go to https://resend.com/signup
+# STEP 2: Create an account and verify your email
+# STEP 3: Go to https://resend.com/api-keys
+# STEP 4: Create a new API key
+# STEP 5: Copy the API key
+# STEP 6: Set RESEND_API_KEY environment variable
+# STEP 7: Set SENDER_EMAIL to a verified email in Resend
 # ===========================
+
+# Initialize Resend with API key
+if RESEND_AVAILABLE and EMAIL_CONFIG['RESEND_API_KEY']:
+    resend.api_key = EMAIL_CONFIG['RESEND_API_KEY']
 
 # Email should only be enabled if credentials are provided via environment variables
-if EMAIL_CONFIG['SENDER_PASSWORD'] and EMAIL_CONFIG['ENABLE_EMAIL']:
-    print(f"✅ Email notifications ENABLED - Emails will be sent from {EMAIL_CONFIG['SENDER_EMAIL']}")
+if EMAIL_CONFIG['RESEND_API_KEY'] and EMAIL_CONFIG['ENABLE_EMAIL'] and RESEND_AVAILABLE:
+    print(f"✅ Email notifications ENABLED via Resend - Emails will be sent from {EMAIL_CONFIG['SENDER_EMAIL']}")
 else:
     EMAIL_CONFIG['ENABLE_EMAIL'] = False
-    print("⚠️ Email notifications DISABLED - Configure SMTP credentials in environment variables to enable")
+    if not RESEND_AVAILABLE:
+        print("⚠️ Email notifications DISABLED - Resend module not installed")
+    elif not EMAIL_CONFIG['RESEND_API_KEY']:
+        print("⚠️ Email notifications DISABLED - Configure RESEND_API_KEY in environment variables to enable")
 
 def send_password_change_email(user_email, user_name):
-    """Send email notification when password is changed"""
+    """Send email notification when password is changed using Resend API"""
     # Check if email is enabled
     if not EMAIL_CONFIG.get('ENABLE_EMAIL', False):
         print("Email notifications are disabled. Set ENABLE_EMAIL=True to enable.")
         return False
     
+    # Check if Resend is available
+    if not RESEND_AVAILABLE:
+        print("⚠️ WARNING: Resend module not available! Please install the resend package.")
+        return False
+    
     # Validate email configuration
-    if not EMAIL_CONFIG.get('SENDER_PASSWORD') or EMAIL_CONFIG['SENDER_PASSWORD'] == 'your-app-password-here':
-        print("⚠️ WARNING: Email password not configured! Please set SENDER_PASSWORD in EMAIL_CONFIG.")
+    if not EMAIL_CONFIG.get('RESEND_API_KEY'):
+        print("⚠️ WARNING: RESEND_API_KEY not configured! Please set RESEND_API_KEY in environment variables.")
         return False
     
     if not user_email or not validate_email(user_email):
@@ -219,190 +238,81 @@ def send_password_change_email(user_email, user_name):
         return False
     
     try:
-        print(f"📧 Attempting to send password change notification to {user_email}...")
+        print(f"📧 Attempting to send password change notification to {user_email} via Resend...")
         
-        # Create message
-        msg = MIMEMultipart('alternative')
-        msg['Subject'] = 'Password Changed Successfully - EduChat Admin'
-        msg['From'] = f"{EMAIL_CONFIG['SENDER_NAME']} <{EMAIL_CONFIG['SENDER_EMAIL']}>"
-        msg['To'] = user_email
-
-        # Create HTML email content
+        # Create HTML email content - simplified to avoid spam filters
         html_content = f"""
         <!DOCTYPE html>
         <html>
         <head>
-            <style>
-                body {{
-                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                    line-height: 1.6;
-                    color: #333;
-                    max-width: 600px;
-                    margin: 0 auto;
-                    padding: 20px;
-                }}
-                .email-container {{
-                    background-color: #f8f9fa;
-                    border-radius: 10px;
-                    padding: 30px;
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                }}
-                .header {{
-                    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-                    color: white;
-                    padding: 20px;
-                    border-radius: 8px;
-                    text-align: center;
-                    margin-bottom: 30px;
-                }}
-                .header h1 {{
-                    margin: 0;
-                    font-size: 24px;
-                }}
-                .content {{
-                    background: white;
-                    padding: 25px;
-                    border-radius: 8px;
-                    margin-bottom: 20px;
-                }}
-                .icon {{
-                    font-size: 48px;
-                    text-align: center;
-                    margin-bottom: 20px;
-                }}
-                .alert-box {{
-                    background-color: #fff3cd;
-                    border-left: 4px solid #ffc107;
-                    padding: 15px;
-                    margin: 20px 0;
-                    border-radius: 4px;
-                }}
-                .info-box {{
-                    background-color: #d1ecf1;
-                    border-left: 4px solid #0dcaf0;
-                    padding: 15px;
-                    margin: 20px 0;
-                    border-radius: 4px;
-                }}
-                .footer {{
-                    text-align: center;
-                    color: #6c757d;
-                    font-size: 12px;
-                    margin-top: 30px;
-                    padding-top: 20px;
-                    border-top: 1px solid #dee2e6;
-                }}
-                .button {{
-                    display: inline-block;
-                    padding: 12px 30px;
-                    background-color: #3b82f6;
-                    color: white;
-                    text-decoration: none;
-                    border-radius: 6px;
-                    margin: 20px 0;
-                }}
-            </style>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
         </head>
-        <body>
-            <div class="email-container">
-                <div class="header">
-                    <h1>🔐 Password Changed Successfully</h1>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="background-color: #f8f9fa; border-radius: 10px; padding: 30px;">
+                <h2 style="color: #2563eb; margin-bottom: 20px;">Account Update Confirmation</h2>
+                
+                <p>Hello {user_name},</p>
+                
+                <p>Your EduChat Admin account credentials were updated recently.</p>
+                
+                <div style="background-color: #e3f2fd; border-left: 4px solid #2196f3; padding: 15px; margin: 20px 0;">
+                    <p style="margin: 0;"><strong>Details:</strong></p>
+                    <p style="margin: 5px 0;">Account: {user_email}<br>
+                    Time: {datetime.now(UTC).strftime('%B %d, %Y at %I:%M %p UTC')}</p>
                 </div>
                 
-                <div class="content">
-                    <div class="icon">✅</div>
-                    
-                    <p>Hello <strong>{user_name}</strong>,</p>
-                    
-                    <p>This is to confirm that your password for your EduChat Admin account has been successfully changed.</p>
-                    
-                    <div class="info-box">
-                        <strong>Account Details:</strong><br>
-                        Email: {user_email}<br>
-                        Date: {datetime.utcnow().strftime('%B %d, %Y at %I:%M %p UTC')}
-                    </div>
-                    
-                    <div class="alert-box">
-                        <strong>⚠️ Security Notice:</strong><br>
-                        If you did not make this change, please contact your system administrator immediately and secure your account.
-                    </div>
-                    
-                    <p>For security reasons, we recommend:</p>
-                    <ul>
-                        <li>Using a strong, unique password</li>
-                        <li>Not sharing your password with anyone</li>
-                        <li>Changing your password regularly</li>
-                        <li>Logging out from shared devices</li>
-                    </ul>
-                    
-                    <p>If you have any questions or concerns, please don't hesitate to contact the system administrator.</p>
-                    
-                    <p>Best regards,<br>
-                    <strong>EduChat Admin Team</strong></p>
+                <div style="background-color: #fff9c4; border-left: 4px solid #fbc02d; padding: 15px; margin: 20px 0;">
+                    <p style="margin: 0;"><strong>Important:</strong> If this was not you, please contact us immediately.</p>
                 </div>
                 
-                <div class="footer">
-                    <p>This is an automated message. Please do not reply to this email.</p>
-                    <p>© 2024 EduChat Admin System. All rights reserved.</p>
-                </div>
+                <p>Thank you,<br>
+                <strong>EduChat Team</strong></p>
+                
+                <hr style="border: none; border-top: 1px solid #dee2e6; margin: 30px 0;">
+                <p style="color: #6c757d; font-size: 12px; text-align: center;">
+                    Automated notification from EduChat Admin System
+                </p>
             </div>
         </body>
         </html>
         """
 
-        # Create plain text version as fallback
+        # Create plain text version for better deliverability
         text_content = f"""
-        Password Changed Successfully
-        
-        Hello {user_name},
-        
-        This is to confirm that your password for your EduChat Admin account has been successfully changed.
-        
-        Account Details:
-        Email: {user_email}
-        Date: {datetime.utcnow().strftime('%B %d, %Y at %I:%M %p UTC')}
-        
-        SECURITY NOTICE:
-        If you did not make this change, please contact your system administrator immediately.
-        
-        Best regards,
-        EduChat Admin Team
+Account Update Confirmation
+
+Hello {user_name},
+
+Your EduChat Admin account credentials were updated recently.
+
+Details:
+Account: {user_email}
+Time: {datetime.now(UTC).strftime('%B %d, %Y at %I:%M %p UTC')}
+
+Important: If this was not you, please contact us immediately.
+
+Thank you,
+EduChat Team
         """
 
-        # Attach both versions
-        part1 = MIMEText(text_content, 'plain')
-        part2 = MIMEText(html_content, 'html')
-        msg.attach(part1)
-        msg.attach(part2)
-
-        # Send email with detailed error handling
+        # Send email using Resend API
         try:
-            print(f"Connecting to {EMAIL_CONFIG['SMTP_SERVER']}:{EMAIL_CONFIG['SMTP_PORT']}...")
-            server = smtplib.SMTP(EMAIL_CONFIG['SMTP_SERVER'], EMAIL_CONFIG['SMTP_PORT'], timeout=10)
-            print("✓ Connected to SMTP server")
+            params = {
+                "from": f"{EMAIL_CONFIG['SENDER_NAME']} <{EMAIL_CONFIG['SENDER_EMAIL']}>",
+                "to": [user_email],
+                "subject": "Account Update Confirmation",  # Less spammy subject
+                "html": html_content,
+                "text": text_content.strip(),
+            }
             
-            server.starttls()
-            print("✓ TLS enabled")
-            
-            server.login(EMAIL_CONFIG['SENDER_EMAIL'], EMAIL_CONFIG['SENDER_PASSWORD'])
-            print("✓ Authenticated with email server")
-            
-            server.send_message(msg)
-            print(f"✓ Email sent successfully to {user_email}")
-            
-            server.quit()
+            email = resend.Emails.send(params)
+            print(f"✓ Email sent successfully to {user_email} via Resend")
+            print(f"✓ Resend email ID: {email.get('id', 'unknown')}")
             return True
             
-        except smtplib.SMTPAuthenticationError as e:
-            print(f"❌ SMTP Authentication Error: {e}")
-            print("⚠️ Check your email and App Password in EMAIL_CONFIG")
-            print("⚠️ Make sure 2FA is enabled and you're using an App Password, not your regular Gmail password")
-            return False
-        except smtplib.SMTPException as e:
-            print(f"❌ SMTP Error: {e}")
-            return False
         except Exception as e:
-            print(f"❌ Unexpected error sending email: {e}")
+            print(f"❌ Resend API Error: {e}")
             import traceback
             traceback.print_exc()
             return False
@@ -935,8 +845,7 @@ def test_email_notification(current_user):
         print(f"\n{'='*60}")
         print(f"TESTING EMAIL CONFIGURATION")
         print(f"{'='*60}")
-        print(f"SMTP Server: {EMAIL_CONFIG['SMTP_SERVER']}")
-        print(f"SMTP Port: {EMAIL_CONFIG['SMTP_PORT']}")
+        print(f"Email Service: Resend API")
         print(f"Sender Email: {EMAIL_CONFIG['SENDER_EMAIL']}")
         print(f"Email Enabled: {EMAIL_CONFIG.get('ENABLE_EMAIL', False)}")
         print(f"Recipient: {user_email}")
@@ -1123,6 +1032,17 @@ def reset_user_password(current_user):
 
         # Remove all sessions for this user to force re-login
         sessions_collection.delete_many({"user_id": ObjectId(user_id)})
+
+        # Send email notification
+        try:
+            user_email = user.get('email', '')
+            user_name = user.get('name', 'User')
+            email_sent = send_password_change_email(user_email, user_name)
+            if email_sent:
+                print(f"✅ Email notification sent to {user_email}")
+        except Exception as email_error:
+            print(f"⚠️ Failed to send email notification: {email_error}")
+            # Don't fail the password reset if email fails
 
         return jsonify({
             'success': True,
@@ -4311,9 +4231,6 @@ if __name__ == "__main__":
     
     # Print startup information
     startup_info()
-    print("=== TCC Assistant with Vector Search ===")
-    print(f"Vector Store Status: {vector_store.get_stats()}")
-    print(f"Pinecone Available: {vector_store.index is not None}")
     
     if not vector_store.index:
         print("\n⚠️  WARNING: Pinecone not available!")
@@ -4329,41 +4246,20 @@ if __name__ == "__main__":
     if EMAIL_CONFIG.get('ENABLE_EMAIL', False):
         print(f"✅ Status: ENABLED")
         print(f"📤 Sender: {EMAIL_CONFIG['SENDER_EMAIL']}")
-        print(f"🌐 SMTP Server: {EMAIL_CONFIG['SMTP_SERVER']}:{EMAIL_CONFIG['SMTP_PORT']}")
-        print(f"📧 Password configured: {'Yes' if EMAIL_CONFIG.get('SENDER_PASSWORD') else 'No'}")
+        print(f"🔗 Service: Resend API")
+        print(f"🔑 API Key configured: {'Yes' if EMAIL_CONFIG.get('RESEND_API_KEY') else 'No'}")
         print("\n✅ Password change emails will be sent automatically!")
     else:
         print(f"⚠️  Status: DISABLED")
         print(f"\n📝 To enable email notifications:")
-        print(f"   1. Go to: https://myaccount.google.com/apppasswords")
-        print(f"   2. Generate an App Password for 'Mail'")
-        print(f"   3. Open app.py and find line 101")
-        print(f"   4. Replace 'PASTE_YOUR_16_CHAR_APP_PASSWORD_HERE' with your password")
-        print(f"   5. Save and restart the app")
-        print(f"\n📖 Full guide: See EMAIL_SETUP_QUICK_START.md")
+        print(f"   1. Go to: https://resend.com/signup")
+        print(f"   2. Create an account and get your API key")
+        print(f"   3. Set RESEND_API_KEY environment variable")
+        print(f"   4. Set SENDER_EMAIL to a verified email in Resend")
+        print(f"   5. Set ENABLE_EMAIL=True environment variable")
+        print(f"   6. Restart the app")
     print("="*60)
     
     print("\n=========================================\n")
-    print("Available routes:")
-    print("- / : Main chatbot interface (base.html)")
-    print("- /index : Index page (index.html)")
-    print("- /admin : Admin panel (dashboard.html)")
-    print("- /admin/index : Admin index (index.html)")
-    print("- /admin/dashboard : Admin dashboard (dashboard.html)")
-    print("- /dashboard : Direct dashboard access (dashboard.html)")
-    print("- /admin/users : Admin users management (users.html)")
-    print("- /users : Direct users management access (users.html)")
-    print("- /admin/usage : Admin usage statistics (usage.html)")
-    print("- /usage : Direct usage statistics access (usage.html)")
-    print("\nAuthentication API routes:")
-    print("- POST /api/auth/login : User login")
-    print("- POST /api/auth/logout : User logout")
-    print("- POST /api/auth/register : User registration (admin only)")
-    print("- POST /api/auth/verify : Token verification")
-    print("- POST /api/auth/change-password : Change password")
-    print("- GET /api/auth/users : Get all users (admin only)")
-    print("- DELETE /api/auth/users/<id> : Delete user (admin only)")
-    print("- POST /api/auth/reset-password : Reset user password (admin only)")
-    print("=========================================\n")
     
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", 5000)), debug=True)
