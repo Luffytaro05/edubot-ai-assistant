@@ -61,18 +61,18 @@ def get_kpis():
             try:
                 # Expect YYYY-MM-DD; treat as UTC day start
                 start_dt = datetime.strptime(start_param, "%Y-%m-%d")
-                date_filter.setdefault("$gte", start_dt.isoformat())
+                date_filter.setdefault("$gte", start_dt)
             except Exception:
                 pass
         if end_param:
             try:
                 # Inclusive end: next day start (UTC)
                 end_dt = datetime.strptime(end_param, "%Y-%m-%d")
-                date_filter.setdefault("$lt", (end_dt + timedelta(days=1)).isoformat())
+                date_filter.setdefault("$lt", end_dt + timedelta(days=1))
             except Exception:
                 pass
 
-        match_stage = {"date": date_filter} if date_filter else {}
+        match_stage = {"timestamp": date_filter} if date_filter else {}
 
         # Unique users
         unique_users = len(conversations.distinct("user", filter=match_stage if match_stage else None))
@@ -123,13 +123,13 @@ def get_usage(period):
         if start_param:
             try:
                 start_dt = datetime.strptime(start_param, "%Y-%m-%d")
-                date_filter.setdefault("$gte", start_dt.isoformat())
+                date_filter.setdefault("$gte", start_dt)
             except Exception:
                 pass
         if end_param:
             try:
                 end_dt = datetime.strptime(end_param, "%Y-%m-%d")
-                date_filter.setdefault("$lt", (end_dt + timedelta(days=1)).isoformat())
+                date_filter.setdefault("$lt", end_dt + timedelta(days=1))
             except Exception:
                 pass
 
@@ -137,9 +137,9 @@ def get_usage(period):
             # Past 24 hours
             start_time = now - timedelta(hours=23)
             pipeline = [
-                {"$match": {"date": {**({"$gte": start_time.isoformat()} if not date_filter.get("$gte") else {}), **date_filter}}},
+                {"$match": {"timestamp": {**({"$gte": start_time} if not date_filter.get("$gte") else {}), **date_filter}}},
                 {"$group": {
-                    "_id": {"$substr": ["$date", 0, 13]},  # "YYYY-MM-DDTHH"
+                    "_id": {"$dateToString": {"format": "%Y-%m-%dT%H", "date": "$timestamp"}},
                     "count": {"$sum": 1}
                 }},
                 {"$sort": {"_id": 1}}
@@ -153,9 +153,9 @@ def get_usage(period):
             # Past 7 days
             start_time = now - timedelta(days=6)
             pipeline = [
-                {"$match": {"date": {**({"$gte": start_time.isoformat()} if not date_filter.get("$gte") else {}), **date_filter}}},
+                {"$match": {"timestamp": {**({"$gte": start_time} if not date_filter.get("$gte") else {}), **date_filter}}},
                 {"$group": {
-                    "_id": {"$substr": ["$date", 0, 10]},  # "YYYY-MM-DD"
+                    "_id": {"$dateToString": {"format": "%Y-%m-%d", "date": "$timestamp"}},
                     "count": {"$sum": 1}
                 }},
                 {"$sort": {"_id": 1}}
@@ -184,14 +184,14 @@ def get_usage(period):
                 
                 # Count conversations for this week
                 date_bounds = {
-                    "$gte": week_start.isoformat(),
-                    "$lt": week_end.isoformat()
+                    "$gte": week_start,
+                    "$lt": week_end
                 }
                 if date_filter.get("$gte") and date_filter["$gte"] > date_bounds["$gte"]:
                     date_bounds["$gte"] = date_filter["$gte"]
                 if date_filter.get("$lt") and date_filter["$lt"] < date_bounds["$lt"]:
                     date_bounds["$lt"] = date_filter["$lt"]
-                count = conversations.count_documents({"date": date_bounds})
+                count = conversations.count_documents({"timestamp": date_bounds})
                 
                 labels.append(label)
                 data.append(count)
@@ -220,13 +220,13 @@ def get_departments():
         if start_param:
             try:
                 start_dt = datetime.strptime(start_param, "%Y-%m-%d")
-                date_filter.setdefault("$gte", start_dt.isoformat())
+                date_filter.setdefault("$gte", start_dt)
             except Exception:
                 pass
         if end_param:
             try:
                 end_dt = datetime.strptime(end_param, "%Y-%m-%d")
-                date_filter.setdefault("$lt", (end_dt + timedelta(days=1)).isoformat())
+                date_filter.setdefault("$lt", end_dt + timedelta(days=1))
             except Exception:
                 pass
         # Define specific offices to display
@@ -242,7 +242,7 @@ def get_departments():
         # Get all conversations grouped by office
         pipeline = []
         if date_filter:
-            pipeline.append({"$match": {"date": date_filter}})
+            pipeline.append({"$match": {"timestamp": date_filter}})
         pipeline.append({"$group": {"_id": "$office", "count": {"$sum": 1}}})
         results = list(conversations.aggregate(pipeline))
         

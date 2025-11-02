@@ -7,7 +7,7 @@ class UsageStatsManager {
         this.baseURL = '/api/admin/usage-stats';
         this.cache = new Map();
         this.cacheTimeout = 2 * 60 * 1000; // 2 minutes for faster updates
-        this.currentPeriod = 'daily';
+        this.currentPeriod = 'daily'; // Default to daily (shows last 15 days)
         this.currentDateRange = null;
         this.trendDateFilter = null; // Single date filter for Conversation Trends
         this.officeDateFilter = null; // Single date filter for Office Performance
@@ -16,6 +16,7 @@ class UsageStatsManager {
         this.loadingPromise = null;
         this.storageKey = 'usage_stats_cache';
         this.storageTimeout = 10 * 60 * 1000; // 10 minutes for browser storage
+        this.storageVersion = '3.0'; // Version to invalidate old cache (3.0 = date filtering fix)
         
         // Office mappings for charts and performance
         this.offices = [
@@ -78,8 +79,11 @@ class UsageStatsManager {
      */
     async preloadCriticalData() {
         try {
+            // Determine KPI period: use 'all' when no date range is set, otherwise use currentPeriod
+            const kpiPeriod = (this.currentDateRange === null) ? 'all' : this.currentPeriod;
+            
             // Load overview stats first (most important)
-            const overviewStats = await this.fetchOverviewStats();
+            const overviewStats = await this.fetchOverviewStats(kpiPeriod);
             await this.updateKPICards(overviewStats);
             
             // Show initial success
@@ -139,9 +143,12 @@ class UsageStatsManager {
         try {
             this.showLoading(true);
             
+            // Determine KPI period: use 'all' when no date range is set, otherwise use currentPeriod
+            const kpiPeriod = (this.currentDateRange === null) ? 'all' : this.currentPeriod;
+            
             // Load all data in parallel for faster loading
             const [overviewStats, trendsData, officeStats, detailedStats] = await Promise.all([
-                this.fetchOverviewStats(),
+                this.fetchOverviewStats(kpiPeriod),
                 this.fetchConversationTrends(),
                 this.fetchOfficePerformance(),
                 this.fetchDetailedStats()
@@ -187,8 +194,9 @@ class UsageStatsManager {
     /**
      * Fetch overview statistics from backend
      */
-    async fetchOverviewStats() {
-        const cacheKey = `overview_${this.currentPeriod}_${this.getDateRangeKey()}`;
+    async fetchOverviewStats(periodOverride = null) {
+        const period = periodOverride || this.currentPeriod;
+        const cacheKey = `overview_${period}_${this.getDateRangeKey()}`;
         
         // Check cache first
         if (this.cache.has(cacheKey)) {
@@ -200,10 +208,11 @@ class UsageStatsManager {
 
         const params = new URLSearchParams({
             type: 'overview',
-            period: this.currentPeriod
+            period: period
         });
 
-        if (this.currentDateRange) {
+        // Only apply date range if not fetching 'all' period (which should be unfiltered)
+        if (this.currentDateRange && period !== 'all') {
             params.append('start_date', this.currentDateRange.start);
             params.append('end_date', this.currentDateRange.end);
         }
@@ -323,49 +332,16 @@ class UsageStatsManager {
             totalConversationsEl.textContent = this.formatNumber(data.totalConversations || 0);
         }
 
-        // Update unique users - fetch from dashboard KPI to ensure consistency with dashboard
+        // Update unique users - use data from overview stats which respects date filtering
         const uniqueUsersEl = document.getElementById('unique-users');
         if (uniqueUsersEl) {
-            try {
-                const dashboardKPIResponse = await fetch('/api/dashboard/kpis');
-                if (dashboardKPIResponse.ok) {
-                    const dashboardKPI = await dashboardKPIResponse.json();
-                    uniqueUsersEl.textContent = this.formatNumber(dashboardKPI.uniqueUsers || 0);
-                } else {
-                    // Fallback to local stats data if dashboard KPI is unavailable
-                    uniqueUsersEl.textContent = this.formatNumber(data.uniqueUsers || 0);
-                }
-            } catch (error) {
-                console.error('Error fetching dashboard KPI for unique users:', error);
-                // Fallback to local stats data
-                uniqueUsersEl.textContent = this.formatNumber(data.uniqueUsers || 0);
-            }
+            uniqueUsersEl.textContent = this.formatNumber(data.uniqueUsers || 0);
         }
 
-        // Update average satisfaction - fetch from feedback analytics to ensure consistency with feedback page
+        // Update average satisfaction - use data from overview stats which respects date filtering
         const avgSatisfactionEl = document.getElementById('avg-satisfaction');
         if (avgSatisfactionEl) {
-            try {
-                const feedbackResponse = await fetch('/api/admin/feedback', {
-                    headers: this.getAuthHeaders()
-                });
-                if (feedbackResponse.ok) {
-                    const feedbackData = await feedbackResponse.json();
-                    if (feedbackData.success && feedbackData.analytics) {
-                        avgSatisfactionEl.textContent = (feedbackData.analytics.average_rating || 0).toFixed(1);
-                    } else {
-                        // Fallback to stats data if feedback API is unavailable
-                        avgSatisfactionEl.textContent = (data.avgSatisfaction || 0).toFixed(1);
-                    }
-                } else {
-                    // Fallback to stats data if feedback API is unavailable
-                    avgSatisfactionEl.textContent = (data.avgSatisfaction || 0).toFixed(1);
-                }
-            } catch (error) {
-                console.error('Error fetching feedback analytics for average satisfaction:', error);
-                // Fallback to stats data
-                avgSatisfactionEl.textContent = (data.avgSatisfaction || 0).toFixed(1);
-            }
+            avgSatisfactionEl.textContent = (data.avgSatisfaction || 0).toFixed(1);
         }
 
         // Update resolution rate
@@ -536,22 +512,19 @@ class UsageStatsManager {
             });
         });
 
-        // Date range inputs
+        // Date range inputs - prefill but don't apply until user clicks Apply button
         const startDateInput = document.getElementById('start-date');
         const endDateInput = document.getElementById('end-date');
         
         if (startDateInput && endDateInput) {
-            // Set default date range (last 15 days)
+            // Set default date range (last 15 days) in UI but don't apply filter
             const today = new Date();
-            const lastTwoWeeks = new Date(today.getTime() - 15 * 24 * 60 * 60 * 1000);
+            const last15Days = new Date(today.getTime() - 15 * 24 * 60 * 60 * 1000);
             
-            startDateInput.value = lastTwoWeeks.toISOString().split('T')[0];
+            startDateInput.value = last15Days.toISOString().split('T')[0];
             endDateInput.value = today.toISOString().split('T')[0];
             
-            this.currentDateRange = {
-                start: startDateInput.value,
-                end: endDateInput.value
-            };
+            // Don't set currentDateRange here - only apply when user clicks Apply
         }
 
         // Table filter and search removed - no longer needed for overall stats
@@ -804,7 +777,8 @@ class UsageStatsManager {
                 data: data,
                 timestamp: Date.now(),
                 period: this.currentPeriod,
-                dateRange: this.currentDateRange
+                dateRange: this.currentDateRange,
+                version: this.storageVersion
             };
             localStorage.setItem(this.storageKey, JSON.stringify(storageData));
             console.log('Data saved to browser storage');
@@ -823,6 +797,13 @@ class UsageStatsManager {
 
             const storageData = JSON.parse(stored);
             const now = Date.now();
+            
+            // Check version first - invalidate old cache
+            if (storageData.version !== this.storageVersion) {
+                console.log('Cache version mismatch, clearing old data');
+                localStorage.removeItem(this.storageKey);
+                return null;
+            }
             
             // Check if data is still valid
             if (now - storageData.timestamp < this.storageTimeout) {

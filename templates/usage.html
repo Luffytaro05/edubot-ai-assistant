@@ -319,7 +319,6 @@
         let usageStatsManager;
         let notificationManager;
         let trendsChart, departmentsChart;
-        let currentPeriod = 'daily';
 
         document.addEventListener('DOMContentLoaded', async function() {
             authManager = new AuthManager();
@@ -335,7 +334,7 @@
             usageStatsManager = new UsageStatsManager();
             initializeCharts();
             await usageStatsManager.initialize();
-            setupEventListeners();
+            // setupEventListeners is already called by usageStatsManager.initialize()
             
             // Setup change password form handler
             setupChangePasswordForm();
@@ -384,74 +383,7 @@
             }
         }
 
-        async function updateKPICards(stats) {
-            // Update Total Conversations and Resolution Rate immediately for faster loading
-            document.getElementById('total-conversations').textContent = stats.totalConversations || 0;
-            document.getElementById('resolution-rate').textContent = (stats.resolutionRate || 0) + '%';
-            
-            // Fetch unique users and average satisfaction in parallel for faster loading
-            const [dashboardKPIResponse, feedbackResponse] = await Promise.allSettled([
-                fetch('/api/dashboard/kpis'),
-                (async () => {
-                    const token = authManager.getToken();
-                    if (!token) {
-                        throw new Error('No auth token available');
-                    }
-                    return fetch('/api/admin/feedback', {
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${token}`
-                        }
-                    });
-                })()
-            ]);
-            
-            // Update unique users
-            try {
-                if (dashboardKPIResponse.status === 'fulfilled' && dashboardKPIResponse.value.ok) {
-                    const dashboardKPI = await dashboardKPIResponse.value.json();
-                    document.getElementById('unique-users').textContent = dashboardKPI.uniqueUsers || 0;
-                } else {
-                    // Fallback to stats data if dashboard KPI is unavailable
-                    document.getElementById('unique-users').textContent = stats.uniqueUsers || 0;
-                }
-            } catch (error) {
-                console.error('Error fetching dashboard KPI for unique users:', error);
-                // Fallback to stats data
-                document.getElementById('unique-users').textContent = stats.uniqueUsers || 0;
-            }
-            
-            // Update average satisfaction
-            try {
-                if (feedbackResponse.status === 'fulfilled' && feedbackResponse.value.ok) {
-                    const feedbackData = await feedbackResponse.value.json();
-                    if (feedbackData.success && feedbackData.analytics) {
-                        document.getElementById('avg-satisfaction').textContent = (feedbackData.analytics.average_rating || 0).toFixed(1);
-                    } else {
-                        // Fallback to stats data if feedback API is unavailable
-                        document.getElementById('avg-satisfaction').textContent = (stats.avgSatisfaction || 0).toFixed(1);
-                    }
-                } else {
-                    // Fallback to stats data if feedback API is unavailable
-                    document.getElementById('avg-satisfaction').textContent = (stats.avgSatisfaction || 0).toFixed(1);
-                }
-            } catch (error) {
-                console.error('Error fetching feedback analytics for average satisfaction:', error);
-                // Fallback to stats data
-                document.getElementById('avg-satisfaction').textContent = (stats.avgSatisfaction || 0).toFixed(1);
-            }
-        }
-
-        function updateCharts(stats) {
-            // Update Trends Chart
-            const trendsData = usageStatsManager.getUsageByTimeData(currentPeriod);
-            trendsChart.data.labels = trendsData.labels;
-            trendsChart.data.datasets[0].data = trendsData.data;
-            trendsChart.update();
-
-            // Update Departments Chart
-            updateDepartmentsChart();
-        }
+        // updateKPICards is handled by UsageStatsManager - removed duplicate
 
         function updateDepartmentsChart() {
             const departmentsData = usageStatsManager.getDepartmentStats();
@@ -520,32 +452,7 @@
             return `${minutes}m ${remainingSeconds}s`;
         }
 
-        function setupEventListeners() {
-            // Period selector
-            document.querySelectorAll('.period-buttons .btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    document.querySelectorAll('.period-buttons .btn').forEach(b => b.classList.remove('active'));
-                    this.classList.add('active');
-                    currentPeriod = this.dataset.period;
-                    updateCharts();
-                });
-            });
-
-            // Date range
-            const today = new Date();
-            const lastTwoWeeks = new Date(today.getTime() - 15 * 24 * 60 * 60 * 1000);
-            
-            document.getElementById('start-date').value = lastTwoWeeks.toISOString().split('T')[0];
-            document.getElementById('end-date').value = today.toISOString().split('T')[0];
-
-            // Table filter removed - no longer needed
-        }
-
-        function updateCharts() {
-            if (usageStatsManager) {
-                usageStatsManager.loadAllStats();
-            }
-        }
+        // setupEventListeners and updateCharts are handled by UsageStatsManager - removed duplicates
 
         function applyDateRange() {
             if (usageStatsManager) {

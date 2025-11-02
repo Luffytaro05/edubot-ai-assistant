@@ -50,17 +50,23 @@ class UsageStatsCalculator:
                 # Fallback to default period
                 pass
         
-        now = datetime.now()
+        now = datetime.utcnow()
         
         if period == 'daily':
-            start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-            end = start + timedelta(days=1)
+            # Past 15 days for better chart visibility
+            start = now - timedelta(days=15)
+            end = now
         elif period == 'weekly':
-            start = now - timedelta(days=7)
+            # Past 15 days for better chart visibility
+            start = now - timedelta(days=15)
             end = now
         elif period == 'monthly':
-            start = now - timedelta(days=30)
+            # Past 3 months to show multiple months in the chart
+            start = now - timedelta(days=90)
             end = now
+        elif period == 'all':
+            # Return all-time stats - no date filtering
+            return None, None
         else:
             # Default to last 7 days
             start = now - timedelta(days=7)
@@ -73,13 +79,21 @@ class UsageStatsCalculator:
         try:
             start_time, end_time = self.get_date_range(period, start_date, end_date)
             
-            # Base query for time range
-            time_query = {
-                'timestamp': {
-                    '$gte': start_time,
-                    '$lt': end_time
+            # Base query for time range - if both are None, don't filter by time
+            if start_time is None and end_time is None:
+                time_query = {}
+                satisfaction_time_match = {}
+            else:
+                time_query = {
+                    'timestamp': {
+                        '$gte': start_time,
+                        '$lt': end_time
+                    }
                 }
-            }
+                satisfaction_time_match = {
+                    'timestamp': {'$gte': start_time, '$lt': end_time},
+                    'rating': {'$exists': True, '$ne': None}
+                }
             
             # Total Conversations - count all conversation records
             total_conversations = self.conversations_collection.count_documents(time_query)
@@ -87,7 +101,7 @@ class UsageStatsCalculator:
             # Unique Users - count distinct user IDs
             unique_users = self.conversations_collection.aggregate([
                 {'$match': time_query},
-                {'$group': {'_id': '$user_id'}},
+                {'$group': {'_id': '$user'}},
                 {'$count': 'total'}
             ])
             unique_users = list(unique_users)
@@ -95,10 +109,7 @@ class UsageStatsCalculator:
             
             # Average Satisfaction from feedback
             satisfaction_pipeline = [
-                {'$match': {
-                    'timestamp': {'$gte': start_time, '$lt': end_time},
-                    'rating': {'$exists': True, '$ne': None}
-                }},
+                {'$match': satisfaction_time_match if satisfaction_time_match else {'rating': {'$exists': True, '$ne': None}}},
                 {'$group': {
                     '_id': None,
                     'avg_rating': {'$avg': '$rating'},
@@ -145,22 +156,30 @@ class UsageStatsCalculator:
                 resolution_rate = (resolved_count / total_resolution_conversations * 100) if total_resolution_conversations > 0 else 0
                 print(f"Resolution Rate Debug - Resolved: {resolved_count}, Total: {total_resolution_conversations}, Rate: {resolution_rate}%")
             
-            # Calculate trends (comparison with previous period)
-            prev_start = start_time - (end_time - start_time)
-            prev_end = start_time
+            # Calculate trends (comparison with previous period) - skip for all-time stats
+            if start_time is None and end_time is None:
+                trends = {
+                    'conversations': 0,
+                    'users': 0,
+                    'satisfaction': 0,
+                    'resolution': 0
+                }
+            else:
+                prev_start = start_time - (end_time - start_time)
+                prev_end = start_time
+                
+                prev_stats = self._get_previous_period_stats(prev_start, prev_end)
+                trends = self._calculate_trends(
+                    {
+                        'conversations': total_conversations,
+                        'users': unique_users,
+                        'satisfaction': avg_satisfaction,
+                        'resolution': resolution_rate
+                    },
+                    prev_stats
+                )
             
-            prev_stats = self._get_previous_period_stats(prev_start, prev_end)
-            trends = self._calculate_trends(
-                {
-                    'conversations': total_conversations,
-                    'users': unique_users,
-                    'satisfaction': avg_satisfaction,
-                    'resolution': resolution_rate
-                },
-                prev_stats
-            )
-            
-            return {
+            result_data = {
                 'success': True,
                 'data': {
                     'totalConversations': total_conversations,
@@ -169,13 +188,18 @@ class UsageStatsCalculator:
                     'resolutionRate': round(resolution_rate, 2),
                     'totalRatings': total_ratings,
                     'period': period,
-                    'dateRange': {
-                        'start': start_time.isoformat(),
-                        'end': end_time.isoformat()
-                    },
                     'trends': trends
                 }
             }
+            
+            # Add date range only if we have actual dates
+            if start_time is not None and end_time is not None:
+                result_data['data']['dateRange'] = {
+                    'start': start_time.isoformat(),
+                    'end': end_time.isoformat()
+                }
+            
+            return result_data
             
         except Exception as e:
             print(f"Error in get_overview_stats: {str(e)}")
@@ -206,21 +230,25 @@ class UsageStatsCalculator:
             else:
                 start_time, end_time = self.get_date_range(period, start_date, end_date)
             
+            # Handle weekly period specially to show week ranges
+            if period == 'weekly':
+                return self._get_weekly_trends(start_time, end_time)
+            
             # Determine grouping format based on period
             if period == 'daily':
-                group_format = '%Y-%m-%d %H:00'  # Group by hour
-                date_format = '%H:00'
-            elif period == 'weekly':
-                group_format = '%Y-%m-%d'  # Group by day
+                group_format = '%Y-%m-%d'  # Group by day (past 7 days)
                 date_format = '%m/%d'
             else:  # monthly
-                group_format = '%Y-%m-%d'  # Group by day
-                date_format = '%m/%d'
+                group_format = '%Y-%m'  # Group by month
+                date_format = '%B'  # Full month name (January, February, etc.)
+            
+            # Handle None date range for 'all' period
+            match_query = {}
+            if start_time is not None and end_time is not None:
+                match_query['timestamp'] = {'$gte': start_time, '$lt': end_time}
             
             pipeline = [
-                {'$match': {
-                    'timestamp': {'$gte': start_time, '$lt': end_time}
-                }},
+                {'$match': match_query},
                 {'$group': {
                     '_id': {
                         '$dateToString': {
@@ -240,15 +268,14 @@ class UsageStatsCalculator:
             values = []
             
             for result in results:
-                if period == 'daily':
-                    # Convert to readable hour format
-                    hour = result['_id'].split(' ')[1]
-                    labels.append(hour)
+                # Convert to readable date format based on period
+                if period == 'monthly':
+                    # Monthly: parse YYYY-MM format
+                    date_obj = datetime.strptime(result['_id'], '%Y-%m')
                 else:
-                    # Convert to readable date format
+                    # Daily: parse YYYY-MM-DD format
                     date_obj = datetime.strptime(result['_id'], '%Y-%m-%d')
-                    labels.append(date_obj.strftime(date_format))
-                
+                labels.append(date_obj.strftime(date_format))
                 values.append(result['count'])
             
             return {
@@ -262,6 +289,61 @@ class UsageStatsCalculator:
             
         except Exception as e:
             print(f"Error in get_conversation_trends: {str(e)}")
+            return {
+                'success': False,
+                'error': str(e),
+                'data': {'labels': [], 'values': []}
+            }
+    
+    def _get_weekly_trends(self, start_time, end_time):
+        """Helper method to get weekly trends with date ranges"""
+        try:
+            # Use provided end_time or current time as default
+            now = end_time if end_time else datetime.utcnow()
+            labels = []
+            values = []
+            
+            # Generate 4 weeks of labels backwards from end_time
+            for i in range(3, -1, -1):
+                week_start = now - timedelta(weeks=i+1)
+                week_end = now - timedelta(weeks=i)
+                
+                # Skip weeks outside the date range
+                if start_time and week_end < start_time:
+                    continue
+                if end_time and week_start >= end_time:
+                    break
+                
+                # Count conversations for this week
+                date_bounds = {
+                    "$gte": week_start,
+                    "$lt": week_end
+                }
+                if start_time and week_start < start_time:
+                    date_bounds["$gte"] = start_time
+                if end_time and week_end > end_time:
+                    date_bounds["$lt"] = end_time
+                
+                count = self.conversations_collection.count_documents({"timestamp": date_bounds})
+                
+                # Format label as "Oct 1-7"
+                start_day = week_start.strftime("%b ") + str(week_start.day)
+                end_day = str((week_end - timedelta(days=1)).day)
+                week_label = f"{start_day}-{end_day}"
+                labels.append(week_label)
+                values.append(count)
+            
+            return {
+                'success': True,
+                'data': {
+                    'labels': labels,
+                    'values': values,
+                    'period': 'weekly'
+                }
+            }
+            
+        except Exception as e:
+            print(f"Error in _get_weekly_trends: {str(e)}")
             return {
                 'success': False,
                 'error': str(e),
@@ -283,17 +365,18 @@ class UsageStatsCalculator:
             else:
                 start_time, end_time = self.get_date_range(period, start_date, end_date)
             
+            # Handle None date range for 'all' period
+            match_query = {'office': {'$exists': True, '$ne': None}}
+            if start_time is not None and end_time is not None:
+                match_query['timestamp'] = {'$gte': start_time, '$lt': end_time}
+            
             pipeline = [
-                {'$match': {
-                    'timestamp': {'$gte': start_time, '$lt': end_time},
-                    'office': {'$exists': True, '$ne': None}
-                }},
+                {'$match': match_query},
                 {'$group': {
                     '_id': '$office',
                     'conversations': {'$sum': 1},
-                    'unique_users': {'$addToSet': '$user_id'},
-                    'resolved': {'$sum': {'$cond': [{'$eq': ['$resolved', True]}, 1, 0]}},
-                    'total_duration': {'$sum': '$duration'}
+                    'unique_users': {'$addToSet': '$user'},
+                    'resolved': {'$sum': {'$cond': [{'$eq': ['$status', 'resolved']}, 1, 0]}}
                 }},
                 {'$project': {
                     'office': '$_id',
@@ -304,8 +387,7 @@ class UsageStatsCalculator:
                             {'$divide': ['$resolved', '$conversations']},
                             100
                         ]
-                    },
-                    'avg_duration': {'$divide': ['$total_duration', '$conversations']}
+                    }
                 }},
                 {'$sort': {'conversations': -1}}
             ]
@@ -332,7 +414,6 @@ class UsageStatsCalculator:
                     'conversations': result['conversations'],
                     'users': result['unique_users'],
                     'resolutionRate': round(result.get('resolution_rate', 0), 2),
-                    'avgDuration': round(result.get('avg_duration', 0), 2),
                     'satisfaction': satisfaction_by_office.get(office_key, 0)
                 }
             
@@ -360,9 +441,11 @@ class UsageStatsCalculator:
             start_time, end_time = self.get_date_range(period, start_date, end_date)
             
             # Get overall statistics instead of office-specific
-            overall_query = {
-                'timestamp': {'$gte': start_time, '$lt': end_time}
-            }
+            overall_query = {}
+            if start_time is not None and end_time is not None:
+                overall_query = {
+                    'timestamp': {'$gte': start_time, '$lt': end_time}
+                }
             
             # Basic conversation stats
             conversations = self.conversations_collection.count_documents(overall_query)
@@ -370,29 +453,16 @@ class UsageStatsCalculator:
             # Unique users
             unique_users_pipeline = [
                 {'$match': overall_query},
-                {'$group': {'_id': '$user_id'}},
+                {'$group': {'_id': '$user'}},
                 {'$count': 'total'}
             ]
             unique_users_result = list(self.conversations_collection.aggregate(unique_users_pipeline))
             unique_users = unique_users_result[0]['total'] if unique_users_result else 0
             
-            # Average duration
-            duration_pipeline = [
-                {'$match': overall_query},
-                {'$group': {
-                    '_id': None,
-                    'avg_duration': {'$avg': '$duration'},
-                    'total_conversations': {'$sum': 1}
-                }}
-            ]
-            duration_result = list(self.conversations_collection.aggregate(duration_pipeline))
-            avg_duration = duration_result[0]['avg_duration'] if duration_result else 0
-            
             # Overall satisfaction rating
-            satisfaction_query = {
-                'timestamp': {'$gte': start_time, '$lt': end_time},
-                'rating': {'$exists': True, '$ne': None}
-            }
+            satisfaction_query = {'rating': {'$exists': True, '$ne': None}}
+            if start_time is not None and end_time is not None:
+                satisfaction_query['timestamp'] = {'$gte': start_time, '$lt': end_time}
             satisfaction_pipeline = [
                 {'$match': satisfaction_query},
                 {'$group': {
@@ -426,25 +496,27 @@ class UsageStatsCalculator:
             
             resolution_rate = (resolved_count / total_for_resolution * 100) if total_for_resolution > 0 else 0
             
-            # Calculate trend (comparison with previous period)
-            prev_start = start_time - (end_time - start_time)
-            prev_end = start_time
-            
-            prev_conversations = self.conversations_collection.count_documents({
-                'timestamp': {'$gte': prev_start, '$lt': prev_end}
-            })
-            
-            trend = 0
-            if prev_conversations > 0:
-                trend = ((conversations - prev_conversations) / prev_conversations) * 100
-            elif conversations > 0:
-                trend = 100  # First period with data
+            # Calculate trend (comparison with previous period) - skip for all-time stats
+            if start_time is None and end_time is None:
+                trend = 0
+            else:
+                prev_start = start_time - (end_time - start_time)
+                prev_end = start_time
+                
+                prev_conversations = self.conversations_collection.count_documents({
+                    'timestamp': {'$gte': prev_start, '$lt': prev_end}
+                })
+                
+                trend = 0
+                if prev_conversations > 0:
+                    trend = ((conversations - prev_conversations) / prev_conversations) * 100
+                elif conversations > 0:
+                    trend = 100  # First period with data
             
             detailed_stats = {
                 'overall': {
                     'conversations': conversations,
                     'users': unique_users,
-                    'avgDuration': round(avg_duration, 2) if avg_duration else 0,
                     'satisfaction': round(satisfaction, 2) if satisfaction else 0,
                     'resolutionRate': round(resolution_rate, 2),
                     'trend': round(trend, 1)
@@ -479,7 +551,7 @@ class UsageStatsCalculator:
             
             # Write header
             writer.writerow(['EduChat Usage Statistics Export'])
-            writer.writerow(['Generated:', datetime.now().strftime('%Y-%m-%d %H:%M:%S')])
+            writer.writerow(['Generated:', datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')])
             writer.writerow(['Period:', period])
             writer.writerow([])
             
@@ -498,7 +570,7 @@ class UsageStatsCalculator:
             
             # Office performance statistics
             writer.writerow(['OFFICE PERFORMANCE STATISTICS'])
-            writer.writerow(['Office', 'Conversations', 'Users', 'Avg Duration (sec)', 'Satisfaction', 'Resolution Rate (%)'])
+            writer.writerow(['Office', 'Conversations', 'Users', 'Satisfaction', 'Resolution Rate (%)'])
             
             if office_perf['success']:
                 for office_key, stats in office_perf['data']['details'].items():
@@ -506,7 +578,6 @@ class UsageStatsCalculator:
                         stats['name'],
                         stats['conversations'],
                         stats['users'],
-                        stats['avgDuration'],
                         stats['satisfaction'],
                         stats['resolutionRate']
                     ])
@@ -515,14 +586,13 @@ class UsageStatsCalculator:
             
             # Overall detailed statistics
             writer.writerow(['OVERALL DETAILED STATISTICS'])
-            writer.writerow(['Conversations', 'Users', 'Avg Duration (sec)', 'Satisfaction', 'Resolution Rate (%)', 'Trend (%)'])
+            writer.writerow(['Conversations', 'Users', 'Satisfaction', 'Resolution Rate (%)', 'Trend (%)'])
             
             if detailed['success'] and 'overall' in detailed['data']:
                 stats = detailed['data']['overall']
                 writer.writerow([
                     stats['conversations'],
                     stats['users'],
-                    stats['avgDuration'],
                     stats['satisfaction'],
                     stats['resolutionRate'],
                     stats['trend']
@@ -532,7 +602,7 @@ class UsageStatsCalculator:
             output.close()
             
             # Generate filename
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
             filename = f'usage_statistics_{period}_{timestamp}.csv'
             
             return {
@@ -550,12 +620,15 @@ class UsageStatsCalculator:
     
     def _get_satisfaction_by_office(self, start_time, end_time):
         """Helper method to get satisfaction ratings by office"""
+        match_query = {
+            'office': {'$exists': True, '$ne': None},
+            'rating': {'$exists': True, '$ne': None}
+        }
+        if start_time is not None and end_time is not None:
+            match_query['timestamp'] = {'$gte': start_time, '$lt': end_time}
+        
         pipeline = [
-            {'$match': {
-                'timestamp': {'$gte': start_time, '$lt': end_time},
-                'office': {'$exists': True, '$ne': None},
-                'rating': {'$exists': True, '$ne': None}
-            }},
+            {'$match': match_query},
             {'$group': {
                 '_id': '$office',
                 'avg_rating': {'$avg': '$rating'}
@@ -581,21 +654,12 @@ class UsageStatsCalculator:
             }
             
             # Previous conversations
-            prev_conversations = self.conversations_collection.aggregate([
-                {'$match': time_query},
-                {'$group': {
-                    '_id': {'user_id': '$user_id', 'session_id': '$session_id'},
-                    'count': {'$sum': 1}
-                }},
-                {'$count': 'total'}
-            ])
-            prev_conversations = list(prev_conversations)
-            prev_conversations = prev_conversations[0]['total'] if prev_conversations else 0
+            prev_conversations = self.conversations_collection.count_documents(time_query)
             
             # Previous users
             prev_users = self.conversations_collection.aggregate([
                 {'$match': time_query},
-                {'$group': {'_id': '$user_id'}},
+                {'$group': {'_id': '$user'}},
                 {'$count': 'total'}
             ])
             prev_users = list(prev_users)
