@@ -1,0 +1,131 @@
+{% extends "base_template.html" %}
+
+{% block title %}Academics - Tanauan City College{% endblock %}
+
+{% block content %}
+<section class="academic-programs-section">
+    <div class="container">
+        <h2>Academic Programs</h2>
+        <p>
+            Discover our diverse range of academic programs designed to prepare you for success<br>
+            in your chosen field.
+        </p>
+    </div>
+</section>
+
+<section class="education-excellence">
+    <div class="container">
+        <h2>Excellence in Education</h2>
+        <p class="description">
+            Tanauan City College offers comprehensive academic programs across various disciplines, designed to provide
+            students with the knowledge, skills, and experiences needed for successful careers and lifelong learning.
+            Our curriculum combines theoretical foundations with practical applications, preparing graduates who are
+            ready to meet the challenges of the modern workplace.
+        </p>
+
+        <div class="features">
+            <div class="feature-box">
+                <div class="icon">
+                    <span style="font-size: 48px;">📖</span>
+                </div>
+                <h3>Quality Curriculum</h3>
+                <p>Comprehensive and up-to-date programs aligned with industry standards and requirements.</p>
+            </div>
+            <div class="feature-box">
+                <div class="icon">
+                    <span style="font-size: 48px;">👨‍🏫</span>
+                </div>
+                <h3>Expert Faculty</h3>
+                <p>Learn from experienced educators and industry professionals dedicated to student success.</p>
+            </div>
+            <div class="feature-box">
+                <div class="icon">
+                    <span style="font-size: 48px;">🤝</span>
+                </div>
+                <h3>Industry Partnerships</h3>
+                <p>Gain practical experience through internships and collaborations with leading organizations.</p>
+            </div>
+            <div class="feature-box">
+                <div class="icon">
+                    <span style="font-size: 48px;">🎯</span>
+                </div>
+                <h3>Career Support</h3>
+                <p>Comprehensive guidance and resources to help you achieve your professional goals.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="college-section">
+    <h2>Programs Offered</h2>
+    <div class="college-card">
+        <div class="college-text">
+            <h2><i class="icon">🎓</i> Bachelor of Technical Vocational Teacher Education</h2>
+            <p class="subtitle">A practice-focused program that prepares future TVET educators with strong pedagogy and hands-on technical expertise.</p>
+
+            <h3>Major in:</h3>
+            <ul class="programs">
+                <li>Computer Hardware Servicing</li>
+                <li>Automotive Technology</li>
+                <li>Electrical Technology</li>
+                <li>Electronics Technology</li>
+            </ul>
+        </div>
+        <div class="college-image">
+            <img src="{{ url_for('static', filename='images/BTVTED Logo - Circle.png') }}" alt="BTVTED" />
+        </div>
+    </div>
+
+    <div class="college-card reverse">
+        <div class="college-image">
+            <img src="{{ url_for('static', filename='images/BS ENTREP.PNG') }}" alt="Entrepreneurship" />
+        </div>
+        <div class="college-text">
+            <h2><i class="icon">🏢</i> Bachelor of Science in Entrepreneurship</h2>
+            <p class="subtitle">Build, launch, and grow ventures through innovation, finance, and strategic management.</p>
+        </div>
+    </div>
+
+    <div class="college-card">
+        <div class="college-text">
+            <h2><i class="icon">💻</i> Bachelor of Science in Computer Engineering</h2>
+            <p class="subtitle">A solid foundation in hardware, software, and embedded systems to engineer modern computing solutions.</p>
+        </div>
+        <div class="college-image">
+            <img src="{{ url_for('static', filename='images/BSCPE.png') }}" alt="Computer Engineering" />
+        </div>
+    </div>
+
+    <div class="college-card reverse">
+        <div class="college-image">
+            <img src="{{ url_for('static', filename='images/BPA.jpg') }}" alt="Public Administration" />
+        </div>
+        <div class="college-text">
+            <h2><i class="icon">🏛️</i> Bachelor of Public Administration</h2>
+            <p class="subtitle">Develop competencies for effective public service, governance, and policy implementation.</p>
+        </div>
+    </div>
+
+    <div class="college-card">
+        <div class="college-text">
+            <h2><i class="icon">📊</i> Bachelor of Science in Management Accounting</h2>
+            <p class="subtitle">Train to become a strategic business partner through cost analysis, planning, and decision support.</p>
+        </div>
+        <div class="college-image">
+            <img src="{{ url_for('static', filename='images/BSA - BSMA.png') }}" alt="Management Accounting" />
+        </div>
+    </div>
+</section>
+
+<section class="cta-section">
+    <div class="cta-content">
+        <h2>Start Your Academic Journey</h2>
+        <p>
+            Ready to explore our academic programs and take the first step toward your future career?
+            Contact our Admissions Office today.
+        </p>
+        <a href="{{ url_for('admission_page') }}" class="cta-button">Apply Now</a>
+    </div>
+</section>
+{% endblock %}
+

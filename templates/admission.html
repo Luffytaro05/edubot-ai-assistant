@@ -1,0 +1,353 @@
+{% extends "base_template.html" %}
+
+{% block title %}Admission - Tanauan City College{% endblock %}
+
+{% block content %}
+<section class="admission-hero" style="padding: 80px 20px; text-align: center; background: linear-gradient(135deg, #900C27 0%, #6f0a1e 100%); color: white;">
+    <div class="container">
+        <div style="font-size: 4rem; margin-bottom: 20px;">🎓</div>
+        <h1 style="font-size: 3rem; margin-bottom: 20px;">Admission Office</h1>
+        <p style="font-size: 1.25rem; max-width: 800px; margin: 0 auto;">
+            Welcome to the Admission Office of Tanauan City College
+        </p>
+    </div>
+</section>
+
+<!-- Welcome Section with Image -->
+<section class="admission-welcome" style="padding: 60px 20px; background: white;">
+    <div class="container" style="max-width: 1200px; margin: 0 auto;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center;">
+            <div>
+                <h2 style="color: #2c3e50; margin-bottom: 20px; font-size: 2.5rem;">Welcome to the Admission Office</h2>
+                <p style="color: #666; font-size: 1.1rem; line-height: 1.8; margin-bottom: 20px;">
+                    We are delighted that you are considering joining our academic community! The Admission Office is dedicated to guiding you through every step of the enrollment process — from application to orientation — ensuring a smooth transition into college life.
+                </p>
+            </div>
+            <div style="text-align: center;">
+                <img src="{{ url_for('static', filename='images/Background-image.png') }}" alt="TCC Campus" 
+                     style="width: 100%; max-width: 500px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Mission Section -->
+<section class="admission-mission" style="padding: 60px 20px; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
+    <div class="container" style="max-width: 1200px; margin: 0 auto;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center;">
+            <div style="text-align: center;">
+                <img src="{{ url_for('static', filename='images/TCC2014 Logo.png') }}" alt="TCC Logo" 
+                     style="width: 100%; max-width: 300px; margin-bottom: 20px;">
+            </div>
+            <div>
+                <div style="font-size: 3rem; margin-bottom: 20px;">🧭</div>
+                <h2 style="color: #2c3e50; margin-bottom: 20px; font-size: 2rem;">Our Mission</h2>
+                <p style="color: #666; font-size: 1.1rem; line-height: 1.8;">
+                    To provide accessible, efficient, and student-centered admission services that promote inclusivity, transparency, and academic excellence.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Admission Schedule Section -->
+<section class="admission-schedule" style="padding: 60px 20px; background: white;">
+    <div class="container" style="max-width: 1200px; margin: 0 auto;">
+        <div style="text-align: center; margin-bottom: 40px;">
+            <div style="font-size: 3rem; margin-bottom: 20px;">📅</div>
+            <h2 style="color: #2c3e50; font-size: 2.5rem; margin-bottom: 10px;">Admission Schedule</h2>
+            <p style="color: #666; font-size: 1.1rem;">Important dates and deadlines for the admission process</p>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 25px; margin-top: 40px;">
+            <div class="schedule-card" style="background: linear-gradient(135deg, #900C27 0%, #6f0a1e 100%); color: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                <div style="font-size: 2.5rem; margin-bottom: 15px;">📝</div>
+                <h3 style="margin-bottom: 15px; font-size: 1.3rem;">Application Period</h3>
+                <p style="font-size: 1.1rem; font-weight: 600; margin-bottom: 10px;">March 1 – June 30</p>
+                <p style="font-size: 0.95rem; opacity: 0.9;">Submit your application and required documents</p>
+            </div>
+
+            <div class="schedule-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                <div style="font-size: 2.5rem; margin-bottom: 15px;">✍️</div>
+                <h3 style="margin-bottom: 15px; font-size: 1.3rem;">Entrance Examination</h3>
+                <p style="font-size: 1.1rem; font-weight: 600; margin-bottom: 10px;">July 10 – July 20</p>
+                <p style="font-size: 0.95rem; opacity: 0.9;">Take the entrance exam at the scheduled date</p>
+            </div>
+
+            <div class="schedule-card" style="background: linear-gradient(135deg, #900C27 0%, #6f0a1e 100%); color: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                <div style="font-size: 2.5rem; margin-bottom: 15px;">💬</div>
+                <h3 style="margin-bottom: 15px; font-size: 1.3rem;">Interview and Evaluation</h3>
+                <p style="font-size: 1.1rem; font-weight: 600; margin-bottom: 10px;">July 21 – July 25</p>
+                <p style="font-size: 0.95rem; opacity: 0.9;">Attend interview and evaluation process</p>
+            </div>
+
+            <div class="schedule-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                <div style="font-size: 2.5rem; margin-bottom: 15px;">🎓</div>
+                <h3 style="margin-bottom: 15px; font-size: 1.3rem;">Enrollment Period</h3>
+                <p style="font-size: 1.1rem; font-weight: 600; margin-bottom: 10px;">August 1 – August 15</p>
+                <p style="font-size: 0.95rem; opacity: 0.9;">Complete enrollment and payment of fees</p>
+            </div>
+
+            <div class="schedule-card" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                <div style="font-size: 2.5rem; margin-bottom: 15px;">📚</div>
+                <h3 style="margin-bottom: 15px; font-size: 1.3rem;">Start of Classes</h3>
+                <p style="font-size: 1.1rem; font-weight: 600; margin-bottom: 10px;">August 20</p>
+                <p style="font-size: 0.95rem; opacity: 0.9;">Welcome to your first day of classes!</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Admission Requirements Section -->
+<section class="admission-requirements" style="padding: 60px 20px; background: #f8f9fa;">
+    <div class="container" style="max-width: 1200px; margin: 0 auto;">
+        <div style="text-align: center; margin-bottom: 50px;">
+            <div style="font-size: 3rem; margin-bottom: 20px;">📝</div>
+            <h2 style="color: #2c3e50; font-size: 2.5rem; margin-bottom: 10px;">Admission Requirements</h2>
+            <p style="color: #666; font-size: 1.1rem;">Please prepare the following documents for your application</p>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 30px;">
+            <!-- Freshmen Requirements -->
+            <div class="requirement-card" style="background: white; padding: 35px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-top: 4px solid #900C27;">
+                <div style="display: flex; align-items: center; margin-bottom: 20px;">
+                    <div style="font-size: 2.5rem; margin-right: 15px;">🎓</div>
+                    <h3 style="color: #900C27; font-size: 1.5rem; margin: 0;">For Freshmen (New Students)</h3>
+                </div>
+                <ul style="color: #666; line-height: 2; font-size: 1rem; list-style: none; padding: 0;">
+                    <li style="margin-bottom: 12px; padding-left: 25px; position: relative;">
+                        <span style="position: absolute; left: 0; color: #900C27;">✓</span>
+                        Completed Online Application Form
+                    </li>
+                    <li style="margin-bottom: 12px; padding-left: 25px; position: relative;">
+                        <span style="position: absolute; left: 0; color: #900C27;">✓</span>
+                        Original and photocopy of Form 138 / Report Card
+                    </li>
+                    <li style="margin-bottom: 12px; padding-left: 25px; position: relative;">
+                        <span style="position: absolute; left: 0; color: #900C27;">✓</span>
+                        Certificate of Good Moral Character
+                    </li>
+                    <li style="margin-bottom: 12px; padding-left: 25px; position: relative;">
+                        <span style="position: absolute; left: 0; color: #900C27;">✓</span>
+                        Birth Certificate (PSA copy)
+                    </li>
+                    <li style="margin-bottom: 12px; padding-left: 25px; position: relative;">
+                        <span style="position: absolute; left: 0; color: #900C27;">✓</span>
+                        2x2 ID Photos (2 pieces, white background)
+                    </li>
+                    <li style="margin-bottom: 12px; padding-left: 25px; position: relative;">
+                        <span style="position: absolute; left: 0; color: #900C27;">✓</span>
+                        Entrance Exam Result
+                    </li>
+                    <li style="margin-bottom: 12px; padding-left: 25px; position: relative;">
+                        <span style="position: absolute; left: 0; color: #900C27;">✓</span>
+                        Medical Certificate
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Transferees Requirements -->
+            <div class="requirement-card" style="background: white; padding: 35px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-top: 4px solid #f5576c;">
+                <div style="display: flex; align-items: center; margin-bottom: 20px;">
+                    <div style="font-size: 2.5rem; margin-right: 15px;">🔄</div>
+                    <h3 style="color: #f5576c; font-size: 1.5rem; margin: 0;">For Transferees</h3>
+                </div>
+                <ul style="color: #666; line-height: 2; font-size: 1rem; list-style: none; padding: 0;">
+                    <li style="margin-bottom: 12px; padding-left: 25px; position: relative;">
+                        <span style="position: absolute; left: 0; color: #f5576c;">✓</span>
+                        Transfer Credentials / Honorable Dismissal
+                    </li>
+                    <li style="margin-bottom: 12px; padding-left: 25px; position: relative;">
+                        <span style="position: absolute; left: 0; color: #f5576c;">✓</span>
+                        Transcript of Records (TOR) / Copy of Grades
+                    </li>
+                    <li style="margin-bottom: 12px; padding-left: 25px; position: relative;">
+                        <span style="position: absolute; left: 0; color: #f5576c;">✓</span>
+                        Good Moral Certificate
+                    </li>
+                    <li style="margin-bottom: 12px; padding-left: 25px; position: relative;">
+                        <span style="position: absolute; left: 0; color: #f5576c;">✓</span>
+                        2x2 ID Photos
+                    </li>
+                    <li style="margin-bottom: 12px; padding-left: 25px; position: relative;">
+                        <span style="position: absolute; left: 0; color: #f5576c;">✓</span>
+                        Birth Certificate (PSA copy)
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Returning Students Requirements -->
+            <div class="requirement-card" style="background: white; padding: 35px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-top: 4px solid #43e97b;">
+                <div style="display: flex; align-items: center; margin-bottom: 20px;">
+                    <div style="font-size: 2.5rem; margin-right: 15px;">↩️</div>
+                    <h3 style="color: #43e97b; font-size: 1.5rem; margin: 0;">For Returning Students</h3>
+                </div>
+                <ul style="color: #666; line-height: 2; font-size: 1rem; list-style: none; padding: 0;">
+                    <li style="margin-bottom: 12px; padding-left: 25px; position: relative;">
+                        <span style="position: absolute; left: 0; color: #43e97b;">✓</span>
+                        Clearance from previous semester
+                    </li>
+                    <li style="margin-bottom: 12px; padding-left: 25px; position: relative;">
+                        <span style="position: absolute; left: 0; color: #43e97b;">✓</span>
+                        Updated student records
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- How to Apply Section -->
+<section class="how-to-apply" style="padding: 60px 20px; background: white;">
+    <div class="container" style="max-width: 1200px; margin: 0 auto;">
+        <div style="text-align: center; margin-bottom: 50px;">
+            <div style="font-size: 3rem; margin-bottom: 20px;">💻</div>
+            <h2 style="color: #2c3e50; font-size: 2.5rem; margin-bottom: 10px;">How to Apply</h2>
+            <p style="color: #666; font-size: 1.1rem;">Online Admission Process</p>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center; margin-bottom: 40px;">
+            <div>
+                <img src="{{ url_for('static', filename='images/BSCPE.png') }}" alt="Online Application" 
+                     style="width: 100%; max-width: 500px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+            </div>
+            <div>
+                <div style="background: linear-gradient(135deg, #900C27 0%, #6f0a1e 100%); color: white; padding: 30px; border-radius: 12px; margin-bottom: 20px;">
+                    <h3 style="font-size: 1.5rem; margin-bottom: 15px;">Step 1: Visit Our Website</h3>
+                    <p style="font-size: 1rem; line-height: 1.6; opacity: 0.95;">
+                        Visit our Official Website and navigate to the Admission Portal.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 25px;">
+            <div class="step-card" style="background: #f8f9fa; padding: 30px; border-radius: 12px; border-left: 4px solid #900C27;">
+                <div style="font-size: 2.5rem; margin-bottom: 15px;">2️⃣</div>
+                <h3 style="color: #2c3e50; margin-bottom: 15px; font-size: 1.3rem;">Create Account</h3>
+                <p style="color: #666; line-height: 1.6;">
+                    Create your applicant account and fill out the online application form.
+                </p>
+            </div>
+
+            <div class="step-card" style="background: #f8f9fa; padding: 30px; border-radius: 12px; border-left: 4px solid #f5576c;">
+                <div style="font-size: 2.5rem; margin-bottom: 15px;">3️⃣</div>
+                <h3 style="color: #2c3e50; margin-bottom: 15px; font-size: 1.3rem;">Upload Documents</h3>
+                <p style="color: #666; line-height: 1.6;">
+                    Upload the required documents in PDF or JPEG format.
+                </p>
+            </div>
+
+            <div class="step-card" style="background: #f8f9fa; padding: 30px; border-radius: 12px; border-left: 4px solid #900C27;">
+                <div style="font-size: 2.5rem; margin-bottom: 15px;">4️⃣</div>
+                <h3 style="color: #2c3e50; margin-bottom: 15px; font-size: 1.3rem;">Wait for Confirmation</h3>
+                <p style="color: #666; line-height: 1.6;">
+                    Wait for confirmation and exam schedule via email or SMS.
+                </p>
+            </div>
+
+            <div class="step-card" style="background: #f8f9fa; padding: 30px; border-radius: 12px; border-left: 4px solid #43e97b;">
+                <div style="font-size: 2.5rem; margin-bottom: 15px;">5️⃣</div>
+                <h3 style="color: #2c3e50; margin-bottom: 15px; font-size: 1.3rem;">Take Exam & Interview</h3>
+                <p style="color: #666; line-height: 1.6;">
+                    Take the entrance exam and attend the scheduled interview.
+                </p>
+            </div>
+
+            <div class="step-card" style="background: #f8f9fa; padding: 30px; border-radius: 12px; border-left: 4px solid #fa709a;">
+                <div style="font-size: 2.5rem; margin-bottom: 15px;">6️⃣</div>
+                <h3 style="color: #2c3e50; margin-bottom: 15px; font-size: 1.3rem;">Enroll & Pay Fees</h3>
+                <p style="color: #666; line-height: 1.6;">
+                    Once accepted, proceed with enrollment and payment of fees.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Contact Section -->
+<section class="admission-contact" style="padding: 60px 20px; background: linear-gradient(135deg, #900C27 0%, #6f0a1e 100%); color: white; text-align: center;">
+    <div class="container" style="max-width: 800px; margin: 0 auto;">
+        <h2 style="margin-bottom: 20px; font-size: 2.5rem;">Need Help with Admission?</h2>
+        <p style="font-size: 1.1rem; margin-bottom: 30px; opacity: 0.95;">
+            Contact our Admissions Office for assistance with your application or to learn more about our programs.
+        </p>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 30px; margin-bottom: 40px;">
+            <div style="background: rgba(255,255,255,0.1); padding: 25px; border-radius: 12px; backdrop-filter: blur(10px);">
+                <div style="font-size: 2.5rem; margin-bottom: 15px;">📞</div>
+                <h3 style="margin-bottom: 10px;">Phone</h3>
+                <p style="font-size: 1.1rem; font-weight: 600;">(043) 123-4567</p>
+            </div>
+            <div style="background: rgba(255,255,255,0.1); padding: 25px; border-radius: 12px; backdrop-filter: blur(10px);">
+                <div style="font-size: 2.5rem; margin-bottom: 15px;">✉️</div>
+                <h3 style="margin-bottom: 10px;">Email</h3>
+                <p style="font-size: 1.1rem; font-weight: 600;">admission@tanauancitycollege.edu.ph</p>
+            </div>
+            <div style="background: rgba(255,255,255,0.1); padding: 25px; border-radius: 12px; backdrop-filter: blur(10px);">
+                <div style="font-size: 2.5rem; margin-bottom: 15px;">📘</div>
+                <h3 style="margin-bottom: 10px;">Facebook</h3>
+                <p style="font-size: 1.1rem; font-weight: 600;">TCC Admission</p>
+            </div>
+        </div>
+        <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+            <a href="tel:+63431234567" 
+               style="display: inline-block; padding: 15px 30px; background: white; color: #900C27; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 1.1rem; transition: transform 0.3s; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+                📞 Call Us
+            </a>
+            <a href="mailto:admission@tanauancitycollege.edu.ph" 
+               style="display: inline-block; padding: 15px 30px; background: white; color: #900C27; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 1.1rem; transition: transform 0.3s; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+                ✉️ Email Us
+            </a>
+            <a href="https://www.facebook.com/tcc.admission.7" target="_blank" 
+               style="display: inline-block; padding: 15px 30px; background: white; color: #900C27; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 1.1rem; transition: transform 0.3s; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+                📘 Visit Facebook
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- CTA Section -->
+<section class="admission-cta" style="padding: 60px 20px; background: white; text-align: center;">
+    <div class="container" style="max-width: 800px; margin: 0 auto;">
+        <div style="font-size: 4rem; margin-bottom: 20px;">🎯</div>
+        <h2 style="color: #2c3e50; margin-bottom: 20px; font-size: 2.5rem;">Ready to Apply?</h2>
+        <p style="color: #666; font-size: 1.1rem; margin-bottom: 30px;">
+            Take the first step toward your academic journey at Tanauan City College.
+        </p>
+        <div style="display: flex; gap: 20px; justify-content: center; flex-wrap: wrap;">
+            <a href="mailto:admission@tanauancitycollege.edu.ph" 
+               style="display: inline-block; padding: 15px 30px; background: #900C27; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; transition: all 0.3s; box-shadow: 0 4px 15px rgba(144,12,39,0.3);">
+                📧 Contact Admissions Office
+            </a>
+            <a href="tel:+63431234567" 
+               style="display: inline-block; padding: 15px 30px; background: #43e97b; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; transition: all 0.3s; box-shadow: 0 4px 15px rgba(67,233,123,0.3);">
+                📞 Call (043) 123-4567
+            </a>
+            <a href="https://www.facebook.com/tcc.admission.7" target="_blank" 
+               style="display: inline-block; padding: 15px 30px; background: #1877f2; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; transition: all 0.3s; box-shadow: 0 4px 15px rgba(24,119,242,0.3);">
+                📘 Facebook Page
+            </a>
+            <a href="{{ url_for('academics_page') }}" 
+               style="display: inline-block; padding: 15px 30px; background: transparent; color: #900C27; text-decoration: none; border: 2px solid #900C27; border-radius: 8px; font-weight: 600; transition: all 0.3s;">
+                View Academic Programs
+            </a>
+        </div>
+    </div>
+</section>
+
+<style>
+    @media (max-width: 768px) {
+        .admission-welcome > .container > div,
+        .admission-mission > .container > div,
+        .how-to-apply > .container > div:first-of-type {
+            grid-template-columns: 1fr !important;
+        }
+        
+        .admission-schedule > .container > div:last-child,
+        .admission-requirements > .container > div:last-child,
+        .how-to-apply > .container > div:last-child {
+            grid-template-columns: 1fr !important;
+        }
+    }
+</style>
+{% endblock %}

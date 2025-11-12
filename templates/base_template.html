@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Tanauan City College - TCC Assistant{% endblock %}</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/TCC2025 Logo.png') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    {{ moment.include_moment() }}
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- College Website Header -->
+    <header>
+        <div class="navbar">
+            <div class="logo-section">
+                <img src="{{ url_for('static', filename='images/TCC2025 Logo.png') }}" alt="Tanauan City College Logo" class="logo" />
+                <img src="{{ url_for('static', filename='images/tanauancity-logo.png') }}" alt="Tanauan City Logo" class="city-logo" />
+                <div class="college-name">
+                    <h1>TANAUAN CITY COLLEGE</h1>
+                    <p>Excellence in Education</p>
+                </div>
+            </div>
+            
+            <!-- Mobile hamburger menu button -->
+            <button class="mobile-menu-toggle" id="mobile-menu-toggle" aria-label="Toggle mobile menu">
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+            </button>
+            
+            <nav class="nav-links" id="nav-links">
+                <a href="{{ url_for('home') }}">HOME</a>
+
+                <div class="dropdown">
+                    <a href="{{ url_for('tcc_page') }}">THIS IS TCC &#9662;</a>
+                    <div class="dropdown-content">
+                        <a href="{{ url_for('tcc_page') }}">TCC at a Glance</a>
+                        <a href="{{ url_for('tcc_page') }}#mvcv">Mission, Vision & Core Values</a>
+                        <a href="{{ url_for('tcc_page') }}#board">Board of Trustees</a>
+                        <a href="{{ url_for('tcc_page') }}#officials">TCC Officer In Charge</a>
+                        <a href="{{ url_for('tcc_page') }}#officials">College Officials</a>
+                    </div>
+                </div>
+
+                <div class="dropdown">
+                    <a href="{{ url_for('academics_page') }}">ACADEMICS &#9662;</a>
+                    <div class="dropdown-content">
+                        <a href="{{ url_for('academics_page') }}">College Programs</a>
+                    </div>
+                </div>
+
+                <div class="dropdown">
+                    <a href="{{ url_for('community_page') }}">COMMUNITY &#9662;</a>
+                    <div class="dropdown-content">
+                        <a href="{{ url_for('community_page') }}" target="_blank">TCC Community</a>
+                    </div>
+                </div>
+
+                <div class="dropdown">
+                    <a href="{{ url_for('admission_page') }}">ADMISSION &#9662;</a>
+                    <div class="dropdown-content">
+                        <a href="{{ url_for('admission_page') }}" target="_blank">TCC Admission</a>
+                    </div>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content Block -->
+    {% block content %}{% endblock %}
+
+    <!-- Footer -->
+    <footer class="site-footer">
+        <div class="footer-content">
+            <div class="footer-column">
+                <h3>Tanauan City College</h3>
+                <p>Providing quality education and fostering excellence in our community.</p>
+                <p>📍 <a href="https://www.google.com/maps/search/?api=1&query=Tanauan+City+College,+Barangay+Trapiche+1,+Tanauan+City,+Batangas,+Philippines" target="_blank" rel="noopener noreferrer" style="color: inherit; text-decoration: underline; cursor: pointer;">Tanauan City College, Barangay Trapiche 1, Tanauan City, Batangas, Philippines</a></p>
+                <p>📞 (043) 702 6979</p>
+                <p>✉️ tanauancitycollege@gmail.com</p>
+            </div>
+
+            <div class="footer-column">
+                <h3>Quick Links</h3>
+                <ul>
+                    <li><a href="{{ url_for('home') }}">Home</a></li>
+                    <li><a href="{{ url_for('tcc_page') }}">About TCC</a></li>
+                    <li><a href="{{ url_for('academics_page') }}">Academic Programs</a></li>
+                    <li><a href="{{ url_for('admission_page') }}">Admission</a></li>
+                    <li><a href="{{ url_for('community_page') }}">Community</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-column">
+                <h3>Connect With Us</h3>
+                <p>🔗 <a href="https://www.facebook.com/tanauancitycollege.official" target="_blank">Follow us on Facebook</a></p>
+            </div>
+        </div>
+        <hr />
+        <p class="footer-bottom">© 2025 Tanauan City College. All rights reserved.</p>
+    </footer>
+
+    <!-- TCC Assistant Chatbot Pop-up Message -->
+    <div class="chatbot-popup" id="chatbot-popup">
+        <div class="chatbot-popup__content">
+            <button class="chatbot-popup__close" id="chatbot-popup-close" aria-label="Close popup">✕</button>
+            <div class="chatbot-popup__message">
+                💬 Have a question about Tanauan City College?<br>
+                Ask me anytime — I'm here to help!
+            </div>
+        </div>
+    </div>
+
+    <!-- TCC Assistant Chatbot -->
+    <div class="chatbox">
+        <div class="chatbox__support">
+            <!-- Header -->
+            <div class="chatbox__header">
+                <div class="chatbox__header-left">
+                    <div class="chatbox__logo">
+                        <img src="{{ url_for('static', filename='images/EduChat.png') }}" alt="Bot Logo">
+                    </div>
+                    <div class="chatbox__title">
+                        <strong>TCC Assistant</strong>
+                    </div>
+                </div>
+                <div class="chatbox__header-right">
+                    <button class="chatbox__announcements" title="View Announcements">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12.87 15.07l-2.54-2.51.03-.03c1.74-1.94 2.01-4.65.75-6.78L6.87 1H4v4.84c-.46.63-.79 1.33-.98 2.09-.19.76-.19 1.55 0 2.31C3.46 12.13 4 13.56 4 15v1c0 .55.45 1 1 1h6.77c.12.38.31.76.57 1.1l1.86 1.82L12.87 15.07zM7 9H5v2h2V9zm9.62-2.48l1.83 1.91c.34.35.87.35 1.22 0l.7-.7c.35-.35.35-.87 0-1.22L18.2 4.6l-.7.7c-.35.35-.35.87 0 1.22zm-1.44 1.47l3.08 3.08c.35.35.87.35 1.22 0l.7-.7c.35-.35.35-.87 0-1.22L16.9 6.37l-.7.7c-.35.35-.35.87 0 1.22z"/>
+                        </svg>
+                    </button>
+                    <button class="chatbox__tts" title="Toggle Text-to-Speech">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+                        </svg>
+                    </button>
+                    <button class="chatbox__clear" title="Clear History">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+                        </svg>
+                    </button>
+                    <button class="chatbox__reset" title="Reset Conversation">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+                        </svg>
+                    </button>
+                    <button class="chatbox__close">✕</button>
+                </div>
+            </div>
+
+            <!-- Announcements Panel -->
+            <div class="chatbox__announcements-panel" id="announcements-panel">
+                <div class="announcements-header">
+                    <h3>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 8px;">
+                            <path d="M12.87 15.07l-2.54-2.51.03-.03c1.74-1.94 2.01-4.65.75-6.78L6.87 1H4v4.84c-.46.63-.79 1.33-.98 2.09-.19.76-.19 1.55 0 2.31C3.46 12.13 4 13.56 4 15v1c0 .55.45 1 1 1h6.77c.12.38.31.76.57 1.1l1.86 1.82L12.87 15.07z"/>
+                        </svg>
+                        College Announcements
+                    </h3>
+                    <button class="close-announcements">✕</button>
+                </div>
+                <div class="announcements-content" id="announcements-content">
+                    <!-- Announcements will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Messages -->
+            <div class="chatbox__messages">
+                <div class="chatbox__greeting">
+                    <p>Hi there! I'm your TCC Connect assistant. How can I help you today?</p>
+                </div>
+
+                <div class="suggestions-label">Suggested topics:</div>
+
+                <!-- Main suggested topics -->
+                <div class="chatbox__suggestions">
+                    <button data-sub="admission">Admission Office</button>
+                    <button data-sub="registrar">Registrar Office</button>
+                    <button data-sub="ict">ICT Office</button>
+                    <button data-sub="guidance">Guidance Office</button>
+                    <button data-sub="osa">Office of Student Affairs</button>
+                    <button data-sub="announcements">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 6px;">
+                            <path d="M12.87 15.07l-2.54-2.51.03-.03c1.74-1.94 2.01-4.65.75-6.78L6.87 1H4v4.84c-.46.63-.79 1.33-.98 2.09-.19.76-.19 1.55 0 2.31C3.46 12.13 4 13.56 4 15v1c0 .55.45 1 1 1h6.77c.12.38.31.76.57 1.10l1.86 1.82L12.87 15.07z"/>
+                        </svg>
+                        View Announcements
+                    </button>
+                </div>
+
+                <!-- Sub-suggestions (dynamically populated) -->
+                <div class="chatbox__sub-suggestions" id="sub-suggestions"></div>
+                
+                <!-- Typing Indicator -->
+                <div class="chatbox__typing-indicator" id="typing-indicator" style="display: none;">
+                    <div class="typing-dots">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                    <span class="typing-text">TCC Assistant is typing...</span>
+                </div>
+                
+                <!-- Context indicator -->
+                <div class="chatbox__context" id="context-indicator" style="display: none;">
+                    <span class="context-text">Currently helping with: <strong id="context-office">General</strong></span>
+                    <button class="context-reset" onclick="resetContext()">Switch Topic</button>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="chatbox__footer">
+                <button class="mic__button" title="Voice Input">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/>
+                    </svg>
+                </button>
+                <input type="text" placeholder="Type your message..." maxlength="500">
+                <span class="character-count">0/500</span>
+                <button class="send__button">➤</button>
+            </div>
+        </div>
+
+        <!-- Floating button -->
+        <div class="chatbox__button">
+            <button><img src="{{ url_for('static', filename='images/EduChat.png') }}" alt="Chat Icon"></button>
+        </div>
+    </div>
+
+    <!-- Voice Recognition Indicator -->
+    <div class="voice-indicator" id="voice-indicator">
+        <div>Listening...</div>
+        <div class="voice-waves">
+            <div class="voice-wave"></div>
+            <div class="voice-wave"></div>
+            <div class="voice-wave"></div>
+            <div class="voice-wave"></div>
+            <div class="voice-wave"></div>
+        </div>
+        <div style="font-size: 12px; opacity: 0.8;">Speak now</div>
+    </div>
+
+    <!-- Feedback System CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='feedback.css') }}">
+    
+    <!-- Feedback System JS -->
+    <script src="{{ url_for('static', filename='feedback.js') }}"></script>
+    
+    <!-- Enhanced Announcements Styling -->
+    <style>
+        /* Chatbot Pop-up Message Styling */
+        .chatbot-popup {
+            position: fixed;
+            bottom: 90px;
+            right: 20px;
+            z-index: 10000;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s ease-in-out;
+            pointer-events: none;
+        }
+        
+        .chatbot-popup.show {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+        
+        .chatbot-popup.hide {
+            opacity: 0;
+            transform: translateY(20px);
+            pointer-events: none;
+        }
+        
+        .chatbot-popup__content {
+            background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+            color: white;
+            padding: 16px 20px;
+            border-radius: 16px;
+            box-shadow: 0 8px 24px rgba(74, 144, 226, 0.4);
+            max-width: 280px;
+            position: relative;
+            animation: slideInUp 0.4s ease-out;
+        }
+        
+        @keyframes slideInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .chatbot-popup__close {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            font-size: 18px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            line-height: 1;
+            padding: 0;
+        }
+        
+        .chatbot-popup__close:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+        
+        .chatbot-popup__message {
+            font-size: 14px;
+            line-height: 1.5;
+            padding-right: 24px;
+            font-weight: 500;
+        }
+        
+        /* Hide popup when chatbot is active - handled by JavaScript */
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .chatbot-popup {
+                bottom: 80px;
+                right: 15px;
+            }
+            
+            .chatbot-popup__content {
+                max-width: 260px;
+                padding: 14px 18px;
+            }
+            
+            .chatbot-popup__message {
+                font-size: 13px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .chatbot-popup {
+                bottom: 80px;
+                right: 10px;
+            }
+            
+            .chatbot-popup__content {
+                max-width: 240px;
+                padding: 12px 16px;
+            }
+            
+            .chatbot-popup__message {
+                font-size: 12px;
+            }
+        }
+        
+        /* Announcements Panel Enhanced Styling */
+        .chatbox__announcements-panel {
+            position: absolute;
+            top: 60px;
+            right: 0;
+            width: 100%;
+            max-width: 450px;
+            height: calc(100% - 60px);
+            background: #ffffff;
+            box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+            transform: translateX(100%);
+            transition: transform 0.3s ease-in-out;
+            z-index: 999;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .chatbox__announcements-panel.active {
+            transform: translateX(0);
+        }
+        
+        .announcements-header {
+            background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .announcements-header h3 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+        }
+        
+        .close-announcements {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            font-size: 20px;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .close-announcements:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .announcements-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0;
+            background: #f5f7fa;
+        }
+        
+        .announcements-list {
+            padding: 15px;
+        }
+        
+        /* Empty State Styling */
+        .empty-announcements {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 30px;
+            text-align: center;
+            color: #999;
+        }
+        
+        .empty-announcements svg {
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+        
+        .empty-announcements p {
+            font-size: 16px;
+            margin: 10px 0;
+            color: #666;
+        }
+        
+        .empty-announcements small {
+            font-size: 13px;
+            color: #999;
+        }
+        
+        /* Announcement Item Styling */
+        .announcement-item {
+            background: white;
+            border-radius: 12px;
+            padding: 18px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+            border-left: 4px solid #4a90e2;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .announcement-item:hover {
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12);
+            transform: translateY(-2px);
+        }
+        
+        .announcement-item.high-priority {
+            border-left-color: #e74c3c;
+            background: linear-gradient(to right, #fff5f5 0%, white 10%);
+        }
+        
+        .announcement-item.medium-priority {
+            border-left-color: #f39c12;
+            background: linear-gradient(to right, #fffcf5 0%, white 10%);
+        }
+        
+        .announcement-item.low-priority {
+            border-left-color: #27ae60;
+            background: linear-gradient(to right, #f5fff8 0%, white 10%);
+        }
+        
+        /* Announcement Header Row */
+        .announcement-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+        
+        .announcement-title-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            flex: 1;
+        }
+        
+        .announcement-emoji {
+            font-size: 24px;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+        
+        .announcement-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2c3e50;
+            line-height: 1.4;
+            flex: 1;
+            word-wrap: break-word;
+        }
+        
+        /* Source Badge */
+        .announcement-source-badge {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            box-shadow: 0 2px 5px rgba(231, 76, 60, 0.3);
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.9; }
+        }
+        
+        /* Priority Badge */
+        .announcement-priority {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        
+        .priority-high {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        .priority-medium {
+            background: #f39c12;
+            color: white;
+        }
+        
+        .priority-low {
+            background: #27ae60;
+            color: white;
+        }
+        
+        /* Meta Information */
+        .announcement-meta {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+        
+        .announcement-office,
+        .announcement-date {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 13px;
+            color: #7f8c8d;
+        }
+        
+        .announcement-office svg,
+        .announcement-date svg {
+            opacity: 0.7;
+        }
+        
+        /* Message Content */
+        .announcement-message {
+            font-size: 14px;
+            line-height: 1.6;
+            color: #34495e;
+            margin-bottom: 12px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        /* Ask Button */
+        .announcement-ask-btn {
+            background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 2px 5px rgba(74, 144, 226, 0.3);
+        }
+        
+        .announcement-ask-btn:hover {
+            background: linear-gradient(135deg, #357abd 0%, #2a5f8f 100%);
+            box-shadow: 0 4px 10px rgba(74, 144, 226, 0.4);
+            transform: translateY(-1px);
+        }
+        
+        .announcement-ask-btn:active {
+            transform: translateY(0);
+        }
+        
+        .announcement-ask-btn svg {
+            width: 14px;
+            height: 14px;
+        }
+        
+        /* Active Button State */
+        .chatbox__announcements.active {
+            background: #4a90e2;
+            color: white;
+        }
+        
+        /* Scrollbar Styling */
+        .announcements-content::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .announcements-content::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        
+        .announcements-content::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+        
+        .announcements-content::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+        
+        /* Responsive Adjustments */
+        @media (max-width: 768px) {
+            .chatbox__announcements-panel {
+                max-width: 100%;
+            }
+            
+            .announcement-item {
+                padding: 15px;
+            }
+            
+            .announcement-title {
+                font-size: 15px;
+            }
+            
+            .announcement-message {
+                font-size: 13px;
+            }
+        }
+    </style>
+    
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+    
+    <!-- Mobile Menu JavaScript -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+            const navLinks = document.getElementById('nav-links');
+            const dropdowns = document.querySelectorAll('.dropdown');
+            
+            // Toggle mobile menu
+            mobileMenuToggle.addEventListener('click', function() {
+                mobileMenuToggle.classList.toggle('active');
+                navLinks.classList.toggle('active');
+                
+                // Prevent body scroll when menu is open
+                if (navLinks.classList.contains('active')) {
+                    document.body.style.overflow = 'hidden';
+                } else {
+                    document.body.style.overflow = '';
+                }
+            });
+            
+            // Handle dropdown toggles on mobile
+            dropdowns.forEach(dropdown => {
+                const dropdownLink = dropdown.querySelector('a');
+                dropdownLink.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    dropdown.classList.toggle('active');
+                });
+            });
+            
+            // Close mobile menu when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!mobileMenuToggle.contains(e.target) && !navLinks.contains(e.target)) {
+                    mobileMenuToggle.classList.remove('active');
+                    navLinks.classList.remove('active');
+                    document.body.style.overflow = '';
+                }
+            });
+            
+            // Close mobile menu when window is resized to desktop
+            window.addEventListener('resize', function() {
+                if (window.innerWidth > 768) {
+                    mobileMenuToggle.classList.remove('active');
+                    navLinks.classList.remove('active');
+                    document.body.style.overflow = '';
+                }
+            });
+            
+            // Close mobile menu when clicking on a link
+            navLinks.addEventListener('click', function(e) {
+                if (e.target.tagName === 'A' && !e.target.querySelector('a')) {
+                    mobileMenuToggle.classList.remove('active');
+                    navLinks.classList.remove('active');
+                    document.body.style.overflow = '';
+                }
+            });
+            
+            // Chatbot Pop-up Message Control
+            const chatbotPopup = document.getElementById('chatbot-popup');
+            const chatbotPopupClose = document.getElementById('chatbot-popup-close');
+            const chatbox = document.querySelector('.chatbox');
+            
+            // Check if popup was dismissed
+            const popupDismissed = localStorage.getItem('chatbot-popup-dismissed');
+            
+            // Show popup after a delay if not dismissed and chatbot is closed
+            function showPopup() {
+                if (!popupDismissed && chatbotPopup && !chatbox.classList.contains('chatbox--active')) {
+                    setTimeout(() => {
+                        chatbotPopup.classList.remove('hide');
+                        chatbotPopup.classList.add('show');
+                    }, 1500); // Show after 1.5 seconds
+                }
+            }
+            
+            // Hide popup
+            function hidePopup() {
+                if (chatbotPopup) {
+                    chatbotPopup.classList.remove('show');
+                    chatbotPopup.classList.add('hide');
+                }
+            }
+            
+            // Close button click handler
+            if (chatbotPopupClose) {
+                chatbotPopupClose.addEventListener('click', function() {
+                    hidePopup();
+                    localStorage.setItem('chatbot-popup-dismissed', 'true');
+                });
+            }
+            
+            // Hide popup when chatbot opens
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                        if (chatbox.classList.contains('chatbox--active')) {
+                            hidePopup();
+                        } else if (!popupDismissed) {
+                            // Show popup again if chatbot is closed and not dismissed
+                            setTimeout(() => {
+                                if (!chatbox.classList.contains('chatbox--active')) {
+                                    showPopup();
+                                }
+                            }, 500);
+                        }
+                    }
+                });
+            });
+            
+            if (chatbox) {
+                observer.observe(chatbox, { attributes: true });
+            }
+            
+            // Initial show
+            showPopup();
+        });
+        
+        moment.locale('en');
+    </script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
+

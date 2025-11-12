@@ -1,0 +1,261 @@
+{% extends "base_template.html" %}
+
+{% block title %}This is TCC - Tanauan City College{% endblock %}
+
+{% block content %}
+<section class="tcc-glance" id="glance">
+    <div class="glance-content">
+        <h2>TCC at a Glance</h2>
+        <p>Discover the history, mission, and vision of Tanauan City College – a beacon of educational excellence in our community.</p>
+    </div>
+</section>
+
+<section class="history-section">
+    <div class="history-container">
+        <div class="history-text">
+            <h2>Our History</h2>
+            <p>Tanauan City College was established with the vision of providing quality and accessible higher education to the residents of Tanauan City and neighboring communities.</p>
+            <p>Over the years, TCC has grown from a small institution to a comprehensive college offering diverse academic programs that meet the needs of our students and the demands of the workforce.</p>
+            <p>Today, TCC stands as a testament to the city's commitment to educational excellence and community development, continuously evolving to provide the best learning experience for our students.</p>
+        </div>
+        <div class="history-image">
+            <img src="{{ url_for('static', filename='images/Background-image.png') }}" alt="TCC Auditorium">
+        </div>
+    </div>
+</section>
+
+<section class="commitment-section">
+    <h2>Our Commitment</h2>
+    <div class="commitment-cards">
+        <div class="commitment-card">
+            <div class="icon-circle">
+                <div class="commitment-icon">🎓</div>
+            </div>
+            <h3>Academic Excellence</h3>
+            <p>We are committed to providing high-quality education through innovative teaching methods and a comprehensive curriculum.</p>
+        </div>
+        <div class="commitment-card">
+            <div class="icon-circle">
+                <div class="commitment-icon">🤝</div>
+            </div>
+            <h3>Community Service</h3>
+            <p>We actively engage with our community through outreach programs, partnerships, and service-learning opportunities.</p>
+        </div>
+        <div class="commitment-card">
+            <div class="icon-circle">
+                <div class="commitment-icon">👨‍🎓</div>
+            </div>
+            <h3>Student Development</h3>
+            <p>We foster holistic growth by providing opportunities for leadership, creativity, and personal development.</p>
+        </div>
+    </div>
+</section>
+
+<section class="tcc-numbers">
+    <h2 class="section-title">TCC by the Numbers</h2>
+    <div class="numbers-grid">
+        <div class="number-item">
+            <h3>1,500+</h3>
+            <p>Students Enrolled</p>
+        </div>
+        <div class="number-item">
+            <h3>50+</h3>
+            <p>Faculty Members</p>
+        </div>
+        <div class="number-item">
+            <h3>10+</h3>
+            <p>Academic Programs</p>
+        </div>
+        <div class="number-item">
+            <h3>95%</h3>
+            <p>Employment Rate</p>
+        </div>
+    </div>
+</section>
+
+<section class="learn-more-section">
+    <h2 class="learn-title">Learn More About TCC</h2>
+    <div class="learn-grid">
+        <div class="learn-card">
+            <a href="#mvcv" style="text-decoration: none; color: inherit;">
+                <h3>Mission, Vision & Core Values</h3>
+                <p>Discover what drives us and shapes our educational philosophy.</p>
+            </a>
+        </div>
+        <div class="learn-card">
+            <a href="#board" style="text-decoration: none; color: inherit;">
+                <h3>Board of Trustees</h3>
+                <p>Meet the dedicated leaders guiding our institution.</p>
+            </a>
+        </div>
+        <div class="learn-card">
+            <a href="#officials" style="text-decoration: none; color: inherit;">
+                <h3>TCC Officer In Charge</h3>
+                <p>Learn about our college's leadership and administration.</p>
+            </a>
+        </div>
+        <div class="learn-card">
+            <a href="#officials" style="text-decoration: none; color: inherit;">
+                <h3>College Officials</h3>
+                <p>Get to know our administrative team and department heads.</p>
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- Mission, Vision & Core Values Section -->
+<section class="mission-section" id="mvcv">
+    <h1>Mission, Vision & Core Values</h1>
+    <p>
+        The guiding principles that define our purpose and shape our journey at Tanauan City College.
+    </p>
+</section>
+
+<section class="mission-vision-cards">
+    <div class="card">
+        <div class="icon-title">
+            <div class="icon"><span>🎯</span></div>
+            <h2>Our Mission</h2>
+        </div>
+        <p>
+            In implementing its vision, the TCC endeavors:
+            <br><br>1. To provide relevant educational opportunities geared towards local and global demands of an emerging agro-industrial and industrial-tourist-commercial community at reasonable price for constituents of Tanauan, Batangas and its adjacent Municipalities and Cities in Luzon;
+            <br>2. To provide quality education through excellence in training and instruction in technology and sciences, and excellence in languages, humanities and the arts;
+            <br>3. To provide advanced studies, applied research and extension services, and experimentation in the field of agro-business, commerce and tourism, technology, and social sciences; and
+            <br>4. Finally, its aims to model the patriotism and nationalism of its visionary leaders in Philippine History: Apolinario M. Mabini and Jose Laurel.
+        </p>
+    </div>
+
+    <div class="card">
+        <div class="icon-title">
+            <div class="icon"><span>👁️</span></div>
+            <h2>Our Vision</h2>
+        </div>
+        <p>
+            In 2030, the Tanauan City College will be globally competitive self-sustaining technological-vocational college of the Constituents of Tanauan, Batangas which produces Filipino professionals who are patriotic and nationalistic in character, productively contributing to society, highly skilled and technology driven.
+        </p>
+    </div>
+</section>
+
+<section class="core-values">
+    <div class="core-values-header">
+        <div class="icon-heart">❤️</div>
+        <h2>Our Core Values</h2>
+        <p>These principles guide our actions, decisions, and relationships within our academic community.</p>
+    </div>
+
+    <div class="values-grid">
+        <div class="value-card">
+            <h3>Professionalism</h3>
+            <p>We pursue the highest standards of performance in all our academic and administrative endeavors, constantly striving to exceed expectations and achieve outstanding results.</p>
+        </div>
+        <div class="value-card">
+            <h3>Integrity</h3>
+            <p>We uphold honesty, transparency, and ethical behavior in all our actions, fostering an environment of trust and accountability within our college community.</p>
+        </div>
+        <div class="value-card">
+            <h3>Value for Excellence</h3>
+            <p>We embrace creativity and forward-thinking approaches to education, encouraging the development of new ideas and solutions to address evolving challenges.</p>
+        </div>
+        <div class="value-card">
+            <h3>Open for Innovation</h3>
+            <p>We value diversity and ensure that all members of our community feel welcome, respected, and have equal opportunities to succeed and contribute.</p>
+        </div>
+        <div class="value-card">
+            <h3>Teamwork</h3>
+            <p>We are dedicated to serving our students, our community, and society at large, using our knowledge and resources to address social needs and promote the common good.</p>
+        </div>
+    </div>
+</section>
+
+<section class="commitment-students">
+    <div class="commitment-students-header">
+        <h2>Our Commitment to Students</h2>
+        <p>At Tanauan City College, we are committed to providing a supportive and enriching educational environment where students can discover their potential, develop their talents, and prepare for meaningful careers. Our mission, vision, and core values guide us in creating learning experiences that transform lives and contribute to the betterment of society.</p>
+    </div>
+</section>
+
+<!-- Board of Trustees Section -->
+<section class="board-trustees" id="board">
+    <div class="trustees-content">
+        <h2>Board of Trustees</h2>
+        <p>Meet the dedicated leaders who guide the strategic direction and governance of Tanauan City College.</p>
+    </div>
+</section>
+
+<section class="leadership-section">
+    <div class="container">
+        <h2 class="section-title">Leadership & Governance</h2>
+        <p class="section-description">
+            The Board of Trustees is the governing body of Tanauan City College, responsible for establishing policies, approving strategic plans, and ensuring the institution's financial stability. Our trustees bring diverse expertise and a shared commitment to advancing the college's mission of providing quality education to the community.
+        </p>
+
+        <div class="cards">
+            <div class="card">
+                <img src="{{ url_for('static', filename='images/Background-image.png') }}" alt="Hon. Nelson Sonny P. Collantes">
+                <div class="card-content">
+                    <h3>Hon. Nelson "Sonny" P. Collantes</h3>
+                    <p class="position">TCC President</p>
+                </div>
+            </div>
+
+            <div class="card">
+                <img src="{{ url_for('static', filename='images/Background-image.png') }}" alt="Marcial V. Goguanco Jr.">
+                <div class="card-content">
+                    <h3>Marcial V. Goguanco Jr.</h3>
+                    <p class="position">Officer In-Charge, TCC</p>
+                </div>
+            </div>
+
+            <div class="card">
+                <img src="{{ url_for('static', filename='images/Background-image.png') }}" alt="Janet Perez">
+                <div class="card-content">
+                    <h3>Janet Perez</h3>
+                </div>
+            </div>
+
+            <div class="card">
+                <img src="{{ url_for('static', filename='images/Background-image.png') }}" alt="Andrea L. Galindez">
+                <div class="card-content">
+                    <h3>Andrea L. Galindez</h3>
+                    <p class="position">President, TCC Alumni 2025</p>
+                </div>
+            </div>
+
+            <div class="card">
+                <img src="{{ url_for('static', filename='images/Background-image.png') }}" alt="Marcos Gonzalbo Jr.">
+                <div class="card-content">
+                    <h3>Marcos Gonzalbo Jr.</h3>
+                    <p class="position">President, TCC ILC</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="responsibilities-section">
+    <div class="container">
+        <h2 class="section-title">Board Responsibilities</h2>
+        <div class="responsibilities-card">
+            <ul class="responsibilities-list">
+                <li><span class="icon">✔️</span> Establish and review the college's mission, vision, and strategic direction</li>
+                <li><span class="icon">✔️</span> Approve policies and procedures to ensure academic quality and institutional effectiveness</li>
+                <li><span class="icon">✔️</span> Oversee the college's financial health and approve annual budgets</li>
+                <li><span class="icon">✔️</span> Appoint and evaluate the performance of the College President</li>
+                <li><span class="icon">✔️</span> Ensure compliance with legal and regulatory requirements</li>
+                <li><span class="icon">✔️</span> Foster relationships with the community, government, and other educational institutions</li>
+                <li><span class="icon">✔️</span> Advocate for the college's interests and needs at local and national levels</li>
+            </ul>
+        </div>
+    </div>
+</section>
+
+<!-- College Officials Section -->
+<section class="board-trustees" id="officials">
+    <div class="trustees-content">
+        <h2>College Officials</h2>
+        <p>Meet the dedicated leaders who guide the strategic direction and governance of Tanauan City College.</p>
+    </div>
+</section>
+{% endblock %}
+

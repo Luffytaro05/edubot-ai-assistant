@@ -4,21 +4,12 @@ class FeedbackManager {
         this.currentRating = 0;
         this.isSubmitting = false;
         this.hasShownFeedback = false; // Track if feedback has been shown in this session
-        this.goodbyePatterns = [
-            // English patterns
-            'bye', 'goodbye', 'see you', 'farewell', 'take care', 'have a good day', 'have a nice day',
-            'thanks', 'thank you', 'thank you very much', 'thanks a lot', 'much appreciated',
-            'that\'s all', 'that\'s it', 'nothing else', 'all done', 'finished', 'done',
-            'good night', 'good evening', 'see you later', 'talk to you later', 'catch you later',
-            'until next time', 'until we meet again', 'so long', 'adios', 'ciao',
-            
-            // Filipino patterns
-            'salamat', 'maraming salamat', 'salamat po', 'salamat sa inyo', 'salamat sa tulong',
-            'paalam', 'babay', 'ingat', 'mag-ingat ka', 'ingat ka', 'ingat po',
-            'hanggang sa muli', 'hanggang sa susunod', 'sige', 'sige na', 'ok na',
-            'tapos na', 'wala na', 'yun na yun', 'yun lang', 'ganun lang',
-            'magandang gabi', 'magandang araw', 'magandang umaga', 'magandang hapon'
-        ];
+        this.botResponseCount = 0; // Track number of bot responses
+        this.minResponsesBeforeFeedback = 2; // Minimum bot responses before showing feedback
+        this.lastFeedbackTime = 0; // Timestamp of last feedback shown
+        this.feedbackCooldown = 60000; // 60 seconds cooldown between feedback prompts (in milliseconds)
+        // Goodbye patterns removed - feedback is now based on bot responses only
+        this.goodbyePatterns = []; // Empty array for backwards compatibility
         this.init();
     }
 
@@ -340,67 +331,18 @@ class FeedbackManager {
         document.body.style.overflow = '';
     }
 
-    // Setup message listener to detect goodbye patterns
+    // Setup message listener - DISABLED: feedback is now based on bot responses only
+    // This method is kept for backwards compatibility but does nothing
     setupMessageListener() {
-        // Listen for new messages in the chat
-        const observer = new MutationObserver((mutations) => {
-            mutations.forEach((mutation) => {
-                if (mutation.type === 'childList') {
-                    mutation.addedNodes.forEach((node) => {
-                        if (node.nodeType === Node.ELEMENT_NODE) {
-                            // Check if it's a user message
-                            const userMessage = node.querySelector('.message.user, .chatbox__message--user');
-                            if (userMessage && !this.hasShownFeedback) {
-                                const messageText = userMessage.textContent.toLowerCase().trim();
-                                if (this.detectGoodbyePattern(messageText)) {
-                                    // Show feedback form after a short delay
-                                    setTimeout(() => {
-                                        this.showFeedback();
-                                        this.hasShownFeedback = true;
-                                    }, 1500);
-                                }
-                            }
-                        }
-                    });
-                }
-            });
-        });
-
-        // Start observing the messages container
-        const messagesContainer = document.querySelector('.chatbox__messages');
-        if (messagesContainer) {
-            observer.observe(messagesContainer, {
-                childList: true,
-                subtree: true
-            });
-        }
+        // Feedback is now triggered by bot responses, not user messages
+        // This method is intentionally left empty
+        console.log('Feedback listener disabled - feedback now based on bot responses only');
     }
 
-    // Detect if message contains goodbye patterns
+    // Legacy method - kept for backwards compatibility but always returns false
+    // Feedback is now based on bot responses, not user messages
     detectGoodbyePattern(message) {
-        const normalizedMessage = message.toLowerCase().trim();
-        
-        // Check for exact matches and partial matches
-        for (const pattern of this.goodbyePatterns) {
-            if (normalizedMessage.includes(pattern.toLowerCase())) {
-                return true;
-            }
-        }
-
-        // Check for common goodbye combinations
-        const goodbyeCombinations = [
-            /(bye|goodbye|see you|farewell).*(thanks?|thank you)/i,
-            /(thanks?|thank you).*(bye|goodbye|see you|farewell)/i,
-            /(that's all|that's it|nothing else|all done|finished|done)/i,
-            /(good night|good evening|see you later|talk to you later)/i
-        ];
-
-        for (const regex of goodbyeCombinations) {
-            if (regex.test(normalizedMessage)) {
-                return true;
-            }
-        }
-
+        // Always return false - goodbye patterns are no longer used
         return false;
     }
 
@@ -466,46 +408,58 @@ class FeedbackManager {
         }
     }
 
-    // Enhanced method to check for farewell patterns in user messages
-    checkForFarewellTrigger(userMessage) {
-        // Use the comprehensive goodbye patterns that include both English and Filipino
-        const messageLower = userMessage.toLowerCase().trim();
+    // Method to check if feedback should be shown after bot response
+    // No longer based on goodbye patterns - only based on bot responses
+    shouldShowFeedbackAfterBotResponse() {
+        // Don't show if already shown in this session
+        if (this.hasShownFeedback) {
+            return false;
+        }
         
-        // Check for exact matches and partial matches using the comprehensive patterns
-        for (const pattern of this.goodbyePatterns) {
-            if (messageLower.includes(pattern.toLowerCase())) {
-                console.log('Filipino/English pattern matched:', pattern, 'in message:', userMessage);
-                return true;
-            }
+        // Check cooldown period
+        const now = Date.now();
+        if (now - this.lastFeedbackTime < this.feedbackCooldown && this.lastFeedbackTime > 0) {
+            return false;
         }
-
-        // Check for common goodbye combinations
-        const goodbyeCombinations = [
-            /(bye|goodbye|see you|farewell).*(thanks?|thank you)/i,
-            /(thanks?|thank you).*(bye|goodbye|see you|farewell)/i,
-            /(that's all|that's it|nothing else|all done|finished|done)/i,
-            /(good night|good evening|see you later|talk to you later)/i,
-            // Filipino combinations
-            /(salamat|maraming salamat).*(paalam|babay|ingat)/i,
-            /(paalam|babay|ingat).*(salamat|maraming salamat)/i,
-            /(tapos na|wala na|yun na yun|yun lang|ganun lang)/i,
-            /(magandang gabi|magandang araw|magandang umaga|magandang hapon)/i
-        ];
-
-        for (const regex of goodbyeCombinations) {
-            if (regex.test(messageLower)) {
-                console.log('Goodbye combination matched in message:', userMessage);
-                return true;
-            }
+        
+        // Increment bot response count
+        this.botResponseCount++;
+        
+        // Show feedback after minimum number of bot responses
+        if (this.botResponseCount >= this.minResponsesBeforeFeedback) {
+            // Mark as shown, update last feedback time (but don't reset counter in case we want to show again later)
+            this.hasShownFeedback = true;
+            this.lastFeedbackTime = now;
+            return true;
         }
-
-        console.log('No farewell pattern matched for:', userMessage);
+        
+        return false;
+    }
+    
+    // Legacy method - kept for backwards compatibility but always returns false
+    // Feedback is now based on bot responses, not user farewell messages
+    checkForFarewellTrigger(userMessage) {
+        // Always return false - goodbye patterns are no longer used
         return false;
     }
 
     // Reset feedback state (for new sessions)
     resetFeedbackState() {
         this.hasShownFeedback = false;
+        this.botResponseCount = 0;
+        this.lastFeedbackTime = 0;
+    }
+    
+    // Method to be called when bot responds
+    onBotResponse() {
+        // Check if feedback should be shown after this bot response
+        if (this.shouldShowFeedbackAfterBotResponse()) {
+            // Show feedback after a short delay
+            setTimeout(() => {
+                this.showFeedback();
+                this.hasShownFeedback = true;
+            }, 1500);
+        }
     }
 }
 

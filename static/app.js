@@ -1681,19 +1681,12 @@ showProgressMessage(current, total, operation = "Processing") {
 				} else {
 					this.lastInlineBotIndex = null;
 				}
-				// Check for user farewell message BEFORE adding bot message
-				const shouldShowFeedback = this.checkForUserFarewellMessage(text1);
-				
-				// Decide on feedback AFTER adding bot message
+				// Check for feedback trigger AFTER adding bot message (based on bot response, not user message)
 				this.checkForConversationEnd(r.answer);
 				this.updateChatText();
 				
-				// Show feedback form if user sent farewell message
-				if (shouldShowFeedback) {
-					setTimeout(() => {
-						this.showFeedbackForm();
-					}, 1000); // Show after bot response
-				}
+				// Show feedback form after bot response (not based on goodbye patterns)
+				this.checkAndShowFeedbackAfterBotResponse();
 				textField.value = '';
 				this.args.characterCount.textContent = '0/500';
 				
@@ -1825,9 +1818,6 @@ showProgressMessage(current, total, operation = "Processing") {
         // Hide typing indicator for local responses
         this.hideTypingIndicator();
         
-        // Check for user farewell message BEFORE generating response
-        const shouldShowFeedback = this.checkForUserFarewellMessage(message);
-        
         const botResponse = this.generateLocalResponse(message);
         const msg2 = { name: "Bot", message: botResponse };
         this.messages.push(msg2);
@@ -1835,16 +1825,12 @@ showProgressMessage(current, total, operation = "Processing") {
             this.lastInlineBotIndex = this.messages.length - 1;
             this.pendingInlineAfterResponse = false;
         }
-        // Decide on feedback AFTER adding bot message
+        // Check for feedback trigger AFTER adding bot message (based on bot response, not user message)
         this.checkForConversationEnd(botResponse);
         this.updateChatText();
         
-        // Show feedback form if user sent farewell message
-        if (shouldShowFeedback) {
-            setTimeout(() => {
-                this.showFeedbackForm();
-            }, 1000); // Show after bot response
-        }
+        // Show feedback form after bot response (not based on goodbye patterns)
+        this.checkAndShowFeedbackAfterBotResponse();
         
         // Show contextual suggestions for local responses (fallback)
         const contextualSuggestions = this.getContextualQuickReplies(this.currentContext, botResponse);
@@ -2213,56 +2199,76 @@ showProgressMessage(current, total, operation = "Processing") {
         return false; // Never trigger feedback from bot responses
     }
 
-    // Check if user message contains farewell keywords and trigger feedback
-    checkForUserFarewellMessage(userMessage) {
-        // Use feedback manager's specific keyword detection if available
-        if (window.feedbackManager && window.feedbackManager.checkForFarewellTrigger) {
-            const result = window.feedbackManager.checkForFarewellTrigger(userMessage);
-            console.log('Feedback manager check result:', result);
-            return result;
+    // Check if feedback should be shown after bot response (not based on goodbye patterns)
+    checkAndShowFeedbackAfterBotResponse() {
+        // Use feedback manager's method to check if feedback should be shown
+        // The feedback manager tracks bot responses and decides when to show feedback
+        if (window.feedbackManager && window.feedbackManager.shouldShowFeedbackAfterBotResponse) {
+            const shouldShow = window.feedbackManager.shouldShowFeedbackAfterBotResponse();
+            if (shouldShow) {
+                // Show inline feedback widget after a short delay
+                // The feedback manager already marks hasShownFeedback = true internally
+                setTimeout(() => {
+                    this.showFeedbackForm();
+                }, 1000); // Show after bot response
+            }
+            return shouldShow;
         }
-
-        // Fallback: Include both English and Filipino farewell patterns
-        const farewellKeywords = [
-            // English patterns
-            'thanks', 'thank you', 'goodbye!', 'bye!', 'see you', 'farewell', 'take care', 
-            'have a good day', 'have a nice day', 'that\'s all', 'that\'s it', 'nothing else', 
-            'all done', 'finished', 'done', 'good night', 'good evening', 'see you later',
-            'talk to you later', 'catch you later', 'until next time', 'until we meet again',
-            'so long', 'adios', 'ciao',
-            
-            // Filipino patterns
-            'salamat', 'maraming salamat', 'salamat po', 'salamat sa inyo', 'salamat sa tulong',
-            'paalam', 'babay', 'ingat', 'mag-ingat ka', 'ingat ka', 'ingat po',
-            'hanggang sa muli', 'hanggang sa susunod', 'sige', 'sige na', 'ok na',
-            'tapos na', 'wala na', 'yun na yun', 'yun lang', 'ganun lang',
-            'magandang gabi', 'magandang araw', 'magandang umaga', 'magandang hapon'
-        ];
-
-        // Convert message to lowercase for case-insensitive matching
-        const messageLower = userMessage.toLowerCase().trim();
         
-        // Check if message contains any of the farewell keywords
-        const hasFarewellKeyword = farewellKeywords.some(keyword => 
-            messageLower.includes(keyword.toLowerCase())
-        );
-
-        console.log('Fallback farewell check for:', userMessage, 'Result:', hasFarewellKeyword);
-        return hasFarewellKeyword;
+        // Fallback: Show feedback after 2 bot responses (if feedback manager is not available)
+        if (typeof this.botResponseCount === 'undefined') {
+            this.botResponseCount = 0;
+        }
+        if (typeof this.hasShownFeedback === 'undefined') {
+            this.hasShownFeedback = false;
+        }
+        
+        // Don't show if already shown in this session
+        if (this.hasShownFeedback) {
+            return false;
+        }
+        
+        // Increment bot response count
+        this.botResponseCount++;
+        
+        // Show feedback after 2 bot responses
+        if (this.botResponseCount >= 2) {
+            this.hasShownFeedback = true;
+            setTimeout(() => {
+                this.showFeedbackForm();
+            }, 1000);
+            return true;
+        }
+        
+        return false;
+    }
+    
+    // Legacy method - kept for backwards compatibility but always returns false
+    // Feedback is now based on bot responses, not user farewell messages
+    checkForUserFarewellMessage(userMessage) {
+        // Always return false - goodbye patterns are no longer used
+        return false;
     }
 
-    // Show feedback form when user sends farewell message
+    // Show feedback form after bot response (not based on farewell messages)
     showFeedbackForm() {
-        console.log('showFeedbackForm() called - showing inline feedback');
+        console.log('showFeedbackForm() called - showing inline feedback after bot response');
         // Always use inline feedback widget as a bot message
         this.insertInlineFeedbackMessage();
     }
 
     // Reset feedback state for testing (call this in browser console)
     resetFeedbackState() {
+        // Reset app.js fallback counters
+        this.botResponseCount = 0;
+        this.hasShownFeedback = false;
+        
+        // Reset feedback manager state (primary feedback tracker)
         if (window.feedbackManager) {
             window.feedbackManager.resetFeedbackState();
-            console.log('Feedback state reset');
+            console.log('Feedback state reset (feedback manager and app.js)');
+        } else {
+            console.log('Feedback state reset (app.js only - feedback manager not available)');
         }
     }
 

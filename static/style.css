@@ -16,7 +16,7 @@
 .hamburger-line {
     width: 25px;
     height: 3px;
-    background-color: #000;
+    background-color: #ffffff;
     margin: 3px 0;
     transition: 0.3s;
     border-radius: 2px;
@@ -54,12 +54,12 @@ body {
     margin: 0;
     font-family: Arial, sans-serif;
     color: #000;
-    padding-top: 100px;
-    background: #f1f1f1;
+    padding-top: 0;
+    background: #F1F8FD;
 }
 
 header {
-    background-color: #fdf378;
+    background-color: #900C27;
     padding: 10px 20px;
     border-bottom: 1px solid #ccc;
     position: fixed;
@@ -88,14 +88,27 @@ header {
     margin-right: 10px;
 }
 
+.city-logo {
+    width: 60px;
+    height: 60px;
+    margin-right: 10px;
+    background-color: white;
+    padding: 0;
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    object-fit: cover;
+}
+
 .college-name h1 {
     margin: 0;
     font-size: 18px;
+    color: #ffffff;
 }
 
 .college-name p {
     margin: 0;
     font-size: 12px;
+    color: #ffffff;
 }
 
 .nav-links {
@@ -123,13 +136,15 @@ header {
 .dropdown-content a {
     display: block;
     padding: 10px 15px;
-    color: black;
+    color: #000000 !important;
     text-decoration: none;
     white-space: nowrap;
+    font-weight: 500;
 }
 
 .dropdown-content a:hover {
     background-color: #f0f0f0;
+    color: #900C27 !important;
 }
 
 .dropdown:hover .dropdown-content {
@@ -141,7 +156,7 @@ header {
     display: inline-block;
     padding: 10px 15px;
     text-decoration: none;
-    color: black;
+    color: #ffffff;
     font-weight: bold;
 }
 
@@ -150,7 +165,7 @@ header {
     position: absolute;
     width: 0%;
     height: 2px;
-    background-color: black;
+    background-color: #F1F8FD;
     left: 0;
     bottom: 0;
     transition: width 0.3s ease;
@@ -165,7 +180,8 @@ header {
     justify-content: space-between;
     align-items: center;
     padding: 50px;
-    background: #f1f1f1;
+    background: #F1F8FD;
+    margin-top: 90px;
 }
 
 .hero-text {
@@ -185,7 +201,7 @@ header {
 
 .hero-text button {
     padding: 10px 20px;
-    border: 2px solid black;
+    border: 2px solid #900C27;
     background: none;
     font-size: 16px;
     cursor: pointer;
@@ -194,12 +210,12 @@ header {
 }
 
 .hero-text button:hover {
-    background: black;
-    color: white;
+    background: #900C27;
+    color: #ffffff;
 }
 
 .hero-image {
-    background: #1d3abf;
+    background: #900C27;
     padding: 10px;
     border-radius: 15px;
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
@@ -231,7 +247,7 @@ header {
 }
 
 .feature-card {
-    background-color: #f8946d;
+    background-color: #900C27;
     border-radius: 12px;
     padding: 30px 20px;
     color: white;
@@ -260,7 +276,7 @@ header {
 }
 
 .academic-programs {
-    background-color: #fdf378;
+    background-color: #F1F8FD;
     padding: 60px 30px;
     text-align: center;
 }
@@ -300,7 +316,7 @@ header {
 }
 
 .program-card a {
-    color: #1d3abf;
+    color: #900C27;
     font-weight: bold;
     text-decoration: none;
 }
@@ -310,7 +326,7 @@ header {
 }
 
 .view-button {
-    background-color: #1d3abf;
+    background-color: #900C27;
     color: white;
     padding: 12px 24px;
     border-radius: 25px;
@@ -321,7 +337,7 @@ header {
 }
 
 .view-button:hover {
-    background-color: #1527a0;
+    background-color: #6f0a1e;
 }
 
 .cta {
@@ -345,7 +361,7 @@ header {
 
 .cta-button {
     display: inline-block;
-    background-color: #ff4d4d;
+    background-color: #900C27;
     color: white;
     padding: 14px 30px;
     border-radius: 30px;
@@ -355,14 +371,14 @@ header {
 }
 
 .cta-button:hover {
-    background-color: #e63939;
+    background-color: #6f0a1e;
 }
 
 .site-footer {
-    background-color: #fdf378;
+    background-color: #900C27;
     padding: 40px 30px 20px;
     font-size: 14px;
-    color: #000;
+    color: #ffffff;
 }
 
 .footer-content {
@@ -381,7 +397,7 @@ header {
 .footer-column p,
 .footer-column a,
 .footer-bottom {
-    color: #000;
+    color: #ffffff;
     text-decoration: none;
     margin-bottom: 8px;
 }
@@ -402,7 +418,7 @@ header {
 .footer-bottom {
     text-align: center;
     font-size: 13px;
-    border-top: 1px solid #e84141;
+    border-top: 1px solid #b51a3a;
     padding-top: 10px;
     margin-top: 10px;
 }
@@ -412,10 +428,12 @@ header {
    ======================= */
 
 .tcc-glance {
-    background-color: #1d3585;
+    background-color: #900C27;
     color: white;
     text-align: center;
-    padding: 60px 20px;
+    padding: 80px 20px;
+    margin-top: 60px;
+    position: relative;
 }
 
 .tcc-glance h2 {
@@ -434,6 +452,8 @@ header {
 .history-section {
     padding: 60px 20px;
     background-color: #f9f9fb;
+    margin-top: 0;
+    position: relative;
 }
 
 .history-container {
@@ -448,7 +468,7 @@ header {
 
 .history-text {
     flex: 1 1 55%;
-    color: #1d3585;
+    color: #900C27;
 }
 
 .history-text h2 {
@@ -487,7 +507,7 @@ header {
 .commitment-section h2 {
     font-size: 2rem;
     font-weight: 700;
-    color: #1d3585;
+    color: #900C27;
     margin-bottom: 40px;
 }
 
@@ -514,7 +534,7 @@ header {
 }
 
 .icon-circle {
-    background-color: #e3ecff;
+    background-color: #f5e6e8;
     border-radius: 50%;
     width: 60px;
     height: 60px;
@@ -551,7 +571,7 @@ header {
 .section-title {
     font-size: 28px;
     font-weight: bold;
-    color: #12377B;
+    color: #900C27;
     margin-bottom: 40px;
 }
 
@@ -564,7 +584,7 @@ header {
 
 .number-item h3 {
     font-size: 32px;
-    color: #12377B;
+    color: #900C27;
     margin-bottom: 10px;
 }
 
@@ -583,7 +603,7 @@ header {
 .learn-title {
     font-size: 28px;
     font-weight: bold;
-    color: #12377B;
+    color: #900C27;
     margin-bottom: 40px;
 }
 
@@ -611,7 +631,7 @@ header {
 }
 
 .learn-card h3 {
-    color: #12377B;
+    color: #900C27;
     font-size: 16px;
     font-weight: bold;
     margin-bottom: 10px;
@@ -627,7 +647,7 @@ header {
    ======================= */
 
 .mission-section {
-    background-color: #1d3b87; /* Deep blue background */
+    background-color: #900C27; /* Deep blue background */
     color: white;
     text-align: center;
     padding: 60px 20px;
@@ -655,7 +675,7 @@ header {
 }
 
 .mission-vision-cards .card {
-    background-color: #f0f6ff;
+    background-color: #f5e6e8;
     padding: 30px;
     border-radius: 12px;
     box-shadow: 0 4px 8px rgba(0,0,0,0.05);
@@ -678,7 +698,7 @@ header {
 .icon-title .icon {
     width: 40px;
     height: 40px;
-    background-color: #1d3b87;
+    background-color: #900C27;
     color: white;
     font-size: 22px;
     display: flex;
@@ -689,7 +709,7 @@ header {
 
 .mission-vision-cards .card h2 {
     font-size: 24px;
-    color: #1d3b87;
+    color: #900C27;
     margin: 0;
 }
 
@@ -714,7 +734,7 @@ header {
 .icon-heart {
     width: 50px;
     height: 50px;
-    background-color: #1d3b87;
+    background-color: #900C27;
     color: white;
     font-size: 24px;
     display: flex;
@@ -726,7 +746,7 @@ header {
 
 .core-values h2 {
     font-size: 28px;
-    color: #1d3b87;
+    color: #900C27;
     margin-bottom: 10px;
 }
 
@@ -752,7 +772,7 @@ header {
 }
 
 .value-card h3 {
-    color: #1d3b87;
+    color: #900C27;
     margin-bottom: 10px;
     font-size: 18px;
 }
@@ -777,7 +797,7 @@ header {
 
 .commitment-students h2 {
     font-size: 28px;
-    color: #1d3b87;
+    color: #900C27;
     margin-bottom: 10px;
 }
 
@@ -791,10 +811,11 @@ header {
    ======================= */
 
 .academic-programs-section {
-    background-color: #1e398f;
+    background-color: #900C27;
     color: white;
     padding: 60px 20px;
     text-align: center;
+    margin-top: 60px;
 }
 
 .academic-programs-section .container {
@@ -828,7 +849,7 @@ header {
 
 .education-excellence h2 {
     font-size: 2.2rem;
-    color: #1e398f;
+    color: #900C27;
     font-weight: 700;
     margin-bottom: 20px;
 }
@@ -898,7 +919,7 @@ header {
 }
 
 .college-section > h2 {
-    color: #0a2c82;
+    color: #900C27;
     text-align: center;
     font-size: 2.5rem;
     font-weight: bold;
@@ -925,17 +946,21 @@ header {
 
 .college-image {
     flex: 1;
-    min-width: 300px;
+    min-width: 260px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .college-image img {
     width: 100%;
-    height: 100%;
-    object-fit: cover;
+    max-width: 420px;
+    height: auto;
+    object-fit: contain;
 }
 
 .college-text h2 {
-    color: #0a2c82;
+    color: #900C27;
     margin-top: 0;
     font-size: 1.5rem;
 }
@@ -946,7 +971,7 @@ header {
 }
 
 .college-text h3 {
-    color: #0a2c82;
+    color: #900C27;
     margin-top: 20px;
 }
 
@@ -963,7 +988,7 @@ header {
 }
 
 .cta-section {
-    background-color: #193a8b;
+    background-color: #900C27;
     color: white;
     text-align: center;
     padding: 60px 20px;
@@ -984,7 +1009,7 @@ header {
 .cta-section .cta-button {
     display: inline-block;
     background-color: white;
-    color: #193a8b;
+    color: #900C27;
     padding: 12px 30px;
     font-weight: bold;
     text-decoration: none;
@@ -994,7 +1019,7 @@ header {
 
 .cta-section .cta-button:hover {
     background-color: #f0f0f0;
-    color: #10235b;
+    color: #900C27;
 }
 
 /* =======================
@@ -1002,7 +1027,7 @@ header {
    ======================= */
 
 .board-trustees {
-    background-color: #1d3585; /* deep blue background */
+    background-color: #900C27; /* maroon background */
     color: white;
     text-align: center;
     padding: 60px 20px;
@@ -1030,7 +1055,7 @@ header {
 
 .leadership-section .section-title {
     font-size: 2rem;
-    color: #0d2b6a;
+    color: #900C27;
     font-weight: bold;
     margin-bottom: 10px;
 }
@@ -1051,10 +1076,11 @@ header {
 }
 
 .leadership-section .card {
+    width: min(300px, 100%);
+    flex: 1 1 260px;  /* optional but helps wrapping */
     background-color: #f9f9f9;
     border-radius: 12px;
     overflow: hidden;
-    width: 300px;
     box-shadow: 0 4px 10px rgba(0,0,0,0.1);
     transition: transform 0.3s ease;
 }
@@ -1077,12 +1103,12 @@ header {
 .card-content h3 {
     margin: 0;
     font-size: 1.1rem;
-    color: #0d2b6a;
+    color: #900C27;
     font-weight: bold;
 }
 
 .card-content .position {
-    color: #0033cc;
+    color: #900C27;
     font-weight: 600;
     margin: 5px 0;
 }
@@ -1101,7 +1127,7 @@ header {
 
 .responsibilities-section .section-title {
     font-size: 2rem;
-    color: #0d2b6a;
+    color: #900C27;
     font-weight: bold;
     margin-bottom: 30px;
 }
@@ -1133,7 +1159,7 @@ header {
 .responsibilities-list .icon {
     display: inline-block;
     margin-right: 12px;
-    color: #3b82f6;
+    color: #900C27;
     font-size: 1.2rem;
 }
 
@@ -1246,8 +1272,8 @@ header {
 }
 
 .chatbox__tts.active {
-    background: rgba(33, 150, 243, 0.2);
-    color: #2196f3;
+    background: rgba(144, 12, 39, 0.2);
+    color: #900C27;
 }
 
 .chatbox__announcements.active {
@@ -1395,8 +1421,8 @@ header {
     border-radius: 12px;
     font-size: 10px;
     font-weight: 600;
-    background: #e3f2fd;
-    color: #1976d2;
+    background: #f5e6e8;
+    color: #900C27;
 }
 
 .announcement-source {
@@ -1477,8 +1503,8 @@ header {
 
 /* Context indicator */
 .chatbox__context {
-    background: #e8f4fd;
-    border: 1px solid #2196f3;
+    background: #f5e6e8;
+    border: 1px solid #900C27;
     border-radius: 12px;
     padding: 8px 12px;
     margin: 8px 0;
@@ -1489,12 +1515,12 @@ header {
 }
 
 .context-text {
-    color: #1976d2;
+    color: #900C27;
     font-weight: 500;
 }
 
 .context-reset {
-    background: #2196f3;
+    background: #900C27;
     color: white;
     border: none;
     padding: 4px 8px;
@@ -1505,7 +1531,7 @@ header {
 }
 
 .context-reset:hover {
-    background: #1976d2;
+    background: #900C27;
     transform: scale(1.05);
 }
 
@@ -1933,9 +1959,9 @@ header {
 }
 
 .inline-suggest-btn {
-    background: #e3f2fd;
-    border: 1px solid #2196f3;
-    color: #1976d2;
+    background: #f5e6e8;
+    border: 1px solid #900C27;
+    color: #900C27;
     padding: 4px 8px;
     border-radius: 12px;
     font-size: 11px;
@@ -1945,17 +1971,17 @@ header {
 }
 
 .inline-suggest-btn:hover {
-    background: #bbdefb;
-    border-color: #1976d2;
+    background: #f0d4d8;
+    border-color: #900C27;
     transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(33, 150, 243, 0.2);
+    box-shadow: 0 2px 4px rgba(144, 12, 39, 0.2);
 }
 
 /* Inline category buttons (office topics) */
 .suggested-category-inline {
     background: #f5f5f5;
-    border: 2px solid #4a90e2;
-    color: #4a90e2;
+    border: 2px solid #900C27;
+    color: #900C27;
     padding: 8px 16px;
     border-radius: 20px;
     font-size: 13px;
@@ -1966,10 +1992,10 @@ header {
 }
 
 .suggested-category-inline:hover {
-    background: #4a90e2;
+    background: #900C27;
     color: white;
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(74, 144, 226, 0.3);
+    box-shadow: 0 4px 8px rgba(144, 12, 39, 0.3);
 }
 
 /* Fade in animation for new elements */
@@ -2021,11 +2047,29 @@ header {
 /* Tablets */
 @media (max-width: 768px) {
     body {
-        padding-top: 80px;
+        padding-top: 0;
     }
     
     header {
         padding: 8px 15px;
+        position: fixed;
+    }
+    
+    .hero {
+        margin-top: 80px;
+    }
+    
+    .tcc-glance {
+        margin-top: 80px;
+    }
+    
+    .academic-programs-section {
+        margin-top: 80px;
+    }
+    
+    section.admission-hero,
+    section.community-hero {
+        margin-top: 80px !important;
     }
     
     .navbar {
@@ -2044,12 +2088,25 @@ header {
         margin-right: 8px;
     }
     
+    .city-logo {
+        width: 50px;
+        height: 50px;
+        margin-right: 8px;
+        background-color: white;
+        padding: 0;
+        border-radius: 50%;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        object-fit: cover;
+    }
+    
     .college-name h1 {
         font-size: 16px;
+        color: #ffffff;
     }
     
     .college-name p {
         font-size: 11px;
+        color: #ffffff;
     }
     
     .mobile-menu-toggle {
@@ -2062,7 +2119,7 @@ header {
         right: -100%;
         width: 280px;
         height: 100vh;
-        background: #fdf378;
+        background: #900C27;
         flex-direction: column;
         justify-content: flex-start;
         align-items: flex-start;
@@ -2105,7 +2162,7 @@ header {
         position: static;
         display: none;
         width: 100%;
-        background: rgba(0, 0, 0, 0.05);
+        background: rgba(255, 255, 255, 0.1);
         box-shadow: none;
         border-radius: 0;
         margin-top: 0;
@@ -2119,7 +2176,14 @@ header {
     .dropdown-content a {
         padding: 12px 20px;
         font-size: 14px;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        color: #ffffff !important;
+        font-weight: 500;
+    }
+    
+    .dropdown-content a:hover {
+        background-color: rgba(255, 255, 255, 0.2);
+        color: #F1F8FD !important;
     }
     
     .hero {
@@ -2191,11 +2255,29 @@ header {
 /* Mobile phones */
 @media (max-width: 480px) {
     body {
-        padding-top: 70px;
+        padding-top: 0;
     }
     
     header {
         padding: 5px 10px;
+        position: fixed;
+    }
+    
+    .hero {
+        margin-top: 70px;
+    }
+    
+    .tcc-glance {
+        margin-top: 70px;
+    }
+    
+    .academic-programs-section {
+        margin-top: 70px;
+    }
+    
+    section.admission-hero,
+    section.community-hero {
+        margin-top: 40px !important;
     }
     
     .navbar {
@@ -2217,13 +2299,27 @@ header {
         margin-bottom: 0;
     }
     
+    .city-logo {
+        width: 40px;
+        height: 40px;
+        margin-right: 8px;
+        margin-bottom: 0;
+        background-color: white;
+        padding: 0;
+        border-radius: 50%;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        object-fit: cover;
+    }
+    
     .college-name h1 {
         font-size: 14px;
         margin-bottom: 2px;
+        color: #ffffff;
     }
     
     .college-name p {
         font-size: 10px;
+        color: #ffffff;
     }
     
     .mobile-menu-toggle {
@@ -2236,7 +2332,7 @@ header {
         right: -100%;
         width: 260px;
         height: 100vh;
-        background: #fdf378;
+        background: #900C27;
         flex-direction: column;
         justify-content: flex-start;
         align-items: flex-start;
@@ -2279,7 +2375,7 @@ header {
         position: static;
         display: none;
         width: 100%;
-        background: rgba(0, 0, 0, 0.05);
+        background: rgba(255, 255, 255, 0.1);
         box-shadow: none;
         border-radius: 0;
         margin-top: 0;
@@ -2293,7 +2389,14 @@ header {
     .dropdown-content a {
         padding: 10px 15px;
         font-size: 13px;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        color: #ffffff !important;
+        font-weight: 500;
+    }
+    
+    .dropdown-content a:hover {
+        background-color: rgba(255, 255, 255, 0.2);
+        color: #F1F8FD !important;
     }
     
     .hero {
@@ -2701,4 +2804,11 @@ header {
         min-height: 40px;
     }
 }
+
+/* Add margin-top for first content sections to account for fixed header */
+section.admission-hero,
+section.community-hero {
+    margin-top: 60px !important;
+}
+
 }

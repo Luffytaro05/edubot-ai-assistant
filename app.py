@@ -6,7 +6,7 @@ from chat import (get_response, reset_user_context, clear_chat_history,
                   get_active_announcements, add_announcement, get_announcement_by_id,
                   vector_store, get_chatbot_response,
                   user_contexts, office_tags, detect_office_from_message as chat_detect_office,
-                  get_openai_fallback)
+                  get_openai_fallback, get_tcc_guarded_response, DOMAIN_REFUSAL_MESSAGE)
 import requests
 from pymongo import MongoClient
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -1419,8 +1419,29 @@ def subadmin_logout():
 # ===========================
 
 @app.get("/")
-def index_get():
-    return render_template("base.html")
+def home():
+    """Render the college website home page"""
+    return render_template("home.html")
+
+@app.get("/tcc")
+def tcc_page():
+    """Render the 'This is TCC' page"""
+    return render_template("tcc.html")
+
+@app.get("/academics")
+def academics_page():
+    """Render the Academics page"""
+    return render_template("academics.html")
+
+@app.get("/community")
+def community_page():
+    """Render the Community page"""
+    return render_template("community.html")
+
+@app.get("/admission")
+def admission_page():
+    """Render the Admission page"""
+    return render_template("admission.html")
 
 @app.get("/index")
 def index_page():
@@ -2177,6 +2198,32 @@ def translate():
             "translated": text,  # Return original text on error
             "error": str(e)
         }), 500
+
+
+@app.route("/guarded-chat", methods=["POST"])
+def guarded_chat():
+    """
+    Lightweight endpoint to test the TCC domain-guarded GPT workflow.
+    """
+    payload = request.get_json(silent=True) or {}
+    user_message = (payload.get("message") or "").strip()
+    user_id = (payload.get("user") or payload.get("user_id") or "guest").strip() or "guest"
+
+    if not user_message:
+        return jsonify({"success": False, "message": "A message is required."}), 400
+
+    response_text = get_tcc_guarded_response(user_message, user_id=user_id)
+    refused = response_text.strip().startswith(DOMAIN_REFUSAL_MESSAGE)
+
+    print(f"[GuardedChat] user={user_id} | refused={refused} | message_preview={user_message[:80]}")
+
+    return jsonify(
+        {
+            "success": True,
+            "response": response_text,
+            "refused": refused,
+        }
+    )
 
 
 @app.route("/save_bot_message", methods=["POST"])

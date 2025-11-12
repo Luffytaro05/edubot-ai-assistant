@@ -1,0 +1,92 @@
+{% extends "base_template.html" %}
+
+{% block title %}Home - Tanauan City College{% endblock %}
+
+{% block content %}
+<main class="hero">
+    <div class="hero-text">
+        <h2>Welcome to Tanauan City College</h2>
+        <p>Empowering minds, building futures, and serving the community through quality education.</p>
+        <a href="{{ url_for('tcc_page') }}" class="cta-button">Learn More</a>
+    </div>
+    <div class="hero-image">
+        <img src="{{ url_for('static', filename='images/Background-image.png') }}" alt="Graduation Celebration" />
+    </div>
+</main>
+
+<section class="why-choose">
+    <h2>Why Choose TCC</h2>
+    <div class="features">
+        <div class="feature-card">
+            <div class="icon">📖</div>
+            <h3>Quality Education</h3>
+            <p>Comprehensive programs designed to prepare students for future careers.</p>
+        </div>
+        <div class="feature-card">
+            <div class="icon">👨‍🏫</div>
+            <h3>Dedicated Faculty</h3>
+            <p>Experienced educators committed to student success and academic excellence.</p>
+        </div>
+        <div class="feature-card">
+            <div class="icon">🎓</div>
+            <h3>Student Support</h3>
+            <p>Comprehensive support services to help students achieve their academic goals.</p>
+        </div>
+        <div class="feature-card">
+            <div class="icon">📅</div>
+            <h3>Modern Facilities</h3>
+            <p>State-of-the-art classrooms and resources for an optimal learning environment.</p>
+        </div>
+    </div>
+</section>
+
+<section class="academic-programs">
+    <h2>Academic Programs</h2>
+    <div class="program-cards">
+        <div class="program-card">
+            <h3>🎓 Bachelor of Technical Vocational Teacher Education</h3>
+            <p>A practice-focused program that prepares future TVET educators with strong pedagogy and technical expertise.</p>
+            <ul>
+                <li>Computer Hardware Servicing</li>
+                <li>Automotive Technology</li>
+                <li>Electrical Technology</li>
+                <li>Electronics Technology</li>
+            </ul>
+            <a href="{{ url_for('academics_page') }}">Learn more →</a>
+        </div>
+        <div class="program-card">
+            <h3>🏢 Bachelor of Science in Entrepreneurship</h3>
+            <p>Build, launch, and grow ventures through innovation, finance, and strategic management.</p>
+            <a href="{{ url_for('academics_page') }}">Learn more →</a>
+        </div>
+        <div class="program-card">
+            <h3>💻 Bachelor of Science in Computer Engineering</h3>
+            <p>Gain a solid foundation in hardware, software, and embedded systems to engineer modern computing solutions.</p>
+            <a href="{{ url_for('academics_page') }}">Learn more →</a>
+        </div>
+        <div class="program-card">
+            <h3>🏛️ Bachelor of Public Administration</h3>
+            <p>Develop competencies for effective public service, governance, and policy implementation.</p>
+            <a href="{{ url_for('academics_page') }}">Learn more →</a>
+        </div>
+        <div class="program-card">
+            <h3>📊 Bachelor of Science in Management Accounting</h3>
+            <p>Train to become a strategic business partner through cost analysis, planning, and decision support.</p>
+            <a href="{{ url_for('academics_page') }}">Learn more →</a>
+        </div>
+    </div>
+    <div class="view-all">
+        <a href="{{ url_for('academics_page') }}" class="view-button">View All Programs</a>
+    </div>
+</section>
+
+<section class="cta">
+    <h2>Begin Your Journey at Tanauan City College</h2>
+    <p>
+        Take the first step toward a brighter future. Apply now and join our<br />
+        community of learners and future leaders.
+    </p>
+    <a href="{{ url_for('admission_page') }}" class="cta-button">Apply for Admission</a>
+</section>
+{% endblock %}
+

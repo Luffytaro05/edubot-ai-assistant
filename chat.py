@@ -6,6 +6,13 @@ import os
 import ssl
 import sys
 import pymongo
+import re
+from pathlib import Path
+from typing import Dict, Optional, Tuple, List
+from urllib.parse import urljoin
+
+import requests
+from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from model import NeuralNet, HybridChatModel
 from vector_store import VectorStore
@@ -17,8 +24,71 @@ import certifi
 import time
 from openai import OpenAI
 
+from database import get_context_collection, seed_sample_data
+from context_search import find_relevant_content, find_best_in_documents, rank_documents
+
+SYSTEM_PROMPT = """
+You are TCC Assistant, the official AI chatbot of Tanauan City College.
+Your job is to answer questions ONLY about:
+- The college (courses, admission, enrollment, departments)
+- Events, facilities, offices, and student services
+
+If the question is unrelated to TCC (for example, math, personal advice, or general knowledge),
+you MUST respond with EXACTLY this message:
+
+"I'm sorry, but I can only assist with questions related to Tanauan City College (TCC).
+For further assistance, you may reach out to the appropriate TCC office below:
+
+📞 TCC Official
+(043) 702 6979 / 📧 tanauancitycollege@gmail.com
+
+🏛️ Office of Student Affairs (OSA)
+0998 457 4389 / 📧 tanauancitycollege.osa@gmail.com
+
+💻 MISU Office
+0994 189 7696 / 📧 tanauancitycollege013@gmail.com
+
+🗂️ Registrar's Office
+0981 349 1038 / 📧 tanauancitycollege.registrar@gmail.com
+
+🎓 Iskolar ng Lungsod Council (ILC)
+0971 745 6791 / 📧 iskolarnglungsodcouncil.tcc@gmail.com
+
+📝 Admission Office
+0956 641 9801 / 📧 tanauancitycollege.admission@gmail.com
+
+💬 Guidance Office
+0985 402 6745 / 📧 tanauancitycollege.guidance@gmail.com
+
+Thank you for reaching out! Please contact the relevant office for your specific concern. 💚"
+
+Do not create your own version of this message. Use it exactly as provided above.
+""".strip()
+
+DOMAIN_REFUSAL_MESSAGE = (
+    "I'm sorry, but I can only assist with questions related to Tanauan City College (TCC).\n"
+    "For further assistance, you may reach out to the appropriate TCC office below:\n\n"
+    "📞 TCC Official\n"
+    "(043) 702 6979 / 📧 tanauancitycollege@gmail.com\n\n"
+    "🏛️ Office of Student Affairs (OSA)\n"
+    "0998 457 4389 / 📧 tanauancitycollege.osa@gmail.com\n\n"
+    "💻 MISU Office\n"
+    "0994 189 7696 / 📧 tanauancitycollege013@gmail.com\n\n"
+    "🗂️ Registrar’s Office\n"
+    "0981 349 1038 / 📧 tanauancitycollege.registrar@gmail.com\n\n"
+    "🎓 Iskolar ng Lungsod Council (ILC)\n"
+    "0971 745 6791 / 📧 iskolarnglungsodcouncil.tcc@gmail.com\n\n"
+    "📝 Admission Office\n"
+    "0956 641 9801 / 📧 tanauancitycollege.admission@gmail.com\n\n"
+    "💬 Guidance Office\n"
+    "0985 402 6745 / 📧 tanauancitycollege.guidance@gmail.com\n\n"
+    "Thank you for reaching out! Please contact the relevant office for your specific concern. 💚"
+)
+
 # Load environment variables
 load_dotenv()
+
+LOCAL_TEMPLATE_MIN_SCORE = float(os.getenv("LOCAL_TEMPLATE_MIN_SCORE", "0.12"))
 
 # Print diagnostic information
 print("System Information:")
@@ -80,6 +150,91 @@ with open("intents.json", "r") as f:
 
 # Initialize Vector Store
 vector_store = VectorStore()
+
+# -------- Website Scraping Configuration --------
+SITE_BASE_URL = os.getenv("SITE_BASE_URL", "https://tanauancitycollege.edu.ph")
+SITE_PAGE_CACHE_TTL = int(os.getenv("SITE_PAGE_CACHE_TTL", "600"))  # seconds
+SITE_PAGE_MAX_CHARS = int(os.getenv("SITE_PAGE_MAX_CHARS", "20000"))
+
+# Simple keyword-based routing to known public pages
+SITE_PAGE_CATALOG = [
+    {
+        "name": "About",
+        "path": "/about",
+        "keywords": [
+            "about", "history", "mission", "vision", "president", "leadership", "overview", "this is tcc"
+        ],
+    },
+    {
+        "name": "Admissions",
+        "path": "/admissions",
+        "keywords": [
+            "admission", "enrollment", "apply", "requirements", "transferee", "freshmen", "acceptance",
+            "psa", "form 137", "form 138"
+        ],
+    },
+    {
+        "name": "Academics",
+        "path": "/academics",
+        "keywords": [
+            "program", "course", "academics", "curriculum", "college", "department", "degree"
+        ],
+    },
+    {
+        "name": "News",
+        "path": "/news",
+        "keywords": [
+            "news", "announcement", "event", "updates", "press", "latest"
+        ],
+    },
+    {
+        "name": "Contact",
+        "path": "/contact",
+        "keywords": [
+            "contact", "phone", "email", "address", "location", "office hours", "visit", "map"
+        ],
+    },
+    {
+        "name": "Student Affairs",
+        "path": "/student-affairs",
+        "keywords": [
+            "osa", "student affairs", "clubs", "organizations", "activities"
+        ],
+    },
+]
+
+SITE_LOCAL_PAGE_MAP = {
+    "/": "templates/home.html",
+    "/home": "templates/home.html",
+    "/about": "templates/tcc.html",
+    "/admissions": "templates/admission.html",
+    "/admission": "templates/admission.html",
+    "/academics": "templates/academics.html",
+    "/community": "templates/community.html",
+    "/tcc": "templates/tcc.html",
+}
+
+LOCAL_TEMPLATE_SOURCES = {
+    "base_template": {"path": "templates/base_template.html", "title": "Base Template"},
+    "home": {"path": "templates/home.html", "title": "Home"},
+    "admission": {"path": "templates/admission.html", "title": "Admission"},
+    "academics": {"path": "templates/academics.html", "title": "Academics"},
+    "community": {"path": "templates/community.html", "title": "Community"},
+    "tcc": {"path": "templates/tcc.html", "title": "This is TCC"},
+}
+
+PATH_TO_TEMPLATE_KEY = {meta["path"]: key for key, meta in LOCAL_TEMPLATE_SOURCES.items()}
+
+PATH_TO_TEMPLATE_KEY = {meta["path"]: key for key, meta in LOCAL_TEMPLATE_SOURCES.items()}
+
+_page_cache: Dict[str, Dict[str, object]] = {}
+_http_session = requests.Session()
+_context_collection = None
+_context_seed_attempted = False
+LOCAL_TEMPLATE_DOCS: List[Dict[str, str]] = []
+LOCAL_TEMPLATE_CACHE: Dict[str, Dict[str, str]] = {}
+LOCAL_TEMPLATE_PAGE_DOCS: Dict[str, Dict[str, str]] = {}
+LOCAL_TEMPLATE_PAGE_DOCS: Dict[str, Dict[str, str]] = {}
 
 # Note: Announcements are now stored exclusively in MongoDB and Pinecone
 # No JSON file fallback - all announcements come from database
@@ -167,34 +322,702 @@ def _get_openai_client():
         print(f"[OpenAI] Client init failed: {e}")
         return None
 
+
+def call_openai_with_prompt(
+    user_content: str,
+    *,
+    temperature: float = 0.2,
+    max_tokens: int = 300,
+    user_id: str = "guest",
+    extra_messages: Optional[List[Dict[str, str]]] = None,
+) -> Optional[str]:
+    """
+    Helper to send a guarded request to GPT with the global system prompt.
+    """
+    client = _get_openai_client()
+    if not client:
+        return None
+
+    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+    messages.append({"role": "user", "content": user_content})
+    if extra_messages:
+        messages.extend(extra_messages)
+
+    start_time = time.perf_counter()
+    try:
+        completion = client.chat.completions.create(
+            model="gpt-4o-mini",
+            temperature=temperature,
+            max_tokens=max_tokens,
+            messages=messages,
+        )
+    except Exception as exc:
+        print(f"[OpenAI] Request failed: {exc}")
+        return None
+    finally:
+        duration = time.perf_counter() - start_time
+        print(
+            f"[OpenAI] Completion in {duration:.2f}s | user={user_id} | temp={temperature}"
+        )
+
+    content = completion.choices[0].message.content if completion and completion.choices else None
+    if content:
+        summary = content.strip()
+        print(f"[DomainGuard] response_preview={summary[:120].replace(chr(10), ' ')}")
+        
+        # Check if OpenAI's response indicates an unrelated question and replace with exact DOMAIN_REFUSAL_MESSAGE
+        summary_lower = summary.lower()
+        
+        # Detect the specific problematic pattern: "I'm here to provide information specifically about..."
+        # combined with "For questions unrelated to TCC" or similar phrasing
+        problematic_patterns = [
+            "i'm here to provide information specifically about tanauan city college",
+            "for questions unrelated to tcc, such as",
+            "i recommend checking with the appropriate office or resource",
+            "you can find the official tcc office directory for further assistance"
+        ]
+        
+        # Check if the response matches the problematic pattern (OpenAI's own refusal message)
+        # but is NOT the exact DOMAIN_REFUSAL_MESSAGE we want
+        has_problematic_pattern = any(pattern in summary_lower for pattern in problematic_patterns)
+        is_exact_message = summary.strip().startswith("I'm sorry, but I can only assist with questions related to Tanauan City College (TCC).")
+        
+        if has_problematic_pattern and not is_exact_message:
+            print(f"[DomainGuard] Detected OpenAI-generated refusal message, replacing with exact DOMAIN_REFUSAL_MESSAGE")
+            return DOMAIN_REFUSAL_MESSAGE
+        
+        return summary
+    return None
+
+
 def get_openai_fallback(message, user_id="guest"):
     """Generate a response using OpenAI GPT-4o mini as a fallback.
 
     Returns a plain string response or None if unavailable.
     """
-    client = _get_openai_client()
-    if client is None:
+    return call_openai_with_prompt(message, temperature=0.2, max_tokens=300, user_id=user_id)
+
+
+def _score_page_entry(question: str, entry: Dict[str, object]) -> int:
+    """Score a catalog entry based on keyword matches."""
+    question_lower = question.lower()
+    keywords = entry.get("keywords", [])
+    score = sum(1 for word in keywords if word in question_lower)
+    # Prefer exact name matches slightly
+    if entry.get("name", "").lower() in question_lower:
+        score += 2
+    return score
+
+
+def _select_relevant_page(question: str) -> Optional[Dict[str, object]]:
+    """Choose the most relevant page config for the question."""
+    best_entry = None
+    best_score = 0
+    for entry in SITE_PAGE_CATALOG:
+        score = _score_page_entry(question, entry)
+        if score > best_score:
+            best_entry = entry
+            best_score = score
+
+    if best_entry and best_score > 0:
+        return best_entry
         return None
+
+
+def _extract_visible_text(html: str) -> str:
+    """Extract visible text from HTML using BeautifulSoup."""
+    soup = BeautifulSoup(html, "html.parser")
+
+    for element in soup(["script", "style", "noscript", "svg"]):
+        element.decompose()
+
+    text_chunks = [chunk.strip() for chunk in soup.stripped_strings if chunk.strip()]
+    text = " ".join(text_chunks)
+    text = re.sub(r"\s+", " ", text)
+    return text
+
+
+def _get_cached_page(path: str) -> Optional[Dict[str, object]]:
+    """Retrieve cached page content if available and fresh."""
+    cached = _page_cache.get(path)
+    if not cached:
+        return None
+
+    age = time.time() - cached["timestamp"]
+    if age > SITE_PAGE_CACHE_TTL:
+        _page_cache.pop(path, None)
+        return None
+    return cached
+
+
+def _cache_page(path: str, data: Dict[str, object]) -> None:
+    """Store page data in cache."""
+    _page_cache[path] = {**data, "timestamp": time.time()}
+
+
+def _fetch_page_text(path: str) -> Optional[Dict[str, object]]:
+    """Fetch and extract visible text for the given page path."""
+    if not SITE_BASE_URL:
+        return None
+
+    cached = _get_cached_page(path)
+    if cached:
+        return {**cached, "source": "cache"}
+
+    url = urljoin(SITE_BASE_URL.rstrip("/") + "/", path.lstrip("/"))
+    fetch_start = time.perf_counter()
+    page_data: Optional[Dict[str, object]] = None
+
     try:
-        system_prompt = (
-            "You are TCC Assistant, a helpful college information bot. "
-            "Answer concisely and accurately about admissions, registrar, ICT, guidance, and student affairs. "
-            "If the question is unrelated, politely guide the user back to supported topics."
-        )
-        completion = client.chat.completions.create(
-            model="gpt-4o-mini",
-            temperature=0.2,
-            max_tokens=300,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": message}
-            ]
-        )
-        content = completion.choices[0].message.content if completion and completion.choices else None
-        return content.strip() if content else None
-    except Exception as e:
-        print(f"[OpenAI] Fallback error: {e}")
+        response = _http_session.get(url, timeout=15)
+        response.raise_for_status()
+    except Exception as exc:
+        print(f"[WebsiteQA] Failed to fetch {url}: {exc}")
+    else:
+        fetch_duration = time.perf_counter() - fetch_start
+        text = _extract_visible_text(response.text)
+        if text:
+            trimmed_text = text[:SITE_PAGE_MAX_CHARS]
+            page_data = {
+                "url": url,
+                "text": trimmed_text,
+                "fetch_duration": fetch_duration,
+                "source": "live",
+            }
+            print(
+                f"[WebsiteQA] Fetched {url} in {fetch_duration:.2f}s "
+                f"(length: {len(trimmed_text)} chars)"
+            )
+        else:
+            print(f"[WebsiteQA] No visible text found for {url}")
+
+    if not page_data:
+        local_data = _load_local_page_text(path)
+        if local_data:
+            _cache_page(path, local_data)
+        return local_data
+
+    _cache_page(path, page_data)
+    return page_data
+
+
+def _load_local_page_text(path: str) -> Optional[Dict[str, object]]:
+    """Fall back to local template files when live fetching fails."""
+    template_path = SITE_LOCAL_PAGE_MAP.get(path)
+    if not template_path:
+        print(f"[WebsiteQA] No local template mapping for path {path}")
         return None
+
+    full_path = Path(__file__).resolve().parent / template_path
+    if not full_path.exists():
+        print(f"[WebsiteQA] Local template not found: {full_path}")
+        return None
+
+    try:
+        html = full_path.read_text(encoding="utf-8")
+    except Exception as exc:
+        print(f"[WebsiteQA] Failed to read local template {full_path}: {exc}")
+        return None
+
+    text = _extract_visible_text(html)
+    if not text:
+        print(f"[WebsiteQA] No visible text extracted from local template {full_path}")
+        return None
+
+    trimmed_text = text[:SITE_PAGE_MAX_CHARS]
+    print(f"[WebsiteQA] Using local template for path {path} ({full_path})")
+    return {
+        "url": f"local://{path.lstrip('/') or 'home'}",
+        "text": trimmed_text,
+        "fetch_duration": 0.0,
+        "source": "local-template",
+    }
+
+
+def _split_template_sections(html: str, base_title: str, page_key: str) -> List[Dict[str, str]]:
+    """
+    Enhanced section splitting with better content extraction.
+    Now extracts more granular sections including paragraphs, lists, and structured content.
+    """
+    soup = BeautifulSoup(html, "html.parser")
+    heading_tags = ["h1", "h2", "h3", "h4", "h5"]
+    sections: List[Dict[str, str]] = []
+
+    headings = soup.find_all(heading_tags)
+    if not headings:
+        # If no headings, try to extract by paragraphs or divs with class/id
+        paragraphs = soup.find_all(["p", "div"], class_=lambda x: x and any(
+            keyword in str(x).lower() for keyword in ["content", "section", "info", "detail"]
+        ))
+        if paragraphs:
+            for idx, para in enumerate(paragraphs[:10]):  # Limit to 10 sections
+                text = para.get_text(separator=" ", strip=True)
+                if text and len(text) > 40:
+                    sections.append({
+                        "slug": f"local-{page_key}-para-{idx+1}",
+                        "title": f"{base_title} - Content Section {idx+1}",
+                        "page": page_key,
+                        "content": text[:SITE_PAGE_MAX_CHARS],
+                        "tags": [page_key, "content"],
+                        "source": "local-template-section",
+                    })
+        return sections
+
+    for idx, heading in enumerate(headings):
+        section_title = heading.get_text(separator=" ", strip=True) or f"{base_title} Section {idx + 1}"
+        collected_parts: List[str] = [section_title]
+
+        # Enhanced content collection - get all content until next heading
+        current = heading.next_sibling
+        while current:
+            if getattr(current, "name", None) in heading_tags:
+                break
+            
+            # Extract text from various elements
+            if isinstance(current, str):
+                text = current.strip()
+                if text:
+                    collected_parts.append(text)
+            else:
+                # Get text from element, including lists
+                if current.name in ["p", "div", "span", "li"]:
+                    text = current.get_text(separator=" ", strip=True)
+                    if text:
+                        collected_parts.append(text)
+                elif current.name in ["ul", "ol"]:
+                    # Extract list items
+                    list_items = current.find_all("li")
+                    for li in list_items:
+                        li_text = li.get_text(separator=" ", strip=True)
+                        if li_text:
+                            collected_parts.append(f"• {li_text}")
+            
+            current = current.next_sibling
+
+        section_text = " ".join(collected_parts).strip()
+        if not section_text or len(section_text) < 40:
+            continue
+
+        # Extract additional tags from heading classes/ids
+        heading_classes = heading.get("class", [])
+        heading_id = heading.get("id", "")
+        tags = [page_key, section_title.lower()]
+        if heading_classes:
+            tags.extend([str(cls).lower() for cls in heading_classes[:2]])
+        if heading_id:
+            tags.append(heading_id.lower())
+
+        sections.append(
+            {
+                "slug": f"local-{page_key}-section-{idx+1}",
+                "title": f"{base_title} - {section_title}",
+                "page": page_key,
+                "content": section_text[:SITE_PAGE_MAX_CHARS],
+                "tags": tags,
+                "source": "local-template-section",
+            }
+        )
+
+    return sections
+
+
+def _load_local_template_contexts() -> None:
+    """Load static template files into in-memory documents for manual search."""
+    global LOCAL_TEMPLATE_DOCS, LOCAL_TEMPLATE_CACHE, LOCAL_TEMPLATE_PAGE_DOCS
+    LOCAL_TEMPLATE_DOCS = []
+    LOCAL_TEMPLATE_CACHE = {}
+    LOCAL_TEMPLATE_PAGE_DOCS = {}
+    base_dir = Path(__file__).resolve().parent
+
+    for key, meta in LOCAL_TEMPLATE_SOURCES.items():
+        rel_path = meta.get("path")
+        if not rel_path:
+            continue
+
+        full_path = base_dir / rel_path
+        if not full_path.exists():
+            print(f"[LocalContext] Template not found: {full_path}")
+            continue
+
+        try:
+            html = full_path.read_text(encoding="utf-8")
+        except Exception as exc:
+            print(f"[LocalContext] Failed to read template {full_path}: {exc}")
+            continue
+
+        text = _extract_visible_text(html)
+        if not text:
+            print(f"[LocalContext] No visible text extracted from {full_path}")
+            continue
+
+        trimmed_text = text[:SITE_PAGE_MAX_CHARS]
+        doc = {
+            "slug": f"local-{key}",
+            "title": meta.get("title", key.replace("_", " ").title()),
+            "page": key,
+            "content": trimmed_text,
+            "tags": [key],
+            "source": "local-template",
+            "path": str(full_path),
+        }
+        LOCAL_TEMPLATE_DOCS.append(doc)
+        LOCAL_TEMPLATE_CACHE[doc["slug"]] = doc
+        LOCAL_TEMPLATE_PAGE_DOCS[key] = doc.copy()
+
+        sections = _split_template_sections(html, doc["title"], key)
+        LOCAL_TEMPLATE_DOCS.extend(sections)
+        for section in sections:
+            LOCAL_TEMPLATE_CACHE[section["slug"]] = section
+
+    print(f"[LocalContext] Loaded {len(LOCAL_TEMPLATE_DOCS)} local template document(s).")
+
+
+_load_local_template_contexts()
+
+
+def _get_page_key_for_route(route_path: str) -> Optional[str]:
+    template_path = SITE_LOCAL_PAGE_MAP.get(route_path)
+    if not template_path:
+        return None
+    return PATH_TO_TEMPLATE_KEY.get(template_path)
+
+
+def _get_documents_for_page(page_key: Optional[str]) -> List[Dict[str, str]]:
+    if not page_key:
+        return []
+    if not LOCAL_TEMPLATE_DOCS:
+        _load_local_template_contexts()
+
+    documents: List[Dict[str, str]] = []
+    base_doc = LOCAL_TEMPLATE_PAGE_DOCS.get(page_key)
+    if base_doc:
+        documents.append(base_doc)
+
+    for doc in LOCAL_TEMPLATE_DOCS:
+        if doc.get("page") == page_key:
+            if base_doc and doc.get("slug") == base_doc.get("slug"):
+                continue
+            documents.append(doc)
+    return documents[:5]
+
+
+def _ensure_context_collection_seeded() -> None:
+    """Populate the context collection with sample data on first access."""
+    global _context_seed_attempted
+    if _context_seed_attempted:
+        return
+    try:
+        seed_sample_data()
+    except Exception as exc:  # pragma: no cover - defensive logging
+        print(f"[ContextSeed] Unable to seed sample documents: {exc}")
+    finally:
+        _context_seed_attempted = True
+
+
+def _get_manual_context_collection():
+    """Lazy-load the MongoDB collection that stores static website sections."""
+    global _context_collection
+    if _context_collection is not None:
+        return _context_collection
+
+    _ensure_context_collection_seeded()
+    collection = get_context_collection()
+    if not collection:
+        print("[ContextSearch] Context collection unavailable; skipping manual injection.")
+        return None
+
+    _context_collection = collection
+    return _context_collection
+
+
+def generate_manual_context_answer(user_message: str, user_id: str = "guest") -> Optional[str]:
+    """
+    Enhanced context retrieval that aggregates multiple sources for better answers.
+    Now combines MongoDB, local templates, and multiple ranked documents.
+    """
+    collection = _get_manual_context_collection()
+    
+    # Collect documents from multiple sources
+    all_candidates: List[Tuple[Dict[str, str], float]] = []
+    
+    # 1. Try MongoDB collection first
+    if collection:
+        match = find_relevant_content(user_message, collection, minimum_score=0.10)
+        if match:
+            all_candidates.append(match)
+    
+    # 2. Add local template documents
+    if not LOCAL_TEMPLATE_DOCS:
+        _load_local_template_contexts()
+    
+    ranked_locals = rank_documents(
+        user_message,
+        LOCAL_TEMPLATE_DOCS,
+        minimum_score=LOCAL_TEMPLATE_MIN_SCORE,
+        top_k=5,  # Get more candidates
+    )
+    all_candidates.extend(ranked_locals)
+    
+    # 3. Try page-based selection as fallback
+    if not all_candidates:
+        entry = _select_relevant_page(user_message)
+        if entry:
+            page_key = _get_page_key_for_route(entry["path"])
+            for doc in _get_documents_for_page(page_key):
+                all_candidates.append((doc, LOCAL_TEMPLATE_MIN_SCORE))
+    
+    if not all_candidates:
+        return None
+    
+    # Sort all candidates by score and take top 3-5
+    all_candidates.sort(key=lambda x: x[1], reverse=True)
+    top_documents = all_candidates[:5]  # Use top 5 for better context
+    
+    # Aggregate content from multiple documents
+    context_chunks = []
+    citations = []
+    seen_slugs = set()
+    
+    for doc, score in top_documents:
+        slug = doc.get("slug", "")
+        if slug in seen_slugs:
+            continue  # Avoid duplicates
+        seen_slugs.add(slug)
+        
+        content = (doc.get("content") or "").strip()
+        if content and len(content) > 30:  # Only include substantial content
+            context_chunks.append(content)
+            title = doc.get("title", doc.get("slug", "Unknown"))
+            page = doc.get("page", "")
+            citations.append(f"{title}" + (f" ({page})" if page else ""))
+    
+    if not context_chunks:
+        return None
+    
+    # Combine contexts with clear separators
+    combined_context = "\n\n---\n\n".join(context_chunks)
+    
+    # Enhanced prompt with better instructions
+    prompt = (
+        "You are TCC Assistant, the official AI chatbot of Tanauan City College.\n"
+        "Your job is to answer questions ONLY about Tanauan City College (TCC).\n\n"
+        "Here is relevant information from the TCC website:\n\n"
+        f"{combined_context}\n\n"
+        f"User question: {user_message}\n\n"
+        "Instructions:\n"
+        "- Answer the user's question clearly and naturally using ONLY the provided information.\n"
+        "- If the information doesn't fully answer the question, say what you can based on the provided content.\n"
+        "- Keep your answer concise but complete (2-4 sentences).\n"
+        "- Use a friendly, helpful tone.\n"
+        "- If the question is not about TCC, politely redirect to TCC-related topics."
+    )
+
+    start_time = time.perf_counter()
+    answer = call_openai_with_prompt(
+        prompt,
+        temperature=0.2,  # Lower temperature for more factual responses
+        max_tokens=400,   # Increased for more complete answers
+        user_id=user_id,
+    )
+    duration = time.perf_counter() - start_time
+    
+    if answer:
+        print(
+            f"[ContextSearch] Answer generated in {duration:.2f}s "
+            f"(sources: {len(context_chunks)} documents, best score: {top_documents[0][1]:.3f})"
+        )
+    else:
+        print(
+            f"[ContextSearch] No answer generated in {duration:.2f}s "
+            f"(attempted {len(context_chunks)} documents)"
+        )
+    
+    if not answer:
+        return None
+
+    # Return answer without citation metadata
+    response = answer.strip()
+    return response
+
+
+def generate_live_site_answer(question: str, user_id: str = "guest") -> Optional[str]:
+    """
+    Fetch the most relevant website page, extract its content, and ask GPT-4o-mini
+    to answer the user's question based on the live text.
+    """
+    entry = _select_relevant_page(question)
+    page_data = None
+    if entry:
+        page_data = _fetch_page_text(entry["path"])
+
+    if not page_data:
+        local_context_answer = answer_from_local_templates(question, user_id=user_id)
+        if local_context_answer:
+            return local_context_answer
+        script_answer = answer_from_local_templates(question, user_id=user_id)
+        if script_answer:
+            return script_answer
+        if not entry:
+            print("[WebsiteQA] No relevant page found; skipping live lookup.")
+            return None
+        return None
+
+    user_prompt = (
+        f"User question: {question}\n\n"
+        f"Website page: {page_data['url']}\n"
+        f"Visible text:\n{page_data['text']}"
+    )
+
+    start_time = time.perf_counter()
+    content = call_openai_with_prompt(
+        user_prompt,
+        temperature=0.1,
+        max_tokens=350,
+        user_id=user_id,
+    )
+    duration = time.perf_counter() - start_time
+    print(
+        f"[WebsiteQA] GPT response generated in {duration:.2f}s "
+        f"(page source: {page_data['source']})"
+    )
+    if not content:
+        return None
+
+    answer = content.strip()
+    if not answer:
+        return None
+
+    # Return answer without source citation
+    return answer
+
+
+def answer_from_local_templates(question: str, user_id: str = "guest") -> Optional[str]:
+    """
+    Enhanced local template search with better ranking and multi-document aggregation.
+    """
+    if not LOCAL_TEMPLATE_DOCS:
+        _load_local_template_contexts()
+
+    # Get more candidates for better context
+    ranked = rank_documents(
+        question,
+        LOCAL_TEMPLATE_DOCS,
+        minimum_score=LOCAL_TEMPLATE_MIN_SCORE,
+        top_k=5,  # Increased from 3 to 5
+    )
+
+    if ranked and ranked[0][1] >= LOCAL_TEMPLATE_MIN_SCORE:
+        candidate_docs = ranked
+    else:
+        candidate_docs: List[Tuple[Dict[str, str], float]] = []
+        entry = _select_relevant_page(question)
+        if entry:
+            page_key = _get_page_key_for_route(entry["path"])
+            page_documents = _get_documents_for_page(page_key)
+            candidate_docs = [(doc, LOCAL_TEMPLATE_MIN_SCORE) for doc in page_documents]
+        if not candidate_docs:
+            return None
+        candidate_docs = candidate_docs[:5]  # Increased from 3
+        ranked = candidate_docs
+
+    # Aggregate content with deduplication
+    context_chunks = []
+    citations = []
+    seen_content = set()
+    
+    for doc, score in ranked:
+        content = doc.get("content", "").strip()
+        # Skip if content is too short or duplicate
+        if len(content) < 30:
+            continue
+        # Simple deduplication check
+        content_hash = hash(content[:100])  # Hash first 100 chars
+        if content_hash in seen_content:
+            continue
+        seen_content.add(content_hash)
+        
+        context_chunks.append(content)
+        title = doc.get("title", doc.get("slug", "Unknown"))
+        page = doc.get("page", "")
+        citations.append(f"{title}" + (f" ({page})" if page else ""))
+
+    if not context_chunks:
+        return None
+
+    context_text = "\n\n---\n\n".join(context_chunks)
+
+    # Enhanced prompt with better instructions
+    prompt = (
+        "You are TCC Assistant, the official AI chatbot of Tanauan City College.\n"
+        "Your job is to answer questions ONLY about Tanauan City College (TCC).\n\n"
+        "Here is relevant information from the TCC website:\n\n"
+        f"{context_text}\n\n"
+        f"User question: {question}\n\n"
+        "Instructions:\n"
+        "- Answer the user's question clearly and naturally using ONLY the provided information.\n"
+        "- Synthesize information from multiple sources if needed.\n"
+        "- If the information doesn't fully answer the question, say what you can based on the provided content.\n"
+        "- Keep your answer concise but complete (2-4 sentences).\n"
+        "- Use a friendly, helpful tone.\n"
+        "- If the question is not about TCC, politely redirect to TCC-related topics."
+    )
+
+    start_time = time.perf_counter()
+    answer = call_openai_with_prompt(
+        prompt,
+        temperature=0.2,
+        max_tokens=450,  # Increased for more complete answers
+        user_id=user_id,
+    )
+    duration = time.perf_counter() - start_time
+    
+    if answer:
+        print(
+            f"[LocalTemplates] Answer generated in {duration:.2f}s "
+            f"(sources: {len(context_chunks)} documents, best score: {ranked[0][1]:.3f})"
+        )
+        # Return answer without source citations
+        return answer
+
+    print(
+        f"[LocalTemplates] GPT returned no answer in {duration:.2f}s "
+        f"(attempted {len(context_chunks)} documents)"
+    )
+    return None
+
+
+def get_tcc_guarded_response(user_message: str, user_id: str = "guest") -> str:
+    """
+    Generate a GPT-backed response that strictly adheres to the TCC domain guard.
+    """
+    if not user_message:
+        return DOMAIN_REFUSAL_MESSAGE
+
+    manual_answer = generate_manual_context_answer(user_message, user_id=user_id)
+    if manual_answer:
+        return manual_answer
+
+    if not LOCAL_TEMPLATE_DOCS:
+        _load_local_template_contexts()
+
+    local_template_answer = answer_from_local_templates(user_message, user_id=user_id)
+    if local_template_answer:
+        return local_template_answer
+
+    live_answer = generate_live_site_answer(user_message, user_id=user_id)
+    if live_answer:
+        return live_answer
+
+    fallback_answer = call_openai_with_prompt(
+        user_message,
+        temperature=0.2,
+        max_tokens=300,
+        user_id=user_id,
+    )
+    if fallback_answer:
+        return fallback_answer
+
+    return DOMAIN_REFUSAL_MESSAGE
 
 def get_user_current_office(user_id):
     """Get the current office context for a user"""
@@ -844,6 +1667,30 @@ def get_response(msg, user_id="guest", save_messages=True):
                         _maybe_save(user_id, "bot", bot_response, office_context, save=save_messages)
                         return bot_response
     
+    # Manual context injection via MongoDB (keyword/fuzzy search)
+    try:
+        contextual_answer = generate_manual_context_answer(msg, user_id=user_id)
+    except Exception as e:
+        print(f"[ContextSearch] Unexpected error: {e}")
+        contextual_answer = None
+
+    if contextual_answer:
+        office_context = detected_office if detected_office in office_tags else None
+        _maybe_save(user_id, "bot", contextual_answer, office_context, save=save_messages)
+        return contextual_answer
+
+    # Live website lookup as a final intelligent fallback
+    try:
+        live_answer = generate_live_site_answer(msg, user_id=user_id)
+    except Exception as e:
+        print(f"[WebsiteQA] Unexpected error during live lookup: {e}")
+        live_answer = None
+
+    if live_answer:
+        office_context = detected_office if detected_office in office_tags else None
+        _maybe_save(user_id, "bot", live_answer, office_context, save=save_messages)
+        return live_answer
+    
     # Last resort: Try FAQ search with lower threshold
     try:
         query_embedding = vector_store.embedding_model.encode(cleaned_msg)
@@ -905,7 +1752,7 @@ def get_response(msg, user_id="guest", save_messages=True):
             _maybe_save(user_id, "bot", bot_response, None, save=save_messages)
             return bot_response
         
-        bot_response = "I'm not sure how to respond to that. Please try one of the suggested topics or rephrase your question."
+        bot_response = DOMAIN_REFUSAL_MESSAGE
         _maybe_save(user_id, "bot", bot_response, None, save=save_messages)
     
     return bot_response
