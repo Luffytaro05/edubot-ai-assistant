@@ -236,6 +236,7 @@ LOCAL_TEMPLATE_CACHE: Dict[str, Dict[str, str]] = {}
 LOCAL_TEMPLATE_PAGE_DOCS: Dict[str, Dict[str, str]] = {}
 LOCAL_TEMPLATE_PAGE_DOCS: Dict[str, Dict[str, str]] = {}
 
+
 # Note: Announcements are now stored exclusively in MongoDB and Pinecone
 # No JSON file fallback - all announcements come from database
 
@@ -352,13 +353,17 @@ def call_openai_with_prompt(
             messages=messages,
         )
     except Exception as exc:
-        print(f"[OpenAI] Request failed: {exc}")
+        duration = time.perf_counter() - start_time
+        print(f"[OpenAI] Request failed after {duration:.2f}s: {exc}")
         return None
     finally:
         duration = time.perf_counter() - start_time
-        print(
-            f"[OpenAI] Completion in {duration:.2f}s | user={user_id} | temp={temperature}"
-        )
+        if duration > 10:
+            print(f"[OpenAI] ⚠️ Slow completion: {duration:.2f}s | user={user_id}")
+        else:
+            print(
+                f"[OpenAI] Completion in {duration:.2f}s | user={user_id} | temp={temperature}"
+            )
 
     content = completion.choices[0].message.content if completion and completion.choices else None
     if content:
@@ -730,35 +735,38 @@ def _get_manual_context_collection():
     return _context_collection
 
 
+
 def generate_manual_context_answer(user_message: str, user_id: str = "guest") -> Optional[str]:
     """
-    Enhanced context retrieval that aggregates multiple sources for better answers.
-    Now combines MongoDB, local templates, and multiple ranked documents.
+    Generate answer using manual context injection from MongoDB and local templates.
     """
     collection = _get_manual_context_collection()
     
-    # Collect documents from multiple sources
+    # Search MongoDB
     all_candidates: List[Tuple[Dict[str, str], float]] = []
-    
-    # 1. Try MongoDB collection first
     if collection:
-        match = find_relevant_content(user_message, collection, minimum_score=0.10)
-        if match:
-            all_candidates.append(match)
+        try:
+            match = find_relevant_content(user_message, collection, minimum_score=0.10)
+            if match:
+                all_candidates.append(match)
+        except Exception as e:
+            print(f"[ContextSearch] MongoDB search error: {e}")
     
-    # 2. Add local template documents
-    if not LOCAL_TEMPLATE_DOCS:
-        _load_local_template_contexts()
+    # Search local templates
+    try:
+        if not LOCAL_TEMPLATE_DOCS:
+            _load_local_template_contexts()
+        local_results = rank_documents(
+            user_message,
+            LOCAL_TEMPLATE_DOCS,
+            minimum_score=LOCAL_TEMPLATE_MIN_SCORE,
+            top_k=5,
+        )
+        all_candidates.extend(local_results)
+    except Exception as e:
+        print(f"[ContextSearch] Local template search error: {e}")
     
-    ranked_locals = rank_documents(
-        user_message,
-        LOCAL_TEMPLATE_DOCS,
-        minimum_score=LOCAL_TEMPLATE_MIN_SCORE,
-        top_k=5,  # Get more candidates
-    )
-    all_candidates.extend(ranked_locals)
-    
-    # 3. Try page-based selection as fallback
+    # Try page-based selection as fallback (only if no candidates)
     if not all_candidates:
         entry = _select_relevant_page(user_message)
         if entry:
@@ -769,75 +777,61 @@ def generate_manual_context_answer(user_message: str, user_id: str = "guest") ->
     if not all_candidates:
         return None
     
-    # Sort all candidates by score and take top 3-5
+    # Sort all candidates by score and take top 5
     all_candidates.sort(key=lambda x: x[1], reverse=True)
-    top_documents = all_candidates[:5]  # Use top 5 for better context
+    top_documents = all_candidates[:5]
     
-    # Aggregate content from multiple documents
+    # Aggregate content from documents
     context_chunks = []
-    citations = []
     seen_slugs = set()
     
     for doc, score in top_documents:
         slug = doc.get("slug", "")
         if slug in seen_slugs:
-            continue  # Avoid duplicates
+            continue
         seen_slugs.add(slug)
         
         content = (doc.get("content") or "").strip()
-        if content and len(content) > 30:  # Only include substantial content
+        if content and len(content) > 30:
             context_chunks.append(content)
-            title = doc.get("title", doc.get("slug", "Unknown"))
-            page = doc.get("page", "")
-            citations.append(f"{title}" + (f" ({page})" if page else ""))
     
     if not context_chunks:
         return None
     
-    # Combine contexts with clear separators
+    # Combine contexts
     combined_context = "\n\n---\n\n".join(context_chunks)
     
-    # Enhanced prompt with better instructions
+    # Enhanced prompt for better utilization of website content
     prompt = (
-        "You are TCC Assistant, the official AI chatbot of Tanauan City College.\n"
-        "Your job is to answer questions ONLY about Tanauan City College (TCC).\n\n"
-        "Here is relevant information from the TCC website:\n\n"
+        "You are TCC Assistant chatbot for Tanauan City College.\n"
+        "Answer ONLY about TCC using this information from the college website:\n\n"
         f"{combined_context}\n\n"
-        f"User question: {user_message}\n\n"
-        "Instructions:\n"
-        "- Answer the user's question clearly and naturally using ONLY the provided information.\n"
-        "- If the information doesn't fully answer the question, say what you can based on the provided content.\n"
-        "- Keep your answer concise but complete (2-4 sentences).\n"
-        "- Use a friendly, helpful tone.\n"
-        "- If the question is not about TCC, politely redirect to TCC-related topics."
+        f"Question: {user_message}\n\n"
+        "Provide a helpful and accurate answer based on the provided information. "
+        "If the information doesn't fully answer the question, provide what you can and suggest contacting the relevant office."
     )
 
     start_time = time.perf_counter()
     answer = call_openai_with_prompt(
         prompt,
-        temperature=0.2,  # Lower temperature for more factual responses
-        max_tokens=400,   # Increased for more complete answers
+        temperature=0.2,
+        max_tokens=300,
         user_id=user_id,
     )
     duration = time.perf_counter() - start_time
     
     if answer:
         print(
-            f"[ContextSearch] Answer generated in {duration:.2f}s "
-            f"(sources: {len(context_chunks)} documents, best score: {top_documents[0][1]:.3f})"
+            f"[ContextSearch] Answer in {duration:.2f}s "
+            f"({len(context_chunks)} docs, score: {top_documents[0][1]:.3f})"
         )
     else:
-        print(
-            f"[ContextSearch] No answer generated in {duration:.2f}s "
-            f"(attempted {len(context_chunks)} documents)"
-        )
+        print(f"[ContextSearch] No answer in {duration:.2f}s")
     
     if not answer:
         return None
 
-    # Return answer without citation metadata
-    response = answer.strip()
-    return response
+    return answer.strip()
 
 
 def generate_live_site_answer(question: str, user_id: str = "guest") -> Optional[str]:
@@ -872,7 +866,7 @@ def generate_live_site_answer(question: str, user_id: str = "guest") -> Optional
     content = call_openai_with_prompt(
         user_prompt,
         temperature=0.1,
-        max_tokens=350,
+        max_tokens=300,
         user_id=user_id,
     )
     duration = time.perf_counter() - start_time
@@ -893,17 +887,17 @@ def generate_live_site_answer(question: str, user_id: str = "guest") -> Optional
 
 def answer_from_local_templates(question: str, user_id: str = "guest") -> Optional[str]:
     """
-    Enhanced local template search with better ranking and multi-document aggregation.
+    Search local template files and generate answer using GPT.
     """
     if not LOCAL_TEMPLATE_DOCS:
         _load_local_template_contexts()
 
-    # Get more candidates for better context
+    # Get candidates
     ranked = rank_documents(
         question,
         LOCAL_TEMPLATE_DOCS,
         minimum_score=LOCAL_TEMPLATE_MIN_SCORE,
-        top_k=5,  # Increased from 3 to 5
+        top_k=5,
     )
 
     if ranked and ranked[0][1] >= LOCAL_TEMPLATE_MIN_SCORE:
@@ -917,72 +911,56 @@ def answer_from_local_templates(question: str, user_id: str = "guest") -> Option
             candidate_docs = [(doc, LOCAL_TEMPLATE_MIN_SCORE) for doc in page_documents]
         if not candidate_docs:
             return None
-        candidate_docs = candidate_docs[:5]  # Increased from 3
+        candidate_docs = candidate_docs[:5]
         ranked = candidate_docs
 
     # Aggregate content with deduplication
     context_chunks = []
-    citations = []
     seen_content = set()
     
     for doc, score in ranked:
         content = doc.get("content", "").strip()
-        # Skip if content is too short or duplicate
         if len(content) < 30:
             continue
-        # Simple deduplication check
-        content_hash = hash(content[:100])  # Hash first 100 chars
+        content_hash = hash(content[:100])
         if content_hash in seen_content:
             continue
         seen_content.add(content_hash)
-        
         context_chunks.append(content)
-        title = doc.get("title", doc.get("slug", "Unknown"))
-        page = doc.get("page", "")
-        citations.append(f"{title}" + (f" ({page})" if page else ""))
 
     if not context_chunks:
         return None
 
+    # Combine contexts
     context_text = "\n\n---\n\n".join(context_chunks)
 
-    # Enhanced prompt with better instructions
+    # Enhanced prompt for better utilization of website content
     prompt = (
-        "You are TCC Assistant, the official AI chatbot of Tanauan City College.\n"
-        "Your job is to answer questions ONLY about Tanauan City College (TCC).\n\n"
-        "Here is relevant information from the TCC website:\n\n"
+        "You are TCC Assistant chatbot for Tanauan City College.\n"
+        "Answer ONLY about TCC using this information from the college website:\n\n"
         f"{context_text}\n\n"
-        f"User question: {question}\n\n"
-        "Instructions:\n"
-        "- Answer the user's question clearly and naturally using ONLY the provided information.\n"
-        "- Synthesize information from multiple sources if needed.\n"
-        "- If the information doesn't fully answer the question, say what you can based on the provided content.\n"
-        "- Keep your answer concise but complete (2-4 sentences).\n"
-        "- Use a friendly, helpful tone.\n"
-        "- If the question is not about TCC, politely redirect to TCC-related topics."
+        f"Question: {question}\n\n"
+        "Provide a helpful and accurate answer based on the provided information. "
+        "If the information doesn't fully answer the question, provide what you can and suggest contacting the relevant office."
     )
 
     start_time = time.perf_counter()
     answer = call_openai_with_prompt(
         prompt,
         temperature=0.2,
-        max_tokens=450,  # Increased for more complete answers
+        max_tokens=300,
         user_id=user_id,
     )
     duration = time.perf_counter() - start_time
     
     if answer:
         print(
-            f"[LocalTemplates] Answer generated in {duration:.2f}s "
-            f"(sources: {len(context_chunks)} documents, best score: {ranked[0][1]:.3f})"
+            f"[LocalTemplates] Answer in {duration:.2f}s "
+            f"({len(context_chunks)} docs, score: {ranked[0][1]:.3f})"
         )
-        # Return answer without source citations
-        return answer
+        return answer.strip()
 
-    print(
-        f"[LocalTemplates] GPT returned no answer in {duration:.2f}s "
-        f"(attempted {len(context_chunks)} documents)"
-    )
+    print(f"[LocalTemplates] No answer in {duration:.2f}s")
     return None
 
 
@@ -1477,6 +1455,14 @@ def get_fallback_response(msg, user_id="guest"):
         return "I'm TCC Assistant! I can help you with information about admissions, registrar services, ICT support, guidance, and student affairs. What would you like to know?"
 
 def get_response(msg, user_id="guest", save_messages=True):
+    """
+    Get chatbot response.
+    
+    Args:
+        msg: User message
+        user_id: User identifier
+        save_messages: Whether to save messages to database
+    """
     # Lazy load model if not already loaded
     global model, hybrid_model, all_words, tags
     if model is None or hybrid_model is None or not model_loaded:
@@ -1539,7 +1525,7 @@ def get_response(msg, user_id="guest", save_messages=True):
         _maybe_save(user_id, "bot", bot_response, current_context, save=save_messages)
         return bot_response
     
-    # ============= SEARCH FAQ DATABASE =============
+    # ============= SEARCH FAQ DATABASE (with early exit) =============
     # Map office tags to office names
     office_name_map = {
         'registrar_office': "Registrar's Office",
@@ -1549,24 +1535,29 @@ def get_response(msg, user_id="guest", save_messages=True):
         'osa_office': "Office of the Student Affairs (OSA)"
     }
     
-    # Try FAQ search with detected office first
+    # Try FAQ search with detected office first (most likely to match)
     faq_answer = None
     if detected_office and detected_office in office_name_map:
         faq_answer = search_faq_database(cleaned_msg, office=office_name_map[detected_office])
+        if faq_answer:
+            office_context = detected_office
+            _maybe_save(user_id, "bot", faq_answer, office_context, save=save_messages)
+            return faq_answer  # Early exit
     
     # Try FAQ search with current context office
-    if not faq_answer and current_context and current_context in office_name_map:
+    if current_context and current_context in office_name_map:
         faq_answer = search_faq_database(cleaned_msg, office=office_name_map[current_context])
+        if faq_answer:
+            office_context = current_context
+            _maybe_save(user_id, "bot", faq_answer, office_context, save=save_messages)
+            return faq_answer  # Early exit
     
-    # Try general FAQ search (all offices)
-    if not faq_answer:
-        faq_answer = search_faq_database(cleaned_msg, office=None)
-    
-    # If FAQ found, return it
+    # Try general FAQ search (all offices) - only if no office-specific match
+    faq_answer = search_faq_database(cleaned_msg, office=None)
     if faq_answer:
         office_context = detected_office if detected_office else current_context
         _maybe_save(user_id, "bot", faq_answer, office_context, save=save_messages)
-        return faq_answer
+        return faq_answer  # Early exit
     # ============= END FAQ SEARCH =============
     
     # Use hybrid model for prediction with enhanced features
@@ -1668,6 +1659,7 @@ def get_response(msg, user_id="guest", save_messages=True):
                         return bot_response
     
     # Manual context injection via MongoDB (keyword/fuzzy search)
+    contextual_answer = None
     try:
         contextual_answer = generate_manual_context_answer(msg, user_id=user_id)
     except Exception as e:
@@ -1680,6 +1672,7 @@ def get_response(msg, user_id="guest", save_messages=True):
         return contextual_answer
 
     # Live website lookup as a final intelligent fallback
+    live_answer = None
     try:
         live_answer = generate_live_site_answer(msg, user_id=user_id)
     except Exception as e:

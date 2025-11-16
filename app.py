@@ -1905,7 +1905,13 @@ def predict():
             print("Using neural network response")
         
         response_time = time.time() - response_start
-        print(f"⏱️ Response generation took {response_time:.3f}s")
+        total_time = time.time() - start_time
+        
+        # Warn if response is taking too long
+        if total_time > 20:
+            print(f"⚠️ Slow response: {total_time:.2f}s (response: {response_time:.3f}s)")
+        else:
+            print(f"⏱️ Response generation took {response_time:.3f}s (total: {total_time:.2f}s)")
 
         # ✅ Common unresolved/fallback patterns
         unresolved_patterns = [

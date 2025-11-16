@@ -183,7 +183,7 @@ def find_relevant_content(
     top_k: int = 1,
 ) -> Optional[Tuple[Dict[str, str], float]]:
     """
-    Enhanced search with better ranking and multiple candidate consideration.
+    Optimized search with early exit and reduced document evaluation.
 
     Args:
         user_message: The raw user question.
@@ -199,7 +199,7 @@ def find_relevant_content(
         return None
 
     try:
-        # Increased limit to evaluate more documents
+        # Reduced limit for faster queries
         cursor = collection.find(
             {},
             {
@@ -210,27 +210,27 @@ def find_relevant_content(
                 "content": True,
                 "tags": True,
             },
-            limit=200,  # Increased from 100
+            limit=100,  # Reduced from 200 for speed
         )
     except Exception as exc:  # pragma: no cover - defensive logging
         print(f"[context_search] Failed to query collection: {exc}")
         return None
 
-    # Score all documents and rank them
-    scored_docs: List[Tuple[Dict[str, str], float]] = []
+    # Score documents with early exit for high confidence matches
+    best_match: Optional[Tuple[Dict[str, str], float]] = None
+    best_score = 0.0
+    
     for doc in cursor:
         score = score_document(user_message, doc)
         if score >= minimum_score:
-            scored_docs.append((doc, score))
+            if score > best_score:
+                best_match = (doc, score)
+                best_score = score
+                # Early exit if we find a very good match
+                if score > 0.75:
+                    break
     
-    if not scored_docs:
-        return None
-    
-    # Sort by score (descending) and return top result
-    scored_docs.sort(key=lambda x: x[1], reverse=True)
-    
-    # Return the best match
-    return scored_docs[0] if scored_docs else None
+    return best_match
 
 
 def find_best_in_documents(
