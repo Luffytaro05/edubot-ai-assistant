@@ -219,11 +219,18 @@ header {
     padding: 10px;
     border-radius: 15px;
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+    max-width: 1500px;
+    flex-shrink: 0;
 }
 
 .hero-image img {
     max-width: 100%;
+    width: 100%;
+    max-height: 800px;
+    height: auto;
     border-radius: 10px;
+    object-fit: cover;
+    display: block;
 }
 
 .why-choose {
