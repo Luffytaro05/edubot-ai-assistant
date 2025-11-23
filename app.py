@@ -1936,13 +1936,15 @@ def predict():
         print(f"⏱️ FAQ search took {faq_time:.3f}s")
 
         # Get chatbot response (in English)
+        # Note: get_response() now includes enhanced website content search with improved
+        # scoring, query expansion, and better context aggregation for more accurate predictions
         response_start = time.time()
         if faq_response:
             response = faq_response
             print("Using FAQ response")
         else:
             response = get_response(text, user_id=user, save_messages=False)
-            print("Using neural network response")
+            print("Using neural network response with enhanced website content search")
         
         response_time = time.time() - response_start
         total_time = time.time() - start_time

@@ -25,7 +25,7 @@ import time
 from openai import OpenAI
 
 from database import get_context_collection, seed_sample_data
-from context_search import find_relevant_content, find_best_in_documents, rank_documents
+from context_search import find_relevant_content, find_best_in_documents, rank_documents, score_document
 
 SYSTEM_PROMPT = """
 You are TCC Assistant, the official AI chatbot of Tanauan City College.
@@ -744,28 +744,49 @@ def _get_manual_context_collection():
 def generate_manual_context_answer(user_message: str, user_id: str = "guest") -> Optional[str]:
     """
     Generate answer using manual context injection from MongoDB and local templates.
+    Enhanced with better ranking, context aggregation, and relevance filtering.
     """
     collection = _get_manual_context_collection()
     
-    # Search MongoDB
+    # Search MongoDB with improved scoring
     all_candidates: List[Tuple[Dict[str, str], float]] = []
     if collection:
         try:
-            match = find_relevant_content(user_message, collection, minimum_score=0.10)
+            # Try to find multiple relevant documents, not just one
+            match = find_relevant_content(user_message, collection, minimum_score=0.08)
             if match:
                 all_candidates.append(match)
+                # If we found a good match, try to find more related documents
+                if match[1] > 0.15:  # Good match found
+                    # Search for additional documents from same page/topic
+                    try:
+                        best_doc = match[0]
+                        page = best_doc.get("page", "")
+                        if page:
+                            # Find related documents from same page
+                            related_docs = collection.find(
+                                {"page": page, "slug": {"$ne": best_doc.get("slug", "")}},
+                                {"_id": False, "slug": True, "title": True, "page": True, "content": True, "tags": True},
+                                limit=3
+                            )
+                            for doc in related_docs:
+                                score = score_document(user_message, doc)
+                                if score >= 0.08:
+                                    all_candidates.append((doc, score))
+                    except Exception as e:
+                        print(f"[ContextSearch] Related document search error: {e}")
         except Exception as e:
             print(f"[ContextSearch] MongoDB search error: {e}")
     
-    # Search local templates
+    # Search local templates with improved ranking
     try:
         if not LOCAL_TEMPLATE_DOCS:
             _load_local_template_contexts()
         local_results = rank_documents(
             user_message,
             LOCAL_TEMPLATE_DOCS,
-            minimum_score=LOCAL_TEMPLATE_MIN_SCORE,
-            top_k=5,
+            minimum_score=max(0.08, LOCAL_TEMPLATE_MIN_SCORE),  # Use higher of the two
+            top_k=7,  # Increased to get more context
         )
         all_candidates.extend(local_results)
     except Exception as e:
@@ -782,13 +803,21 @@ def generate_manual_context_answer(user_message: str, user_id: str = "guest") ->
     if not all_candidates:
         return None
     
-    # Sort all candidates by score and take top 5
+    # Sort all candidates by score and take top documents
     all_candidates.sort(key=lambda x: x[1], reverse=True)
-    top_documents = all_candidates[:5]
     
-    # Aggregate content from documents
+    # Filter out low-quality matches and take top 5-7
+    top_documents = [c for c in all_candidates[:7] if c[1] >= 0.08]
+    
+    if not top_documents:
+        return None
+    
+    # Aggregate content from documents with better deduplication
     context_chunks = []
     seen_slugs = set()
+    seen_content_hashes = set()
+    total_context_length = 0
+    max_context_length = 3000  # Limit total context to avoid token limits
     
     for doc, score in top_documents:
         slug = doc.get("slug", "")
@@ -797,13 +826,41 @@ def generate_manual_context_answer(user_message: str, user_id: str = "guest") ->
         seen_slugs.add(slug)
         
         content = (doc.get("content") or "").strip()
-        if content and len(content) > 30:
+        if not content or len(content) < 30:
+            continue
+        
+        # Deduplicate by content hash (first 100 chars)
+        content_hash = hash(content[:100])
+        if content_hash in seen_content_hashes:
+            continue
+        seen_content_hashes.add(content_hash)
+        
+        # Truncate very long content
+        if len(content) > 800:
+            content = content[:797] + "..."
+        
+        # Check if adding this would exceed limit
+        if total_context_length + len(content) > max_context_length:
+            # Add partial content if we have space
+            remaining = max_context_length - total_context_length
+            if remaining > 100:
+                content = content[:remaining] + "..."
+            else:
+                break
+        
+        # Include title for better context
+        title = doc.get("title", "")
+        if title:
+            context_chunks.append(f"[{title}]\n{content}")
+        else:
             context_chunks.append(content)
+        
+        total_context_length += len(content)
     
     if not context_chunks:
         return None
     
-    # Combine contexts
+    # Combine contexts with better formatting
     combined_context = "\n\n---\n\n".join(context_chunks)
     
     # Enhanced prompt for better utilization of website content
@@ -811,16 +868,20 @@ def generate_manual_context_answer(user_message: str, user_id: str = "guest") ->
         "You are TCC Assistant chatbot for Tanauan City College.\n"
         "Answer ONLY about TCC using this information from the college website:\n\n"
         f"{combined_context}\n\n"
-        f"Question: {user_message}\n\n"
-        "Provide a helpful and accurate answer based on the provided information. "
-        "If the information doesn't fully answer the question, provide what you can and suggest contacting the relevant office."
+        f"User Question: {user_message}\n\n"
+        "Instructions:\n"
+        "- Provide a clear, helpful, and accurate answer based on the provided information.\n"
+        "- If the information doesn't fully answer the question, provide what you can and suggest contacting the relevant office.\n"
+        "- Keep your answer concise (2-4 sentences) unless more detail is needed.\n"
+        "- Use natural, friendly language appropriate for a college chatbot.\n"
+        "- If multiple pieces of information are relevant, synthesize them into a coherent answer."
     )
 
     start_time = time.perf_counter()
     answer = call_openai_with_prompt(
         prompt,
         temperature=0.2,
-        max_tokens=300,
+        max_tokens=400,  # Increased for better answers
         user_id=user_id,
         timeout=25.0,  # 25 second timeout for context search
     )
@@ -829,7 +890,7 @@ def generate_manual_context_answer(user_message: str, user_id: str = "guest") ->
     if answer:
         print(
             f"[ContextSearch] Answer in {duration:.2f}s "
-            f"({len(context_chunks)} docs, score: {top_documents[0][1]:.3f})"
+            f"({len(context_chunks)} docs, best score: {top_documents[0][1]:.3f})"
         )
     else:
         print(f"[ContextSearch] No answer in {duration:.2f}s")
@@ -895,19 +956,20 @@ def generate_live_site_answer(question: str, user_id: str = "guest") -> Optional
 def answer_from_local_templates(question: str, user_id: str = "guest") -> Optional[str]:
     """
     Search local template files and generate answer using GPT.
+    Enhanced with better ranking and context aggregation.
     """
     if not LOCAL_TEMPLATE_DOCS:
         _load_local_template_contexts()
 
-    # Get candidates
+    # Get candidates with improved minimum score
     ranked = rank_documents(
         question,
         LOCAL_TEMPLATE_DOCS,
-        minimum_score=LOCAL_TEMPLATE_MIN_SCORE,
-        top_k=5,
+        minimum_score=max(0.08, LOCAL_TEMPLATE_MIN_SCORE),  # Use higher threshold
+        top_k=7,  # Increased for more context
     )
 
-    if ranked and ranked[0][1] >= LOCAL_TEMPLATE_MIN_SCORE:
+    if ranked and ranked[0][1] >= max(0.08, LOCAL_TEMPLATE_MIN_SCORE):
         candidate_docs = ranked
     else:
         candidate_docs: List[Tuple[Dict[str, str], float]] = []
@@ -918,22 +980,52 @@ def answer_from_local_templates(question: str, user_id: str = "guest") -> Option
             candidate_docs = [(doc, LOCAL_TEMPLATE_MIN_SCORE) for doc in page_documents]
         if not candidate_docs:
             return None
-        candidate_docs = candidate_docs[:5]
+        candidate_docs = candidate_docs[:7]  # Increased
         ranked = candidate_docs
 
-    # Aggregate content with deduplication
+    # Aggregate content with improved deduplication
     context_chunks = []
     seen_content = set()
+    seen_slugs = set()
+    total_length = 0
+    max_length = 3000
     
     for doc, score in ranked:
+        slug = doc.get("slug", "")
+        if slug in seen_slugs:
+            continue
+        seen_slugs.add(slug)
+        
         content = doc.get("content", "").strip()
         if len(content) < 30:
             continue
+        
+        # Better deduplication
         content_hash = hash(content[:100])
         if content_hash in seen_content:
             continue
         seen_content.add(content_hash)
-        context_chunks.append(content)
+        
+        # Truncate long content
+        if len(content) > 800:
+            content = content[:797] + "..."
+        
+        # Check length limit
+        if total_length + len(content) > max_length:
+            remaining = max_length - total_length
+            if remaining > 100:
+                content = content[:remaining] + "..."
+            else:
+                break
+        
+        # Include title for context
+        title = doc.get("title", "")
+        if title:
+            context_chunks.append(f"[{title}]\n{content}")
+        else:
+            context_chunks.append(content)
+        
+        total_length += len(content)
 
     if not context_chunks:
         return None
@@ -946,9 +1038,13 @@ def answer_from_local_templates(question: str, user_id: str = "guest") -> Option
         "You are TCC Assistant chatbot for Tanauan City College.\n"
         "Answer ONLY about TCC using this information from the college website:\n\n"
         f"{context_text}\n\n"
-        f"Question: {question}\n\n"
-        "Provide a helpful and accurate answer based on the provided information. "
-        "If the information doesn't fully answer the question, provide what you can and suggest contacting the relevant office."
+        f"User Question: {question}\n\n"
+        "Instructions:\n"
+        "- Provide a clear, helpful, and accurate answer based on the provided information.\n"
+        "- If the information doesn't fully answer the question, provide what you can and suggest contacting the relevant office.\n"
+        "- Keep your answer concise (2-4 sentences) unless more detail is needed.\n"
+        "- Use natural, friendly language appropriate for a college chatbot.\n"
+        "- If multiple pieces of information are relevant, synthesize them into a coherent answer."
     )
 
     start_time = time.perf_counter()
