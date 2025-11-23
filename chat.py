@@ -331,9 +331,13 @@ def call_openai_with_prompt(
     max_tokens: int = 300,
     user_id: str = "guest",
     extra_messages: Optional[List[Dict[str, str]]] = None,
+    timeout: float = 30.0,
 ) -> Optional[str]:
     """
     Helper to send a guarded request to GPT with the global system prompt.
+    
+    Args:
+        timeout: Maximum time to wait for API response in seconds (default: 30s)
     """
     client = _get_openai_client()
     if not client:
@@ -351,6 +355,7 @@ def call_openai_with_prompt(
             temperature=temperature,
             max_tokens=max_tokens,
             messages=messages,
+            timeout=timeout,
         )
     except Exception as exc:
         duration = time.perf_counter() - start_time
@@ -400,7 +405,7 @@ def get_openai_fallback(message, user_id="guest"):
 
     Returns a plain string response or None if unavailable.
     """
-    return call_openai_with_prompt(message, temperature=0.2, max_tokens=300, user_id=user_id)
+    return call_openai_with_prompt(message, temperature=0.2, max_tokens=300, user_id=user_id, timeout=25.0)
 
 
 def _score_page_entry(question: str, entry: Dict[str, object]) -> int:
@@ -817,6 +822,7 @@ def generate_manual_context_answer(user_message: str, user_id: str = "guest") ->
         temperature=0.2,
         max_tokens=300,
         user_id=user_id,
+        timeout=25.0,  # 25 second timeout for context search
     )
     duration = time.perf_counter() - start_time
     
@@ -868,6 +874,7 @@ def generate_live_site_answer(question: str, user_id: str = "guest") -> Optional
         temperature=0.1,
         max_tokens=300,
         user_id=user_id,
+        timeout=25.0,  # 25 second timeout for live site answer
     )
     duration = time.perf_counter() - start_time
     print(
@@ -950,6 +957,7 @@ def answer_from_local_templates(question: str, user_id: str = "guest") -> Option
         temperature=0.2,
         max_tokens=300,
         user_id=user_id,
+        timeout=25.0,  # 25 second timeout for local template answer
     )
     duration = time.perf_counter() - start_time
     
@@ -991,6 +999,7 @@ def get_tcc_guarded_response(user_message: str, user_id: str = "guest") -> str:
         temperature=0.2,
         max_tokens=300,
         user_id=user_id,
+        timeout=25.0,  # 25 second timeout for fallback answer
     )
     if fallback_answer:
         return fallback_answer

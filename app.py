@@ -1660,6 +1660,46 @@ def predict():
 
         if not text or not text.strip():
             return jsonify({"answer": "Please type something."})
+        
+        # ✅ EARLY OFF-TOPIC DETECTION - Quick check before expensive operations
+        # This prevents timeout by returning domain refusal message immediately for obviously off-topic questions
+        text_lower = text.lower().strip()
+        off_topic_keywords = [
+            # Math and calculations
+            'solve', 'calculate', 'what is 2+2', 'math problem', 'equation', 'formula',
+            # General knowledge (not TCC-specific)
+            'what is the capital', 'history of', 'tell me about',
+            # Personal advice (not TCC-related)
+            'should i break up', 'relationship advice', 'dating advice', 'personal problem',
+            # Non-educational topics
+            'recipe', 'cooking', 'how to cook', 'weather', 'news', 'sports score',
+            # Technology help (not TCC systems)
+            'how to use windows', 'install software', 'computer virus', 'phone problem',
+        ]
+        
+        # TCC-related keywords that indicate the question IS on-topic
+        tcc_keywords = [
+            'tcc', 'tanauan city college', 'college', 'admission', 'enrollment', 'registrar',
+            'transcript', 'tuition', 'scholarship', 'guidance', 'osa', 'ict', 'misu',
+            'course', 'program', 'degree', 'student', 'faculty', 'campus', 'office',
+            'application', 'requirements', 'deadline', 'semester', 'academic', 'enroll',
+            'bachelor', 'bs', 'bsed', 'bscpe', 'entrepreneurship', 'accounting', 'public administration'
+        ]
+        
+        # Check if question contains TCC-related keywords
+        has_tcc_keywords = any(keyword in text_lower for keyword in tcc_keywords)
+        
+        # If no TCC keywords and has off-topic keywords, return domain refusal immediately
+        if not has_tcc_keywords and any(keyword in text_lower for keyword in off_topic_keywords):
+            print(f"🚫 Early off-topic detection: Returning domain refusal message immediately")
+            from chat import DOMAIN_REFUSAL_MESSAGE
+            return jsonify({
+                "answer": DOMAIN_REFUSAL_MESSAGE,
+                "office": "General",
+                "status": "resolved",
+                "detected_language": "en",
+                "early_rejection": True
+            })
 
         # Proceed without response caching
         cache_key = f"{user}:{text.lower().strip()}"
@@ -1968,15 +2008,19 @@ def predict():
             status = "escalated"
             print(f"✅ STATUS SET TO ESCALATED for response: {response[:100]}...")
         elif response and any(p in response.lower() for p in unresolved_patterns):
-            # Try OpenAI fallback for unresolved responses
-            ai_answer = get_openai_fallback(text)
-            if ai_answer:
-                response = ai_answer
-                status = "resolved"
-                print("🤝 OpenAI fallback resolved the response")
-            else:
+            # Try OpenAI fallback for unresolved responses (with timeout)
+            try:
+                ai_answer = get_openai_fallback(text)
+                if ai_answer:
+                    response = ai_answer
+                    status = "resolved"
+                    print("🤝 OpenAI fallback resolved the response")
+                else:
+                    status = "unresolved"
+                    print(f"❌ STATUS SET TO UNRESOLVED for response: {response[:100]}...")
+            except Exception as e:
+                print(f"⚠️ OpenAI fallback failed: {e}, keeping original response")
                 status = "unresolved"
-                print(f"❌ STATUS SET TO UNRESOLVED for response: {response[:100]}...")
         else:
             status = "resolved"
             print(f"✅ STATUS SET TO RESOLVED for response: {response[:100]}...")

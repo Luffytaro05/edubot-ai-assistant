@@ -246,8 +246,8 @@ class Chatbox {
 		const defaultSeconds = 15;
 		const seconds = Number.isFinite(configured) ? configured : defaultSeconds;
 		// Keep timeout consistent on both localhost and production (Railway)
-		// Enforce limits: minimum 10s, maximum 60s
-		const clamped = Math.max(10, Math.min(60, seconds));
+		// Enforce limits: minimum 10s, maximum 120s (increased for Railway cold starts)
+		const clamped = Math.max(10, Math.min(120, seconds));
 
 		console.log("Response timeout set to:", clamped, "seconds");
 
@@ -277,7 +277,7 @@ class Chatbox {
         const configured = Number(this.botSettings?.response_timeout);
         const defaultSeconds = 15;
         const seconds = Number.isFinite(configured) ? configured : defaultSeconds;
-        const clamped = Math.max(10, Math.min(60, seconds));
+        const clamped = Math.max(10, Math.min(120, seconds));
         console.log('Response timeout setting applied:', clamped + ' seconds');
         this.responseTimeoutSeconds = clamped;
     }
