@@ -6,8 +6,7 @@ from chat import (get_response, reset_user_context, clear_chat_history,
                   get_active_announcements, add_announcement, get_announcement_by_id,
                   vector_store, get_chatbot_response,
                   user_contexts, office_tags, detect_office_from_message as chat_detect_office,
-                  get_openai_fallback, get_tcc_guarded_response, DOMAIN_REFUSAL_MESSAGE,
-                  is_tcc_related_question)
+                  get_openai_fallback, get_tcc_guarded_response, DOMAIN_REFUSAL_MESSAGE)
 import requests
 from pymongo import MongoClient
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -1675,8 +1674,7 @@ def predict():
                 user_contexts,
                 office_tags,
                 detect_office_from_message,
-                get_openai_fallback,
-                is_tcc_related_question
+                get_openai_fallback
             )
         except ImportError as e:
             print(f"[ERROR] Chat module import error: {e}")
@@ -1755,22 +1753,6 @@ def predict():
         print(f"⏱️ Translation processing took {translation_time:.3f}s")
         
         print(f"User {user} asked: {text}")
-        
-        # ✅ FAST EARLY DOMAIN CHECK - after translation (text is now in English)
-        # This prevents timeouts by quickly returning DOMAIN_REFUSAL_MESSAGE for non-TCC questions
-        # Check happens AFTER translation so the check function can properly analyze English text
-        try:
-            if not is_tcc_related_question(text):
-                print(f"[DomainGuard] Fast early check in /predict: Non-TCC question detected, returning DOMAIN_REFUSAL_MESSAGE immediately")
-                return jsonify({
-                    "answer": DOMAIN_REFUSAL_MESSAGE,
-                    "office": "General",
-                    "status": "resolved",
-                    "early_domain_check": True,
-                    "detected_language": detected_language
-                })
-        except Exception as e:
-            print(f"[WARNING] Early domain check failed: {e}, continuing with normal processing")
 
         # ✅ CHECK FOR PENDING OFFICE SWITCH CONFIRMATION
         pending_switch_office = None
@@ -2141,21 +2123,6 @@ def chat():
         
         if not user_message or not user_message.strip():
             return jsonify({"response": "Please type something."})
-        
-        # ✅ FAST EARLY DOMAIN CHECK - before expensive operations
-        # This prevents timeouts by quickly returning DOMAIN_REFUSAL_MESSAGE for non-TCC questions
-        try:
-            if not is_tcc_related_question(user_message):
-                print(f"[DomainGuard] Fast early check in /chat: Non-TCC question detected, returning DOMAIN_REFUSAL_MESSAGE immediately")
-                return jsonify({
-                    "response": DOMAIN_REFUSAL_MESSAGE,
-                    "user": user,
-                    "status": "resolved",
-                    "office": "General",
-                    "early_domain_check": True
-                })
-        except Exception as e:
-            print(f"[WARNING] Early domain check failed in /chat: {e}, continuing with normal processing")
         
         # Get response from rules-based chatbot (in English)
         # Returns dict with response, status, and office

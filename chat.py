@@ -964,132 +964,11 @@ def answer_from_local_templates(question: str, user_id: str = "guest") -> Option
     return None
 
 
-def is_tcc_related_question(message: str) -> bool:
-    """
-    Fast early domain check using keyword matching to quickly identify if a question
-    is TCC-related before expensive operations (API calls, vector searches).
-    
-    Supports both English and Filipino keywords to work before translation.
-    
-    Returns True if the message appears to be TCC-related, False otherwise.
-    This check runs before any expensive operations to avoid timeouts.
-    """
-    if not message or not message.strip():
-        return False
-    
-    message_lower = message.lower()
-    
-    # TCC-related keywords - if any of these appear, it's likely TCC-related
-    # Includes both English and Filipino keywords to work before translation
-    tcc_keywords = [
-        # College name and variations (English and Filipino)
-        'tcc', 'tanauan city college', 'tanauancitycollege',
-        
-        # Office names (English)
-        'registrar', 'admission', 'admissions', 'guidance', 'ict', 'misu',
-        'osa', 'office of student affairs', 'student affairs',
-        'iskolar ng lungsod', 'ilc', 'council',
-        
-        # Office names (Filipino)
-        'registro', 'admission', 'guidance', 'mga opisina',
-        'student affairs', 'iskolar', 'lungsod',
-        
-        # Services and departments (English)
-        'enroll', 'enrollment', 'apply', 'application', 'transcript', 'tor',
-        'grades', 'academic records', 'student portal', 'ehub', 'e-hub',
-        'password', 'username', 'login', 'wifi', 'scholarship', 'counseling',
-        'clubs', 'activities', 'student organizations', 'student council',
-        
-        # Services and departments (Filipino)
-        'mag-enroll', 'mag-aplay', 'transkrip', 'mga grado', 'portal',
-        'password', 'username', 'scholarship', 'mga klab',
-        
-        # General college terms (English)
-        'course', 'program', 'degree', 'tuition', 'fee', 'deadline',
-        'requirements', 'documents', 'certificate', 'good moral',
-        'form 137', 'form 138', 'psa', 'birth certificate',
-        
-        # General college terms (Filipino)
-        'kurso', 'programa', 'degree', 'tuition', 'bayad', 'requirements',
-        'mga dokumento', 'sertipiko', 'certificate',
-        
-        # Common queries that are TCC-related (English)
-        'office hours', 'contact', 'email', 'phone', 'location', 'address',
-        'how to', 'where to', 'when', 'what time', 'available slots',
-        'entrance exam', 'psychological test', 'graduation', 'diploma',
-        
-        # Common queries that are TCC-related (Filipino)
-        'oras ng opisina', 'kontak', 'lokasyon', 'paano', 'saan', 'kailan',
-        'exam', 'graduation',
-        
-        # Academic terms (English)
-        'semester', 'trimestral', 'schedule', 'subjects', 'professor',
-        'instructor', 'faculty', 'library', 'laboratory', 'classroom',
-        
-        # Academic terms (Filipino)
-        'semestre', 'iskedyul', 'mga asignatura', 'profesor', 'library',
-        'laboratoryo', 'klase',
-    ]
-    
-    # Non-TCC keywords - if message is ONLY about these topics, it's likely NOT TCC-related
-    non_tcc_keywords = [
-        # Math and calculations
-        'calculate', 'solve', 'equation', 'formula', 'algebra', 'geometry',
-        'trigonometry', 'calculus', 'derivative', 'integral', 'multiply',
-        'divide', 'plus', 'minus', 'equals', '2+2', 'what is', 'what\'s',
-        
-        # General knowledge (without TCC context)
-        'history of', 'who invented', 'when was', 'what happened',
-        'tell me about', 'explain', 'define',
-        
-        # Personal advice (without TCC context)
-        'should i', 'what should', 'how do i', 'help me with',
-        
-        # Science/tech (without TCC context)
-        'physics', 'chemistry', 'biology', 'programming language',
-        'python tutorial', 'javascript', 'html', 'css',
-        
-        # Weather, news, current events
-        'weather', 'news', 'politics', 'sports', 'movies', 'music',
-    ]
-    
-    # Check if message contains TCC-related keywords
-    has_tcc_keywords = any(keyword in message_lower for keyword in tcc_keywords)
-    
-    # Check if message contains ONLY non-TCC keywords (no TCC context)
-    has_non_tcc_keywords = any(keyword in message_lower for keyword in non_tcc_keywords)
-    
-    # If it has TCC keywords, it's TCC-related
-    if has_tcc_keywords:
-        return True
-    
-    # If it ONLY has non-TCC keywords (no TCC keywords), it's not TCC-related
-    if has_non_tcc_keywords and not has_tcc_keywords:
-        # Double-check: if message is very short and only contains non-TCC keywords, likely not TCC
-        words = message_lower.split()
-        if len(words) <= 5:  # Short questions like "what is 2+2?"
-            return False
-    
-    # For ambiguous cases (greetings, thanks, etc.), allow through
-    greetings = ['hello', 'hi', 'hey', 'good morning', 'good afternoon', 'good evening', 'thanks', 'thank you', 'salamat', 'bye']
-    if any(greeting in message_lower for greeting in greetings):
-        return True
-    
-    # Default: if unsure, allow through (let the later checks handle it)
-    # This prevents false positives
-    return True
-
-
 def get_tcc_guarded_response(user_message: str, user_id: str = "guest") -> str:
     """
     Generate a GPT-backed response that strictly adheres to the TCC domain guard.
     """
     if not user_message:
-        return DOMAIN_REFUSAL_MESSAGE
-    
-    # ✅ FAST EARLY DOMAIN CHECK - before expensive operations
-    if not is_tcc_related_question(user_message):
-        print(f"[DomainGuard] Fast early check: Non-TCC question detected, returning DOMAIN_REFUSAL_MESSAGE immediately")
         return DOMAIN_REFUSAL_MESSAGE
 
     manual_answer = generate_manual_context_answer(user_message, user_id=user_id)
@@ -1584,13 +1463,6 @@ def get_response(msg, user_id="guest", save_messages=True):
         user_id: User identifier
         save_messages: Whether to save messages to database
     """
-    # ✅ FAST EARLY DOMAIN CHECK - before expensive operations
-    if not is_tcc_related_question(msg):
-        print(f"[DomainGuard] Fast early check in get_response(): Non-TCC question detected, returning DOMAIN_REFUSAL_MESSAGE immediately")
-        if save_messages:
-            _maybe_save(user_id, "bot", DOMAIN_REFUSAL_MESSAGE, None, save=True)
-        return DOMAIN_REFUSAL_MESSAGE
-    
     # Lazy load model if not already loaded
     global model, hybrid_model, all_words, tags
     if model is None or hybrid_model is None or not model_loaded:
@@ -2046,15 +1918,6 @@ def get_chatbot_response(message):
             'office': str - Detected office or 'General'
         }
     """
-    # ✅ FAST EARLY DOMAIN CHECK - before processing
-    if not is_tcc_related_question(message):
-        print(f"[DomainGuard] Fast early check in get_chatbot_response(): Non-TCC question detected, returning DOMAIN_REFUSAL_MESSAGE immediately")
-        return {
-            'response': DOMAIN_REFUSAL_MESSAGE,
-            'status': 'resolved',
-            'office': 'General'
-        }
-    
     message_lower = message.lower()
     office = "General"
     status = "resolved"
