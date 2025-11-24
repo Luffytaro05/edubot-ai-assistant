@@ -1667,14 +1667,66 @@ def predict():
         off_topic_keywords = [
             # Math and calculations
             'solve', 'calculate', 'what is 2+2', 'math problem', 'equation', 'formula',
+            'algebra', 'calculus', 'geometry', 'trigonometry', 'derivative', 'integral',
+            'square root', 'multiply', 'divide', 'percentage', 'fraction', 'decimal',
             # General knowledge (not TCC-specific)
-            'what is the capital', 'history of', 'tell me about',
+            'what is the capital', 'history of', 'tell me about', 'who is the president',
+            'what is the population', 'where is', 'when did', 'who invented', 'what happened in',
+            'world war', 'ancient', 'civilization', 'country', 'city', 'continent',
             # Personal advice (not TCC-related)
             'should i break up', 'relationship advice', 'dating advice', 'personal problem',
-            # Non-educational topics
-            'recipe', 'cooking', 'how to cook', 'weather', 'news', 'sports score',
+            'how to get a girlfriend', 'how to get a boyfriend', 'marriage advice', 'divorce',
+            'family problem', 'friend problem', 'social anxiety', 'loneliness', 'depression',
+            # Health and Medical (not TCC health services)
+            'how to lose weight', 'diet plan', 'exercise routine', 'workout', 'gym',
+            'symptoms', 'diagnosis', 'medicine', 'prescription', 'doctor', 'hospital',
+            'cure', 'treatment', 'disease', 'illness', 'pain', 'headache', 'fever',
+            # Legal advice
+            'legal advice', 'lawyer', 'lawsuit', 'court', 'legal case', 'contract',
+            'divorce lawyer', 'criminal', 'arrest', 'lawsuit', 'legal document',
+            # Financial advice (non-TCC)
+            'how to invest', 'stock market', 'cryptocurrency', 'bitcoin', 'trading',
+            'how to make money', 'side hustle', 'business idea', 'startup', 'entrepreneur',
+            'loan', 'credit card', 'mortgage', 'insurance', 'retirement plan',
             # Technology help (not TCC systems)
             'how to use windows', 'install software', 'computer virus', 'phone problem',
+            'how to hack', 'programming tutorial', 'coding help', 'python tutorial',
+            'javascript tutorial', 'website development', 'app development', 'gaming pc',
+            'iphone', 'android', 'macbook', 'laptop recommendation', 'best phone',
+            # Entertainment
+            'movie', 'netflix', 'youtube', 'spotify', 'music', 'song', 'artist',
+            'celebrity', 'actor', 'actress', 'tv show', 'series', 'anime', 'manga',
+            'video game', 'gaming', 'playstation', 'xbox', 'nintendo', 'steam',
+            # Food and Recipes
+            'recipe', 'cooking', 'how to cook', 'baking', 'restaurant', 'food',
+            'cuisine', 'ingredients', 'how to make', 'dish', 'meal prep', 'diet',
+            # Travel
+            'travel', 'vacation', 'hotel', 'flight', 'ticket', 'tourist', 'destination',
+            'visa', 'passport', 'airline', 'booking', 'resort', 'beach', 'mountain',
+            # Sports
+            'sports score', 'football', 'basketball', 'soccer', 'baseball', 'tennis',
+            'olympics', 'championship', 'player', 'team', 'match', 'game result',
+            # News and Current Events
+            'news', 'breaking news', 'politics', 'election', 'government', 'president',
+            'latest news', 'headlines', 'current events', 'world news', 'local news',
+            # Weather
+            'weather', 'forecast', 'temperature', 'rain', 'snow', 'hurricane', 'storm',
+            'climate', 'season', 'sunny', 'cloudy', 'windy',
+            # Shopping
+            'where to buy', 'best price', 'shopping', 'amazon', 'online store',
+            'product review', 'best product', 'cheap', 'discount', 'sale',
+            # Social Media
+            'instagram', 'facebook', 'twitter', 'tiktok', 'snapchat', 'social media',
+            'how to post', 'followers', 'likes', 'viral', 'trending',
+            # Other Educational Topics (not TCC)
+            'how to learn', 'online course', 'tutorial', 'certification', 'skill',
+            'language learning', 'how to speak', 'grammar', 'vocabulary',
+            # Miscellaneous
+            'joke', 'funny', 'meme', 'quote', 'inspirational', 'motivation',
+            'horoscope', 'zodiac', 'fortune', 'prediction', 'astrology',
+            'how to', 'tips for', 'tricks', 'life hack', 'productivity',
+            'fashion', 'style', 'outfit', 'makeup', 'beauty', 'skincare',
+            'pet', 'dog', 'cat', 'animal', 'pet care', 'veterinary',
         ]
         
         # TCC-related keywords that indicate the question IS on-topic
