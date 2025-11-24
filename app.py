@@ -1727,6 +1727,91 @@ def predict():
             'how to', 'tips for', 'tricks', 'life hack', 'productivity',
             'fashion', 'style', 'outfit', 'makeup', 'beauty', 'skincare',
             'pet', 'dog', 'cat', 'animal', 'pet care', 'veterinary',
+            # Science and Physics (not TCC-related)
+            'quantum physics', 'einstein', 'theory of relativity', 'black hole',
+            'atoms', 'molecules', 'chemistry', 'periodic table', 'elements',
+            'biology', 'evolution', 'dna', 'genetics', 'photosynthesis',
+            'astronomy', 'planets', 'stars', 'galaxy', 'universe', 'space',
+            # Literature and Books
+            'book recommendation', 'novel', 'author', 'poetry', 'poem',
+            'best books', 'reading list', 'literature', 'classic books',
+            # Religion and Philosophy
+            'religion', 'god', 'bible', 'quran', 'buddhism', 'hinduism',
+            'philosophy', 'meaning of life', 'existentialism', 'ethics',
+            # Home and DIY
+            'home improvement', 'diy', 'how to fix', 'plumbing', 'electrical',
+            'carpentry', 'renovation', 'furniture', 'interior design', 'decorating',
+            # Career and Jobs (non-TCC)
+            'job interview', 'resume', 'cv', 'cover letter', 'salary negotiation',
+            'career change', 'job search', 'work from home', 'remote work',
+            'freelance', 'job application', 'interview tips', 'career advice',
+            # Relationships and Dating
+            'first date', 'dating tips', 'how to flirt', 'pickup lines',
+            'long distance relationship', 'cheating', 'trust issues',
+            # Mental Health (non-TCC counseling)
+            'therapy', 'psychologist', 'psychiatrist', 'mental health',
+            'anxiety attack', 'panic attack', 'ocd', 'adhd', 'bipolar',
+            'suicide', 'self harm', 'trauma', 'ptsd', 'eating disorder',
+            # Fitness and Exercise
+            'weight loss', 'muscle gain', 'bodybuilding', 'cardio', 'yoga',
+            'pilates', 'crossfit', 'marathon', 'running', 'cycling',
+            'protein', 'supplements', 'nutrition', 'calories', 'macros',
+            # Beauty and Cosmetics
+            'haircut', 'hairstyle', 'nail art', 'tattoo', 'piercing',
+            'cosmetics', 'makeup tutorial', 'skincare routine', 'anti-aging',
+            # Home and Garden
+            'gardening', 'plants', 'flowers', 'vegetables', 'herbs',
+            'lawn care', 'landscaping', 'compost', 'fertilizer',
+            # Automotive
+            'car', 'vehicle', 'automobile', 'car repair', 'oil change',
+            'tire', 'engine', 'transmission', 'car insurance', 'driving test',
+            # Real Estate
+            'buy house', 'sell house', 'rent apartment', 'mortgage rate',
+            'real estate', 'property', 'home loan', 'housing market',
+            # Parenting and Family
+            'pregnancy', 'baby', 'toddler', 'parenting', 'childcare',
+            'breastfeeding', 'potty training', 'school choice', 'homeschooling',
+            # Hobbies and Crafts
+            'knitting', 'crochet', 'sewing', 'painting', 'drawing',
+            'photography', 'scrapbooking', 'woodworking', 'pottery',
+            # Music and Instruments
+            'guitar', 'piano', 'violin', 'drums', 'music theory',
+            'songwriting', 'music production', 'dj', 'concert', 'festival',
+            # Movies and TV
+            'netflix series', 'disney plus', 'hbo', 'prime video',
+            'movie review', 'tv series', 'documentary', 'comedy', 'horror',
+            # Gaming and Esports
+            'minecraft', 'fortnite', 'league of legends', 'valorant',
+            'csgo', 'dota', 'overwatch', 'apex legends', 'call of duty',
+            'gaming setup', 'streaming', 'twitch', 'youtube gaming',
+            # Technology Brands and Products
+            'apple', 'samsung', 'google', 'microsoft', 'nvidia', 'amd',
+            'intel', 'dell', 'hp', 'lenovo', 'asus', 'acer',
+            # Social Issues and Politics
+            'climate change', 'global warming', 'environment', 'pollution',
+            'immigration', 'refugee', 'human rights', 'activism',
+            # Business and Entrepreneurship (non-TCC)
+            'business plan', 'marketing strategy', 'branding', 'advertising',
+            'ecommerce', 'dropshipping', 'affiliate marketing', 'seo',
+            'social media marketing', 'content marketing', 'email marketing',
+            # Cooking and Cuisine
+            'pasta recipe', 'pizza recipe', 'baking recipe', 'dessert',
+            'cocktail', 'wine', 'beer', 'coffee', 'tea', 'smoothie',
+            # Time and Calendar
+            'what day is', 'what time is', 'timezone', 'calendar',
+            'holiday', 'festival', 'celebration', 'birthday',
+            # Language and Translation (non-TCC)
+            'translate to', 'what does mean', 'dictionary', 'thesaurus',
+            'synonym', 'antonym', 'pronunciation', 'grammar check',
+            # Random Questions
+            'why is the sky blue', 'how do birds fly', 'what is love',
+            'meaning of life', 'what happens after death', 'do aliens exist',
+            # Internet and Web
+            'domain name', 'web hosting', 'ssl certificate', 'seo optimization',
+            'google ads', 'facebook ads', 'instagram ads', 'social media ads',
+            # Personal Development (non-TCC)
+            'self improvement', 'confidence', 'public speaking', 'leadership',
+            'time management', 'goal setting', 'meditation', 'mindfulness',
         ]
         
         # TCC-related keywords that indicate the question IS on-topic
